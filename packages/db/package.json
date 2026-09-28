@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@geekstore/config": "workspace:*",
+    "@types/node": "^24.0.0",
     "prisma": "7.10.0",
     "typescript": "^7.0.2"
   }
