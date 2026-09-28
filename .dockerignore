@@ -1,0 +1,16 @@
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/generated
+.git
+.github
+docs
+.claude
+.idea
+.vscode
+**/.env
+**/.env.*
+!**/.env.example
+**/*.log
+.DS_Store
