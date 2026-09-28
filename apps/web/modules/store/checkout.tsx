@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Check, CreditCard, LockKeyhole, Trash2, Truck } 
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Action, Field, Quantity } from '@/components/ui';
 import { money, pixPrice, products } from '@/lib/catalog';
 import { getMascot } from '@/lib/mascot';
@@ -18,8 +19,21 @@ const FREE_SHIPPING_THRESHOLD = 299;
 const COUPON_DISCOUNT_RATE = 0.1;
 const VALID_COUPON = 'GEEK10';
 
+type CheckoutContactFormValues = {
+  name: string;
+  email: string;
+  phone?: string;
+  cep: string;
+  street: string;
+  number: string;
+  extra?: string;
+  city: string;
+  state: string;
+};
+
 export function Checkout() {
   const store = useCartStore();
+  const { control, handleSubmit } = useForm<CheckoutContactFormValues>();
   const [step, setStep] = useState(0);
   const [coupon, setCoupon] = useState('');
   const [applied, setApplied] = useState(false);
@@ -75,8 +89,7 @@ export function Checkout() {
       </section>
     );
 
-  const submitStep = (event: React.FormEvent) => {
-    event.preventDefault();
+  const submitStep = () => {
     if (step < 2) setStep(step + 1);
     else setComplete(true);
   };
@@ -124,16 +137,23 @@ export function Checkout() {
               </button>
             ))}
           </div>
-          <form className="checkout-form surface" onSubmit={submitStep}>
+          <form className="checkout-form surface" onSubmit={handleSubmit(submitStep)}>
             <fieldset hidden={step !== 0} disabled={step !== 0}>
               <h2>Como podemos falar com você?</h2>
               <p className="muted">Continue como visitante. Não é necessário criar uma conta.</p>
               <div className="form-grid">
-                <Field label="Nome de exemplo" name="name" autoComplete="off" />
-                <Field label="E-mail de exemplo" name="email" type="email" autoComplete="off" />
+                <Field control={control} name="name" label="Nome de exemplo" autoComplete="off" />
                 <Field
-                  label="Telefone (opcional)"
+                  control={control}
+                  name="email"
+                  label="E-mail de exemplo"
+                  type="email"
+                  autoComplete="off"
+                />
+                <Field
+                  control={control}
                   name="phone"
+                  label="Telefone (opcional)"
                   type="tel"
                   required={false}
                   autoComplete="off"
@@ -143,12 +163,17 @@ export function Checkout() {
             <fieldset hidden={step !== 1} disabled={step !== 1}>
               <h2>Onde sua coleção vai chegar?</h2>
               <div className="form-grid">
-                <Field label="CEP (00000-000)" name="cep" pattern="[0-9]{5}-?[0-9]{3}" />
-                <Field label="Rua" name="street" />
-                <Field label="Número" name="number" />
-                <Field label="Complemento" name="extra" required={false} />
-                <Field label="Cidade" name="city" />
-                <Field label="Estado (UF)" name="state" pattern="[A-Za-z]{2}" />
+                <Field
+                  control={control}
+                  name="cep"
+                  label="CEP (00000-000)"
+                  pattern="[0-9]{5}-?[0-9]{3}"
+                />
+                <Field control={control} name="street" label="Rua" />
+                <Field control={control} name="number" label="Número" />
+                <Field control={control} name="extra" label="Complemento" required={false} />
+                <Field control={control} name="city" label="Cidade" />
+                <Field control={control} name="state" label="Estado (UF)" pattern="[A-Za-z]{2}" />
               </div>
               <fieldset className="choice-list">
                 <legend>Entrega simulada</legend>

@@ -4,28 +4,32 @@ import { ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Action, Field } from '@/components/ui';
 import { getMascot } from '@/lib/mascot';
 
 const MIN_PASSWORD_LENGTH = 8;
 
+type AccountFormValues = {
+  name?: string;
+  email: string;
+  password: string;
+  confirm?: string;
+};
+
 export function Account({ register = false }: { register?: boolean }) {
   const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const { control, handleSubmit, reset, setError } = useForm<AccountFormValues>();
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    if (register && data.get('password') !== data.get('confirm')) {
-      setError('As senhas devem ser iguais.');
-      setMessage('');
+  const submit = (data: AccountFormValues) => {
+    if (register && data.password !== data.confirm) {
+      setError('confirm', { message: 'As senhas devem ser iguais.' });
       return;
     }
-    setError('');
     setMessage(
       'Formulário validado. A API de autenticação ainda precisa ser conectada; nenhuma conta ou sessão real foi criada.'
     );
-    event.currentTarget.reset();
+    reset();
   };
 
   return (
@@ -57,29 +61,28 @@ export function Account({ register = false }: { register?: boolean }) {
             Prévia de interface: autenticação ainda não conectada. Use apenas dados e senhas
             fictícios. Nada será enviado ou salvo.
           </p>
-          <form onSubmit={submit}>
-            {register && <Field label="Nome" name="name" minLength={3} autoComplete="off" />}
-            <Field label="E-mail" name="email" type="email" autoComplete="off" />
+          <form onSubmit={handleSubmit(submit)}>
+            {register && (
+              <Field control={control} name="name" label="Nome" minLength={3} autoComplete="off" />
+            )}
+            <Field control={control} name="email" label="E-mail" type="email" autoComplete="off" />
             <Field
-              label={`Senha de teste (mínimo ${MIN_PASSWORD_LENGTH} caracteres)`}
+              control={control}
               name="password"
+              label={`Senha de teste (mínimo ${MIN_PASSWORD_LENGTH} caracteres)`}
               type="password"
               minLength={MIN_PASSWORD_LENGTH}
               autoComplete="off"
             />
             {register && (
               <Field
-                label="Confirmar senha"
+                control={control}
                 name="confirm"
+                label="Confirmar senha"
                 type="password"
                 minLength={MIN_PASSWORD_LENGTH}
                 autoComplete="off"
               />
-            )}
-            {error && (
-              <p className="error" role="alert">
-                {error}
-              </p>
             )}
             <Action type="submit" className="full">
               {register ? 'Testar cadastro' : 'Testar entrada'} <ArrowRight size={18} />

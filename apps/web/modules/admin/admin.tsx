@@ -21,8 +21,12 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { Action, Dialog, Field } from '@/components/ui';
 import { money, type Product, products } from '@/lib/catalog';
+
+type BannerFormValues = { campaign: string; title: string; link: string };
+type EditProductFormValues = { name: string; price: number; stock: number };
 
 const ADMIN_TABS = [
   { name: 'Produtos', icon: Package },
@@ -38,6 +42,12 @@ export function Admin() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [editing, setEditing] = useState<Product | null>(null);
   const [notice, setNotice] = useState('');
+  const { control: bannerControl, handleSubmit: handleBannerSubmit } = useForm<BannerFormValues>();
+  const { control: editControl, handleSubmit: handleEditSubmit } = useForm<EditProductFormValues>({
+    values: editing
+      ? { name: editing.name, price: editing.price, stock: editing.stock }
+      : undefined,
+  });
 
   const columns: ColumnDef<Product>[] = [
     {
@@ -79,29 +89,15 @@ export function Admin() {
     getSortedRowModel: getSortedRowModel(),
   });
 
-  const submitBanner = (event: React.FormEvent) => {
-    event.preventDefault();
+  const submitBanner = () => {
     setNotice(
       'Configuração validada. Para publicar campanhas pelo admin, conecte a API e o armazenamento de imagens.'
     );
   };
 
-  const submitEdit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submitEdit = (data: EditProductFormValues) => {
     if (!editing) return;
-    const data = new FormData(event.currentTarget);
-    setRows((current) =>
-      current.map((p) =>
-        p.id === editing.id
-          ? {
-              ...p,
-              name: String(data.get('name')),
-              price: Number(data.get('price')),
-              stock: Number(data.get('stock')),
-            }
-          : p
-      )
-    );
+    setRows((current) => current.map((p) => (p.id === editing.id ? { ...p, ...data } : p)));
     setEditing(null);
   };
 
@@ -180,12 +176,12 @@ export function Admin() {
           </div>
         </>
       ) : tab === 'Banners' ? (
-        <form className="surface admin-banner" onSubmit={submitBanner}>
+        <form className="surface admin-banner" onSubmit={handleBannerSubmit(submitBanner)}>
           <h2>Planeje sua próxima campanha</h2>
           <p className="muted">Campos de referência para a futura gestão de banners.</p>
-          <Field label="Nome da campanha" name="campaign" />
-          <Field label="Título" name="title" />
-          <Field label="Link de destino" name="link" />
+          <Field control={bannerControl} name="campaign" label="Nome da campanha" />
+          <Field control={bannerControl} name="title" label="Título" />
+          <Field control={bannerControl} name="link" label="Link de destino" />
           <label className="form-field">
             Imagem da campanha
             <input type="file" accept="image/png,image/jpeg,image/webp" />
@@ -215,31 +211,55 @@ export function Admin() {
         title="Editar produto de exemplo"
       >
         {editing && (
-          <form className="edit-form" onSubmit={submitEdit}>
-            <label>
+          <form className="edit-form" onSubmit={handleEditSubmit(submitEdit)}>
+            <label htmlFor="edit-product-name">
               Nome
-              <input name="name" required defaultValue={editing.name} />
-            </label>
-            <label>
-              Preço
-              <input
-                name="price"
-                required
-                type="number"
-                min="0.01"
-                step="0.01"
-                defaultValue={editing.price}
+              <Controller
+                control={editControl}
+                name="name"
+                render={({ field }) => <input id="edit-product-name" {...field} required />}
               />
             </label>
-            <label>
+            <label htmlFor="edit-product-price">
+              Preço
+              <Controller
+                control={editControl}
+                name="price"
+                render={({ field }) => (
+                  <input
+                    id="edit-product-price"
+                    name={field.name}
+                    ref={field.ref}
+                    value={field.value}
+                    onBlur={field.onBlur}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    required
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                  />
+                )}
+              />
+            </label>
+            <label htmlFor="edit-product-stock">
               Estoque
-              <input
+              <Controller
+                control={editControl}
                 name="stock"
-                required
-                type="number"
-                min="0"
-                step="1"
-                defaultValue={editing.stock}
+                render={({ field }) => (
+                  <input
+                    id="edit-product-stock"
+                    name={field.name}
+                    ref={field.ref}
+                    value={field.value}
+                    onBlur={field.onBlur}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    required
+                    type="number"
+                    min="0"
+                    step="1"
+                  />
+                )}
               />
             </label>
             <Action type="submit">Aplicar à prévia</Action>

@@ -1,38 +1,34 @@
 'use client';
 
+import { type AuthLoginBody, authLoginBodySchema } from '@geekstore/shared';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 
 import { Action, Field } from '@/components/ui';
 import { login } from './lib/auth-client';
 import { useAdminAuthStore } from './state/auth-store';
 
-const MIN_PASSWORD_LENGTH = 8;
-
 export function AdminLogin() {
   const router = useRouter();
   const setSession = useAdminAuthStore((state) => state.setSession);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState('');
+  const {
+    control,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<AuthLoginBody>({ resolver: zodResolver(authLoginBodySchema) });
 
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError('');
-    setLoading(true);
-    const data = new FormData(event.currentTarget);
-
+  const submit = async (data: AuthLoginBody) => {
+    setFormError('');
     try {
-      const session = await login({
-        email: String(data.get('email')),
-        password: String(data.get('password')),
-      });
+      const session = await login(data);
       setSession(session.accessToken, session.user);
       router.replace('/admin/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível entrar.');
-    } finally {
-      setLoading(false);
+      setFormError(err instanceof Error ? err.message : 'Não foi possível entrar.');
     }
   };
 
@@ -41,22 +37,22 @@ export function AdminLogin() {
       <div className="surface admin-login-card">
         <p className="eyebrow orange">GeekStore Studio</p>
         <h1 className="section-title">Entrar no painel</h1>
-        <form onSubmit={submit}>
-          <Field label="E-mail" name="email" type="email" autoComplete="off" />
+        <form onSubmit={handleSubmit(submit)}>
+          <Field control={control} name="email" label="E-mail" type="email" autoComplete="off" />
           <Field
-            label="Senha"
+            control={control}
             name="password"
+            label="Senha"
             type="password"
-            minLength={MIN_PASSWORD_LENGTH}
             autoComplete="off"
           />
-          {error && (
+          {formError && (
             <p className="error" role="alert">
-              {error}
+              {formError}
             </p>
           )}
-          <Action type="submit" className="full" disabled={loading}>
-            {loading ? 'Entrando…' : 'Entrar'} <ArrowRight size={18} />
+          <Action type="submit" className="full" disabled={isSubmitting}>
+            {isSubmitting ? 'Entrando…' : 'Entrar'} <ArrowRight size={18} />
           </Action>
         </form>
       </div>
