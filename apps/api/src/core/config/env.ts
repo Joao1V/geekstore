@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { z } from 'zod';
 
 const envSchema = z.object({
@@ -9,6 +10,14 @@ const envSchema = z.object({
     .pipe(z.number().int().positive()),
   HOST: z.string().default('0.0.0.0'),
   CORS_ORIGINS: z.string().default(''),
+  JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET deve ter pelo menos 32 caracteres'),
+  JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
+  REFRESH_TOKEN_TTL_DAYS: z
+    .string()
+    .default('30')
+    .transform((val) => Number.parseInt(val, 10))
+    .pipe(z.number().int().positive()),
+  COOKIE_SECRET: z.string().min(32, 'COOKIE_SECRET deve ter pelo menos 32 caracteres'),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -41,5 +50,17 @@ export const envConfig = {
           .filter(Boolean)
       : [];
     return { ORIGINS: origins };
+  },
+  get jwt() {
+    const { JWT_ACCESS_SECRET, JWT_ACCESS_EXPIRES_IN } = getEnv();
+    return { ACCESS_SECRET: JWT_ACCESS_SECRET, ACCESS_EXPIRES_IN: JWT_ACCESS_EXPIRES_IN };
+  },
+  get cookie() {
+    const { COOKIE_SECRET } = getEnv();
+    return { SECRET: COOKIE_SECRET };
+  },
+  get auth() {
+    const { REFRESH_TOKEN_TTL_DAYS } = getEnv();
+    return { REFRESH_TOKEN_TTL_DAYS };
   },
 };

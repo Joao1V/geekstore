@@ -6,3 +6,30 @@ generator client {
 datasource db {
   provider = "mysql"
 }
+
+model User {
+  user_id       String   @id @default(uuid(7)) @db.Char(36)
+  email         String   @unique @db.VarChar(255)
+  password_hash String   @db.VarChar(255)
+  name          String   @db.VarChar(255)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  refresh_tokens RefreshToken[]
+
+  @@map("user")
+}
+
+model RefreshToken {
+  refresh_token_id String    @id @default(uuid(7)) @db.Char(36)
+  user_id          String    @db.Char(36)
+  token_hash       String    @unique @db.Char(64)
+  expires_at       DateTime
+  revoked_at       DateTime?
+  created_at       DateTime  @default(now())
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("refresh_token")
+}

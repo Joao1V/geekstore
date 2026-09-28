@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyError, FastifyInstance, FastifyRequest } from 'fastify';
 import {
   hasZodFastifySchemaValidationErrors,
   isResponseSerializationError,
@@ -88,6 +88,25 @@ export const errorHandler: FastifyErrorHandler = (error, request: FastifyRequest
     return reply
       .status(error.status_code)
       .send(buildErrorBody(error.error, error.code, error.message));
+  }
+
+  // Erros lançados pelo próprio Fastify ou por plugins oficiais (ex.: @fastify/rate-limit,
+  // limite de payload, rota não encontrada) trazem `statusCode` em vez de serem um AppError.
+  const fastifyError = error as FastifyError;
+  if (
+    typeof fastifyError.statusCode === 'number' &&
+    fastifyError.statusCode >= 400 &&
+    fastifyError.statusCode < 500
+  ) {
+    return reply
+      .status(fastifyError.statusCode)
+      .send(
+        buildErrorBody(
+          fastifyError.name ?? 'Error',
+          fastifyError.code ?? 'request_error',
+          fastifyError.message
+        )
+      );
   }
 
   request.log.error({ err: error }, 'Unexpected error');

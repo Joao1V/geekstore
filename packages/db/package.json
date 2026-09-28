@@ -8,17 +8,20 @@
   "scripts": {
     "build": "prisma generate",
     "generate": "prisma generate",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "7.10.0",
     "@prisma/client": "7.10.0",
+    "argon2": "^0.41.1",
     "dotenv": "^17.4.2"
   },
   "devDependencies": {
     "@geekstore/config": "workspace:*",
     "@types/node": "^24.0.0",
     "prisma": "7.10.0",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   }
 }

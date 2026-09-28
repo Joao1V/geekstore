@@ -8,13 +8,20 @@
     "build": "tsup",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.3.0",
+    "@fastify/jwt": "^9.0.4",
+    "@fastify/rate-limit": "^10.2.2",
     "@fastify/swagger": "^9.8.1",
     "@fastify/swagger-ui": "^6.1.1",
+    "@geekstore/db": "workspace:*",
     "@geekstore/shared": "workspace:*",
+    "argon2": "^0.41.1",
+    "dotenv": "^17.4.2",
     "fastify": "^5.12.5",
     "fastify-plugin": "^6.0.0",
     "fastify-type-provider-zod": "^7.0.0",
