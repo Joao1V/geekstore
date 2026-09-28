@@ -1,0 +1,21 @@
+{
+  "name": "geekstore",
+  "private": true,
+  "packageManager": "pnpm@12.4.2",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
+    "turbo": "^2.10.13",
+    "typescript": "^7.0.2"
+  }
+}

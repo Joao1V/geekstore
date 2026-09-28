@@ -1,0 +1,9 @@
+node_modules/
+.sites-runtime/
+*.tar.gz
+.next/
+out/
+dist/
+*.tsbuildinfo
+.env*
+!.env.example

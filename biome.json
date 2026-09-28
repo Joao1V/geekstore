@@ -1,0 +1,105 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": ["**", "!**/generated", "!apps/web/public"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "complexity": {
+        "noBannedTypes": "error",
+        "noUselessTypeConstraint": "error",
+        "noStaticOnlyClass": "off"
+      },
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error",
+        "noUnusedFunctionParameters": "off"
+      },
+      "style": {
+        "noParameterAssign": "error",
+        "useConst": "error"
+      },
+      "suspicious": {
+        "noExplicitAny": "error"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "always"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/web/app/(store)/**", "apps/web/modules/store/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/modules/admin/**", "@/app/(admin)/**"],
+                    "message": "Código da loja não pode importar do admin (D2, apps/web APP_MODE)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/app/(admin)/**", "apps/web/modules/admin/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/modules/store/**", "@/app/(store)/**"],
+                    "message": "Código do admin não pode importar da loja (D2, apps/web APP_MODE)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
+}
