@@ -9,6 +9,7 @@ import {
 } from 'fastify-type-provider-zod';
 
 import { errorHandler } from './core/_errors';
+import { envConfig } from './core/config';
 import { cookiePlugin } from './core/plugins/cookie.plugin';
 import { corsPlugin } from './core/plugins/cors.plugin';
 import { jwtPlugin } from './core/plugins/jwt.plugin';
@@ -17,7 +18,20 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { healthPlugin } from './modules/health/health.plugin';
 
 export function buildApp() {
-  const app = Fastify({ logger: true });
+  const { NODE_ENV } = envConfig.server;
+
+  const app = Fastify({
+    logger: {
+      level: NODE_ENV === 'production' ? 'info' : 'debug',
+      transport:
+        NODE_ENV === 'development'
+          ? {
+              target: 'pino-pretty',
+              options: { colorize: true, translateTime: 'HH:MM:ss', ignore: 'pid,hostname' },
+            }
+          : undefined,
+    },
+  });
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
