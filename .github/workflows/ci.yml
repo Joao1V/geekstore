@@ -9,6 +9,10 @@ env:
   # prisma generate (packages/db) só lê o schema, não precisa de um banco real —
   # mas o prisma.config.ts exige DATABASE_URL definido pra não falhar ao carregar.
   DATABASE_URL: mysql://geekstore:geekstore@localhost:3306/geekstore
+  # Só o teste de integração importa auth.service.ts, que exige essas vars via envConfig
+  # (env.ts valida o schema inteiro) — valores fixos de CI, nunca usados fora daqui.
+  JWT_ACCESS_SECRET: ci-only-jwt-secret-not-used-anywhere-else-000000
+  COOKIE_SECRET: ci-only-cookie-secret-not-used-anywhere-else-0000
 
 jobs:
   ci:
