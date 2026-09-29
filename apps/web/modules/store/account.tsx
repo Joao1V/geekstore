@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Action, Field } from '@/components/ui';
 import { getMascot } from '@/lib/mascot';
 
@@ -63,25 +63,61 @@ export function Account({ register = false }: { register?: boolean }) {
           </p>
           <form onSubmit={handleSubmit(submit)}>
             {register && (
-              <Field control={control} name="name" label="Nome" minLength={3} autoComplete="off" />
+              <Controller
+                control={control}
+                name="name"
+                render={({ field, fieldState }) => (
+                  <Field
+                    field={field}
+                    fieldState={fieldState}
+                    label="Nome"
+                    minLength={3}
+                    autoComplete="off"
+                  />
+                )}
+              />
             )}
-            <Field control={control} name="email" label="E-mail" type="email" autoComplete="off" />
-            <Field
+            <Controller
+              control={control}
+              name="email"
+              render={({ field, fieldState }) => (
+                <Field
+                  field={field}
+                  fieldState={fieldState}
+                  label="E-mail"
+                  type="email"
+                  autoComplete="off"
+                />
+              )}
+            />
+            <Controller
               control={control}
               name="password"
-              label={`Senha de teste (mínimo ${MIN_PASSWORD_LENGTH} caracteres)`}
-              type="password"
-              minLength={MIN_PASSWORD_LENGTH}
-              autoComplete="off"
+              render={({ field, fieldState }) => (
+                <Field
+                  field={field}
+                  fieldState={fieldState}
+                  label={`Senha de teste (mínimo ${MIN_PASSWORD_LENGTH} caracteres)`}
+                  type="password"
+                  minLength={MIN_PASSWORD_LENGTH}
+                  autoComplete="off"
+                />
+              )}
             />
             {register && (
-              <Field
+              <Controller
                 control={control}
                 name="confirm"
-                label="Confirmar senha"
-                type="password"
-                minLength={MIN_PASSWORD_LENGTH}
-                autoComplete="off"
+                render={({ field, fieldState }) => (
+                  <Field
+                    field={field}
+                    fieldState={fieldState}
+                    label="Confirmar senha"
+                    type="password"
+                    minLength={MIN_PASSWORD_LENGTH}
+                    autoComplete="off"
+                  />
+                )}
               />
             )}
             <Action type="submit" className="full">

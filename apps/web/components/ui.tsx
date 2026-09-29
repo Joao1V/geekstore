@@ -11,8 +11,12 @@ import {
 } from '@heroui/react';
 import { Minus, Plus, X } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { Control, FieldPath, FieldValues } from 'react-hook-form';
-import { Controller } from 'react-hook-form';
+import type {
+  ControllerFieldState,
+  ControllerRenderProps,
+  FieldPath,
+  FieldValues,
+} from 'react-hook-form';
 
 export function Action({
   children,
@@ -112,13 +116,14 @@ export function Dialog({
 }
 
 /**
- * Toda entrada de formulário do sistema passa por aqui: envolve o campo num
- * <Controller> do react-hook-form e deriva isInvalid/errorMessage do fieldState,
- * pra nenhum form repetir essa lógica manualmente. Ver skill `form-fields`.
+ * A parte apresentacional de todo campo de formulário do sistema — o chamador envolve isto
+ * num <Controller> do react-hook-form e repassa `field`/`fieldState` do render prop; Field só
+ * deriva isInvalid/errorMessage de `fieldState`, pra nenhum form repetir essa lógica manualmente.
+ * Ver skill `form-fields`.
  */
-export function Field<TFieldValues extends FieldValues>({
-  control,
-  name,
+export function Field<TFieldValues extends FieldValues, TName extends FieldPath<TFieldValues>>({
+  field,
+  fieldState,
   label,
   description,
   type = 'text',
@@ -127,8 +132,8 @@ export function Field<TFieldValues extends FieldValues>({
   pattern,
   minLength,
 }: {
-  control: Control<TFieldValues>;
-  name: FieldPath<TFieldValues>;
+  field: ControllerRenderProps<TFieldValues, TName>;
+  fieldState: ControllerFieldState;
   label: string;
   description?: string;
   type?: 'text' | 'email' | 'password' | 'tel';
@@ -138,32 +143,26 @@ export function Field<TFieldValues extends FieldValues>({
   minLength?: number;
 }) {
   return (
-    <Controller
-      control={control}
-      name={name}
-      render={({ field, fieldState }) => (
-        <HeroTextField
-          name={field.name}
-          type={type}
-          isRequired={required}
-          isInvalid={fieldState.invalid}
-          className="form-field"
-        >
-          <Label>{label}</Label>
-          <Input
-            ref={field.ref}
-            value={(field.value ?? '') as string}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-            autoComplete={autoComplete}
-            pattern={pattern}
-            minLength={minLength}
-            className="field-input"
-          />
-          {description && !fieldState.error && <Description>{description}</Description>}
-          <FieldError>{fieldState.error?.message}</FieldError>
-        </HeroTextField>
-      )}
-    />
+    <HeroTextField
+      name={field.name}
+      type={type}
+      isRequired={required}
+      isInvalid={fieldState.invalid}
+      className="form-field"
+    >
+      <Label>{label}</Label>
+      <Input
+        ref={field.ref}
+        value={(field.value ?? '') as string}
+        onChange={field.onChange}
+        onBlur={field.onBlur}
+        autoComplete={autoComplete}
+        pattern={pattern}
+        minLength={minLength}
+        className="field-input"
+      />
+      {description && !fieldState.error && <Description>{description}</Description>}
+      <FieldError>{fieldState.error?.message}</FieldError>
+    </HeroTextField>
   );
 }

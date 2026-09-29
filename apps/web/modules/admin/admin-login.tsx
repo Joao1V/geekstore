@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 
 import { Action, Field } from '@/components/ui';
 import { login } from './lib/auth-client';
@@ -38,13 +38,31 @@ export function AdminLogin() {
         <p className="eyebrow orange">GeekStore Studio</p>
         <h1 className="section-title">Entrar no painel</h1>
         <form onSubmit={handleSubmit(submit)}>
-          <Field control={control} name="email" label="E-mail" type="email" autoComplete="off" />
-          <Field
+          <Controller
+            control={control}
+            name="email"
+            render={({ field, fieldState }) => (
+              <Field
+                field={field}
+                fieldState={fieldState}
+                label="E-mail"
+                type="email"
+                autoComplete="off"
+              />
+            )}
+          />
+          <Controller
             control={control}
             name="password"
-            label="Senha"
-            type="password"
-            autoComplete="off"
+            render={({ field, fieldState }) => (
+              <Field
+                field={field}
+                fieldState={fieldState}
+                label="Senha"
+                type="password"
+                autoComplete="off"
+              />
+            )}
           />
           {formError && (
             <p className="error" role="alert">

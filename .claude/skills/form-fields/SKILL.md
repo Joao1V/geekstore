@@ -1,6 +1,6 @@
 ---
 name: form-fields
-description: Use whenever a new form is added anywhere in apps/web (store or admin), or an existing form is touched. Every form must use react-hook-form with each field wrapped in <Controller>, through the shared Field component in components/ui.tsx — never a bare <form onSubmit> reading FormData, and never a field that manually re-derives isInvalid/errorMessage from parallel useState.
+description: Use whenever a new form is added anywhere in apps/web (store or admin), or an existing form is touched. Every field must be wrapped in an explicit <Controller>, passing its field/fieldState render-prop args straight into the shared Field component in components/ui.tsx — never a bare <form onSubmit> reading FormData, and never a field that manually re-derives isInvalid/errorMessage from parallel useState.
 ---
 
 # Forms: react-hook-form + Controller, always
@@ -8,11 +8,13 @@ description: Use whenever a new form is added anywhere in apps/web (store or adm
 ## Rule (no exceptions)
 
 Every form in `apps/web` — store or admin, connected to a real API or still a local demo —
-is built with react-hook-form's `useForm()`, and every individual field is wired through
-`<Controller>`, never through `register()` + a plain HTML `<input>`. This project's inputs are
-HeroUI v3 components built on `react-aria-components` (`TextField`/`Input`/`Label`), which don't
-forward a plain DOM ref the way `register()` expects — `Controller`'s `field.ref`/`field.onChange`
-render-prop is what actually works with them, not a project style preference.
+is built with react-hook-form's `useForm()`, and every individual field is wrapped in an
+explicit `<Controller>` **in the form's own JSX** — never through `register()` + a plain HTML
+`<input>`, and never with `Controller` hidden inside a shared component. This project's inputs
+are HeroUI v3 components built on `react-aria-components` (`TextField`/`Input`/`Label`), which
+don't forward a plain DOM ref the way `register()` expects — `Controller`'s
+`field.ref`/`field.onChange` render-prop is what actually works with them, not a project style
+preference.
 
 **Why this matters enough to be a hard rule:** without it, every form re-invents the same few
 lines — a `useState` for the error message, a manual `if (error) <p className="error">` block,
@@ -22,27 +24,32 @@ component below exists to kill. A new form that skips `Field`/`Controller` reint
 ## The shared `Field` component
 
 `apps/web/components/ui.tsx` exports `Field` — the only text-input component forms should use.
-It keeps a flat, HeroUI-v2-like prop surface on the outside (`label`, `description`, plus
-whatever HTML attributes the input needs) while doing the compound-component wiring and the
-error/description slotting internally:
+It's presentational only: it takes the `field`/`fieldState` pair straight from a `Controller`
+render prop, plus a flat, HeroUI-v2-like set of display props (`label`, `description`, whatever
+HTML attributes the input needs) — the caller always supplies the `<Controller>`:
 
 ```tsx
-<Field
-  control={control}          // from useForm()
-  name="email"                // must be a key of your form's values type
-  label="E-mail"
-  description="Usamos só para confirmar o pedido"  // optional, hidden automatically when there's an error
-  type="email"                 // 'text' | 'email' | 'password' | 'tel', default 'text'
-  autoComplete="off"
+<Controller
+  control={control}                 // from useForm()
+  name="email"                      // must be a key of your form's values type
+  render={({ field, fieldState }) => (
+    <Field
+      field={field}
+      fieldState={fieldState}
+      label="E-mail"
+      description="Usamos só para confirmar o pedido"  // optional, hidden automatically when there's an error
+      type="email"                   // 'text' | 'email' | 'password' | 'tel', default 'text'
+      autoComplete="off"
+    />
+  )}
 />
 ```
 
-Internally it wraps HeroUI's `TextField`/`Label`/`Input`/`Description`/`FieldError` in a
-`Controller` render prop, sets `isInvalid={fieldState.invalid}` on the `TextField`, and renders
-`fieldState.error?.message` through `FieldError` — the caller never passes `isInvalid` or
-`errorMessage` itself; it's always derived. Don't add those as props to `Field` — if a call site
-needs to force an error, do it through react-hook-form (`setError(name, { message })`), not a
-prop on `Field`.
+`Field` derives `isInvalid={fieldState.invalid}` and renders `fieldState.error?.message` through
+`FieldError` itself — the caller passes the whole `fieldState` object, never an `isInvalid` or
+`errorMessage` prop directly, so no form recomputes that by hand. If a call site needs to force
+an error, do it through react-hook-form (`setError(name, { message })`), which flows into
+`fieldState` the same way.
 
 `Field`'s `type` union only covers text-like inputs (`text`/`email`/`password`/`tel`). Don't
 stretch it to fit numeric/date/checkbox inputs — see "Fields `Field` doesn't cover" below.
@@ -58,7 +65,13 @@ stretch it to fit numeric/date/checkbox inputs — see "Fields `Field` doesn't c
   });
   ...
   <form onSubmit={handleSubmit(submit)}>
-    <Field control={control} name="email" label="E-mail" type="email" />
+    <Controller
+      control={control}
+      name="email"
+      render={({ field, fieldState }) => (
+        <Field field={field} fieldState={fieldState} label="E-mail" type="email" />
+      )}
+    />
   ```
   Any form whose shape already has (or should get) a Zod schema in `packages/shared` follows
   this pattern — resolver + shared schema, not hand-rolled validation.

@@ -179,9 +179,27 @@ export function Admin() {
         <form className="surface admin-banner" onSubmit={handleBannerSubmit(submitBanner)}>
           <h2>Planeje sua próxima campanha</h2>
           <p className="muted">Campos de referência para a futura gestão de banners.</p>
-          <Field control={bannerControl} name="campaign" label="Nome da campanha" />
-          <Field control={bannerControl} name="title" label="Título" />
-          <Field control={bannerControl} name="link" label="Link de destino" />
+          <Controller
+            control={bannerControl}
+            name="campaign"
+            render={({ field, fieldState }) => (
+              <Field field={field} fieldState={fieldState} label="Nome da campanha" />
+            )}
+          />
+          <Controller
+            control={bannerControl}
+            name="title"
+            render={({ field, fieldState }) => (
+              <Field field={field} fieldState={fieldState} label="Título" />
+            )}
+          />
+          <Controller
+            control={bannerControl}
+            name="link"
+            render={({ field, fieldState }) => (
+              <Field field={field} fieldState={fieldState} label="Link de destino" />
+            )}
+          />
           <label className="form-field">
             Imagem da campanha
             <input type="file" accept="image/png,image/jpeg,image/webp" />

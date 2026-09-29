@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, Check, CreditCard, LockKeyhole, Trash2, Truck } 
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Action, Field, Quantity } from '@/components/ui';
 import { money, pixPrice, products } from '@/lib/catalog';
 import { getMascot } from '@/lib/mascot';
@@ -142,38 +142,107 @@ export function Checkout() {
               <h2>Como podemos falar com você?</h2>
               <p className="muted">Continue como visitante. Não é necessário criar uma conta.</p>
               <div className="form-grid">
-                <Field control={control} name="name" label="Nome de exemplo" autoComplete="off" />
-                <Field
+                <Controller
+                  control={control}
+                  name="name"
+                  render={({ field, fieldState }) => (
+                    <Field
+                      field={field}
+                      fieldState={fieldState}
+                      label="Nome de exemplo"
+                      autoComplete="off"
+                    />
+                  )}
+                />
+                <Controller
                   control={control}
                   name="email"
-                  label="E-mail de exemplo"
-                  type="email"
-                  autoComplete="off"
+                  render={({ field, fieldState }) => (
+                    <Field
+                      field={field}
+                      fieldState={fieldState}
+                      label="E-mail de exemplo"
+                      type="email"
+                      autoComplete="off"
+                    />
+                  )}
                 />
-                <Field
+                <Controller
                   control={control}
                   name="phone"
-                  label="Telefone (opcional)"
-                  type="tel"
-                  required={false}
-                  autoComplete="off"
+                  render={({ field, fieldState }) => (
+                    <Field
+                      field={field}
+                      fieldState={fieldState}
+                      label="Telefone (opcional)"
+                      type="tel"
+                      required={false}
+                      autoComplete="off"
+                    />
+                  )}
                 />
               </div>
             </fieldset>
             <fieldset hidden={step !== 1} disabled={step !== 1}>
               <h2>Onde sua coleção vai chegar?</h2>
               <div className="form-grid">
-                <Field
+                <Controller
                   control={control}
                   name="cep"
-                  label="CEP (00000-000)"
-                  pattern="[0-9]{5}-?[0-9]{3}"
+                  render={({ field, fieldState }) => (
+                    <Field
+                      field={field}
+                      fieldState={fieldState}
+                      label="CEP (00000-000)"
+                      pattern="[0-9]{5}-?[0-9]{3}"
+                    />
+                  )}
                 />
-                <Field control={control} name="street" label="Rua" />
-                <Field control={control} name="number" label="Número" />
-                <Field control={control} name="extra" label="Complemento" required={false} />
-                <Field control={control} name="city" label="Cidade" />
-                <Field control={control} name="state" label="Estado (UF)" pattern="[A-Za-z]{2}" />
+                <Controller
+                  control={control}
+                  name="street"
+                  render={({ field, fieldState }) => (
+                    <Field field={field} fieldState={fieldState} label="Rua" />
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="number"
+                  render={({ field, fieldState }) => (
+                    <Field field={field} fieldState={fieldState} label="Número" />
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="extra"
+                  render={({ field, fieldState }) => (
+                    <Field
+                      field={field}
+                      fieldState={fieldState}
+                      label="Complemento"
+                      required={false}
+                    />
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="city"
+                  render={({ field, fieldState }) => (
+                    <Field field={field} fieldState={fieldState} label="Cidade" />
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="state"
+                  render={({ field, fieldState }) => (
+                    <Field
+                      field={field}
+                      fieldState={fieldState}
+                      label="Estado (UF)"
+                      pattern="[A-Za-z]{2}"
+                    />
+                  )}
+                />
               </div>
               <fieldset className="choice-list">
                 <legend>Entrega simulada</legend>
