@@ -44,7 +44,8 @@ Infra: Dokploy num VPS, Traefik, Cloudflare. Fila BullMQ + Redis. Busca Meilisea
 
 - Interface em pt-BR e BRL; identificadores de código em inglês; datas em UTC no banco.
 - Páginas da loja em Server Components por padrão. HeroUI só nas partes interativas, com import por componente.
-- Zustand só para UI e carrinho local; dados do servidor com React Query (prefetch no servidor e `HydrationBoundary`).
+- Zustand é o único estado global (UI, sessão, carrinho local); nada de `createContext`/`useContext` nem `useReducer` no nosso código (providers de libs como React Query e HeroUI são ok). Dados do servidor com React Query (prefetch no servidor e `HydrationBoundary`).
+- HeroUI v3 (`@heroui/react`): antes de usar ou customizar um componente, consulte a doc dele em markdown: índice https://www.heroui.com/react/llms.txt, componentes https://www.heroui.com/react/llms-components.txt, padrões https://www.heroui.com/react/llms-patterns.txt (página de cada componente: `https://heroui.com/en/docs/react/components/<nome>`). Não adivinhe props nem partes de compound components.
 - URLs da loja seguem o padrão da Tray (`/categoria/subcategoria/slug`). Mudou URL, atualize o mapa de redirects 301.
 - Migrações Prisma são versionadas; nunca editar migração já aplicada.
 - Testes: unitários do domínio, integração da API com banco de teste, E2E do checkout em Playwright.
@@ -56,6 +57,7 @@ Infra: Dokploy num VPS, Traefik, Cloudflare. Fila BullMQ + Redis. Busca Meilisea
 
 ## Como trabalhar
 
+- Referência da API: antes de assumir o formato de um payload, leia `docs/api/README.md` (por recurso, com as regras de negócio). É gerada da spec da `apps/api` (`/documentation/json`) pelo comando `/openapi-docs`; não edite à mão. Se o front precisa de algo que não está lá, é pedido ao backend.
 - Antes de implementar um módulo, leia a seção dele no @docs/SPEC.md e o critério de saída da fase.
 - Fase atual: F1. Atualize esta linha quando mudar de fase.
 - Comandos (raiz): `pnpm dev`, `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm lint:fix`, `pnpm format`. Por app: `pnpm --filter @geekstore/db generate` (Prisma client). Testes: preencher quando o primeiro existir.
