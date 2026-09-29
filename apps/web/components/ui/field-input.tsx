@@ -9,12 +9,15 @@ import type {
 } from 'react-hook-form';
 
 /**
- * A parte apresentacional de todo campo de formulário do sistema — o chamador envolve isto
- * num <Controller> do react-hook-form e repassa `field`/`fieldState` do render prop; Field só
+ * Campo de texto/email/senha/tel — a parte apresentacional. O chamador envolve isto num
+ * <Controller> do react-hook-form e repassa `field`/`fieldState` do render prop; FieldInput só
  * deriva isInvalid/errorMessage de `fieldState`, pra nenhum form repetir essa lógica manualmente.
- * Ver skill `form-fields`.
+ * Ver skill `form-fields`. Pra outros tipos de campo, ver os irmãos desta pasta (FieldSelect...).
  */
-export function Field<TFieldValues extends FieldValues, TName extends FieldPath<TFieldValues>>({
+export function FieldInput<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>,
+>({
   field,
   fieldState,
   label,

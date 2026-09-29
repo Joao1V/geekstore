@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
-import { Action, Field } from '@/components/ui';
+import { Action, FieldInput } from '@/components/ui';
 import { login } from './lib/auth-client';
 import { useAdminAuthStore } from './state/auth-store';
 
@@ -42,7 +42,7 @@ export function AdminLogin() {
             control={control}
             name="email"
             render={({ field, fieldState }) => (
-              <Field
+              <FieldInput
                 field={field}
                 fieldState={fieldState}
                 label="E-mail"
@@ -55,7 +55,7 @@ export function AdminLogin() {
             control={control}
             name="password"
             render={({ field, fieldState }) => (
-              <Field
+              <FieldInput
                 field={field}
                 fieldState={fieldState}
                 label="Senha"

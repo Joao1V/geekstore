@@ -22,7 +22,7 @@ import {
 import Image from 'next/image';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Action, Dialog, Field } from '@/components/ui';
+import { Action, Dialog, FieldInput } from '@/components/ui';
 import { money, type Product, products } from '@/lib/catalog';
 
 type BannerFormValues = { campaign: string; title: string; link: string };
@@ -183,21 +183,21 @@ export function Admin() {
             control={bannerControl}
             name="campaign"
             render={({ field, fieldState }) => (
-              <Field field={field} fieldState={fieldState} label="Nome da campanha" />
+              <FieldInput field={field} fieldState={fieldState} label="Nome da campanha" />
             )}
           />
           <Controller
             control={bannerControl}
             name="title"
             render={({ field, fieldState }) => (
-              <Field field={field} fieldState={fieldState} label="Título" />
+              <FieldInput field={field} fieldState={fieldState} label="Título" />
             )}
           />
           <Controller
             control={bannerControl}
             name="link"
             render={({ field, fieldState }) => (
-              <Field field={field} fieldState={fieldState} label="Link de destino" />
+              <FieldInput field={field} fieldState={fieldState} label="Link de destino" />
             )}
           />
           <label className="form-field">

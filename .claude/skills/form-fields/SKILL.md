@@ -1,6 +1,6 @@
 ---
 name: form-fields
-description: Use whenever a new form is added anywhere in apps/web (store or admin), or an existing form is touched. Every field must be wrapped in an explicit <Controller>, passing its field/fieldState render-prop args straight into the shared Field component in components/ui/field.tsx — never a bare <form onSubmit> reading FormData, and never a field that manually re-derives isInvalid/errorMessage from parallel useState.
+description: Use whenever a new form is added anywhere in apps/web (store or admin), an existing form is touched, or a new field type/kind is needed (select, radio, checkbox...). Every field must be wrapped in an explicit <Controller>, passing its field/fieldState render-prop args straight into the matching Field* component in components/ui/ (field-input.tsx, field-select.tsx, ...) — never a bare <form onSubmit> reading FormData, never a field that manually re-derives isInvalid/errorMessage from parallel useState, and never a new field-kind component named anything but Field<Kind>.
 ---
 
 # Forms: react-hook-form + Controller, always
@@ -11,29 +11,39 @@ Every form in `apps/web` — store or admin, connected to a real API or still a 
 is built with react-hook-form's `useForm()`, and every individual field is wrapped in an
 explicit `<Controller>` **in the form's own JSX** — never through `register()` + a plain HTML
 `<input>`, and never with `Controller` hidden inside a shared component. This project's inputs
-are HeroUI v3 components built on `react-aria-components` (`TextField`/`Input`/`Label`), which
-don't forward a plain DOM ref the way `register()` expects — `Controller`'s
-`field.ref`/`field.onChange` render-prop is what actually works with them, not a project style
-preference.
+are HeroUI v3 components built on `react-aria-components`, which don't forward a plain DOM ref
+the way `register()` expects — `Controller`'s `field.ref`/`field.onChange` render-prop is what
+actually works with them, not a project style preference.
 
 **Why this matters enough to be a hard rule:** without it, every form re-invents the same few
 lines — a `useState` for the error message, a manual `if (error) <p className="error">` block,
-red-border CSS applied by hand per field. That duplication is exactly what the shared `Field`
-component below exists to kill. A new form that skips `Field`/`Controller` reintroduces it.
+red-border CSS applied by hand per field. That duplication is exactly what the shared `Field*`
+components below exist to kill. A new form that skips them reintroduces it.
 
-## The shared `Field` component
+## The `Field*` family — naming and location
 
-`apps/web/components/ui/field.tsx` exports `Field` — the only text-input component forms should use.
-It's presentational only: it takes the `field`/`fieldState` pair straight from a `Controller`
-render prop, plus a flat, HeroUI-v2-like set of display props (`label`, `description`, whatever
-HTML attributes the input needs) — the caller always supplies the `<Controller>`:
+Every field-kind component lives in `apps/web/components/ui/` as `field-<kind>.tsx` exporting
+`Field<Kind>` (PascalCase, `Field` prefix): `field-input.tsx` → `FieldInput`, `field-select.tsx`
+→ `FieldSelect`. A future `FieldRadio`/`FieldCheckbox` follows the same shape. The `Field` prefix
+(not a `*Field` suffix) is deliberate: it avoids colliding with the raw HeroUI/react-aria
+primitives each one wraps (`Input`, `Select`, ...) so nothing needs an import alias, and it
+groups every field-kind component together in the barrel/autocomplete. All of them share one
+contract:
+
+- Props always include `field` (the `Controller` render prop's `field`) and `fieldState` (same
+  render prop's `fieldState`) — never split into individual `value`/`onChange`/`isInvalid`/
+  `errorMessage` props.
+- `isInvalid` and the rendered error message are always derived from `fieldState` inside the
+  component — a call site never passes those in directly.
+- `label`/`description` stay flat props (HeroUI-v2-like ergonomics), even though the underlying
+  HeroUI v3 primitive is a compound component.
 
 ```tsx
 <Controller
   control={control}                 // from useForm()
   name="email"                      // must be a key of your form's values type
   render={({ field, fieldState }) => (
-    <Field
+    <FieldInput
       field={field}
       fieldState={fieldState}
       label="E-mail"
@@ -45,14 +55,32 @@ HTML attributes the input needs) — the caller always supplies the `<Controller
 />
 ```
 
-`Field` derives `isInvalid={fieldState.invalid}` and renders `fieldState.error?.message` through
-`FieldError` itself — the caller passes the whole `fieldState` object, never an `isInvalid` or
-`errorMessage` prop directly, so no form recomputes that by hand. If a call site needs to force
-an error, do it through react-hook-form (`setError(name, { message })`), which flows into
-`fieldState` the same way.
+If a call site needs to force an error, do it through react-hook-form (`setError(name, {
+message })`), which flows into `fieldState` the same way — never a prop directly on a `Field*`
+component.
 
-`Field`'s `type` union only covers text-like inputs (`text`/`email`/`password`/`tel`). Don't
-stretch it to fit numeric/date/checkbox inputs — see "Fields `Field` doesn't cover" below.
+## `FieldInput` — text-like fields
+
+`apps/web/components/ui/field-input.tsx`. Covers `type`: `text` | `email` | `password` | `tel`
+(default `text`). Don't stretch this union to fit numeric/date/checkbox inputs — see "Fields no
+`Field*` component covers yet" below.
+
+## `FieldSelect` — single-select dropdown
+
+`apps/web/components/ui/field-select.tsx`. Takes `options: { value: string; label: string }[]`
+instead of raw children — reference usage: `checkout.tsx`'s "Estado (UF)" field (27 Brazilian
+states). HeroUI's `Select` uses `value`/`onChange` directly (not the deprecated
+`selectedKey`/`onSelectionChange`), which maps 1:1 to `field.value`/`field.onChange` with zero
+translation.
+
+**Non-obvious requirement found the hard way:** each `<ListBox.Item>` needs an explicit
+`textValue={option.label}` prop, even though its children is already the same plain string. React
+Aria's Select renders a hidden native `<select>` (for form submission and screen readers) whose
+`<option>` text comes from each collection node's `textValue`, not from re-rendering the JSX
+children — omit it and every hidden `<option>` silently ends up with empty text (no error, no
+warning; only visible by inspecting the rendered HTML). Verified with an isolated
+`renderToStaticMarkup` smoke test (not committed) rather than a full page — see "Validating a
+new `Field*` component" below for why.
 
 ## Reference implementations (reread these, don't reinvent)
 
@@ -69,7 +97,7 @@ stretch it to fit numeric/date/checkbox inputs — see "Fields `Field` doesn't c
       control={control}
       name="email"
       render={({ field, fieldState }) => (
-        <Field field={field} fieldState={fieldState} label="E-mail" type="email" />
+        <FieldInput field={field} fieldState={fieldState} label="E-mail" type="email" />
       )}
     />
   ```
@@ -77,10 +105,10 @@ stretch it to fit numeric/date/checkbox inputs — see "Fields `Field` doesn't c
   this pattern — resolver + shared schema, not hand-rolled validation.
 
 - **`apps/web/modules/store/checkout.tsx`** and **`apps/web/modules/store/account.tsx`** — forms
-  with no backend yet (demo/preview screens). Still `useForm()` + `Controller`-based `Field`,
-  just without a `resolver` — there's no schema to validate against yet. When these get wired to
-  a real endpoint, add the matching Zod schema to `packages/shared` and pass it as a resolver,
-  mirroring admin-login.
+  with no backend yet (demo/preview screens). Still `useForm()` + `Controller`-based `FieldInput`/
+  `FieldSelect`, just without a `resolver` — there's no schema to validate against yet. When these
+  get wired to a real endpoint, add the matching Zod schema to `packages/shared` and pass it as a
+  resolver, mirroring admin-login.
 
 - **`apps/web/modules/admin/admin.tsx`** (banner form) — a second `useForm()`/`control` pair
   living in the same component as another form (the product-edit dialog) — proof that a
@@ -88,11 +116,12 @@ stretch it to fit numeric/date/checkbox inputs — see "Fields `Field` doesn't c
   hook's `control`/`handleSubmit` under different local names (`bannerControl`/`editControl`),
   rather than trying to share one `useForm()` across unrelated field sets.
 
-## Fields `Field` doesn't cover
+## Fields no `Field*` component covers yet
 
-Numeric inputs, checkboxes, radios, file inputs, or anything else outside `Field`'s text-like
-`type` union: wrap the raw HeroUI/native control in `<Controller>` directly, same as
-`apps/web/modules/admin/admin.tsx`'s product-edit dialog (price/stock as `type="number"`):
+Checkboxes, radios, file inputs, or anything without a `Field*` component: wrap the raw
+HeroUI/native control in `<Controller>` directly, same as `apps/web/modules/admin/admin.tsx`'s
+product-edit dialog (price/stock as `type="number"`, since `FieldInput` only covers text-like
+types):
 
 ```tsx
 <Controller
@@ -111,15 +140,35 @@ Numeric inputs, checkboxes, radios, file inputs, or anything else outside `Field
 />
 ```
 
-Don't broaden `Field`'s prop surface to fake-support a numeric type just to avoid writing this —
-extract a dedicated `NumberField` (or similar) into `components/ui/` once a second real numeric
-form shows up, following YAGNI (`rules/common/coding-style.md`). One inline `Controller` doesn't
+Don't broaden an existing `Field*` component's prop surface to fake-support a different kind
+just to avoid writing this — add a new `field-<kind>.tsx` once a second real use case for that
+kind shows up, following YAGNI (`rules/common/coding-style.md`). One inline `Controller` doesn't
 justify a new shared component yet.
 
 When a raw `<input>` sits inside a `<label>` via a `Controller` render prop, Biome's
 `lint/a11y/noLabelWithoutControl` can't see through the render-prop indirection — give the input
 an explicit `id` and the `<label>` a matching `htmlFor` rather than relying on implicit nesting
 (see the product-edit dialog in `admin.tsx` for the pattern).
+
+## Validating a new `Field*` component
+
+Interactive browser testing isn't always available in this workflow — don't assume it is. Before
+trusting a new field-kind component:
+
+1. `pnpm --filter web typecheck` — catches prop/generic mismatches against the underlying
+   react-aria/HeroUI types.
+2. An isolated `renderToStaticMarkup` smoke test: import the component directly, render it with
+   hand-built `field`/`fieldState` objects (mimicking both an empty and a filled/invalid state),
+   and inspect the returned HTML string for the parts that matter (label text, ARIA attributes,
+   the hidden native input/select's value and text, the rendered error message) — run via `tsx`
+   from inside `apps/web` so React resolves, and delete the script afterward, same as the
+   disposable BullMQ smoke test in `docs/planning/`. This catches wiring bugs (like the
+   `textValue` one above) that `pnpm build` alone won't: a page using the form inside a
+   client-only store (Zustand cart, auth session) usually SSGs its *loading* state, never the
+   real form, so a green build proves nothing about the field itself.
+3. If real interactive behavior matters (does the popover actually open on click, does keyboard
+   nav work), that still needs a person or a browser tool to click through it — say so plainly
+   instead of claiming full validation from steps 1–2 alone.
 
 ## Multi-step / conditional forms
 

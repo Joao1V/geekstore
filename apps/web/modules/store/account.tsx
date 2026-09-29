@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Action, Field } from '@/components/ui';
+import { Action, FieldInput } from '@/components/ui';
 import { getMascot } from '@/lib/mascot';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -67,7 +67,7 @@ export function Account({ register = false }: { register?: boolean }) {
                 control={control}
                 name="name"
                 render={({ field, fieldState }) => (
-                  <Field
+                  <FieldInput
                     field={field}
                     fieldState={fieldState}
                     label="Nome"
@@ -81,7 +81,7 @@ export function Account({ register = false }: { register?: boolean }) {
               control={control}
               name="email"
               render={({ field, fieldState }) => (
-                <Field
+                <FieldInput
                   field={field}
                   fieldState={fieldState}
                   label="E-mail"
@@ -94,7 +94,7 @@ export function Account({ register = false }: { register?: boolean }) {
               control={control}
               name="password"
               render={({ field, fieldState }) => (
-                <Field
+                <FieldInput
                   field={field}
                   fieldState={fieldState}
                   label={`Senha de teste (mínimo ${MIN_PASSWORD_LENGTH} caracteres)`}
@@ -109,7 +109,7 @@ export function Account({ register = false }: { register?: boolean }) {
                 control={control}
                 name="confirm"
                 render={({ field, fieldState }) => (
-                  <Field
+                  <FieldInput
                     field={field}
                     fieldState={fieldState}
                     label="Confirmar senha"

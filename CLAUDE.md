@@ -48,6 +48,7 @@ Infra: Dokploy num VPS, Traefik, Cloudflare. Fila BullMQ + Redis. Busca Meilisea
 - URLs da loja seguem o padrão da Tray (`/categoria/subcategoria/slug`). Mudou URL, atualize o mapa de redirects 301.
 - Migrações Prisma são versionadas; nunca editar migração já aplicada.
 - Testes: unitários do domínio, integração da API com banco de teste, E2E do checkout em Playwright.
+- Nomes de arquivo em `apps/web` são kebab-case, não PascalCase (diverge do exemplo genérico de `rules/react/coding-style.md`, mas é o padrão já estabelecido em todo o app — `admin-login.tsx`, `campaign-slider.tsx`, etc.). Um kit de componentes compartilhado que cresceria demais num arquivo só (ex.: `components/ui.tsx`) vira uma pasta com um arquivo por componente + `index.ts` de re-export — ver `components/ui/` e a skill `form-fields` pro caso da família `Field*`.
 
 ## Convenções de banco
 

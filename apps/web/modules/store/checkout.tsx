@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Action, Field, Quantity } from '@/components/ui';
+import { Action, FieldInput, FieldSelect, Quantity } from '@/components/ui';
 import { money, pixPrice, products } from '@/lib/catalog';
 import { getMascot } from '@/lib/mascot';
 import { ShippingProgress } from './shell';
@@ -18,6 +18,35 @@ const EXPRESS_SHIPPING_PRICE = 29.9;
 const FREE_SHIPPING_THRESHOLD = 299;
 const COUPON_DISCOUNT_RATE = 0.1;
 const VALID_COUPON = 'GEEK10';
+const BRAZILIAN_STATES = [
+  { value: 'AC', label: 'Acre' },
+  { value: 'AL', label: 'Alagoas' },
+  { value: 'AP', label: 'Amapá' },
+  { value: 'AM', label: 'Amazonas' },
+  { value: 'BA', label: 'Bahia' },
+  { value: 'CE', label: 'Ceará' },
+  { value: 'DF', label: 'Distrito Federal' },
+  { value: 'ES', label: 'Espírito Santo' },
+  { value: 'GO', label: 'Goiás' },
+  { value: 'MA', label: 'Maranhão' },
+  { value: 'MT', label: 'Mato Grosso' },
+  { value: 'MS', label: 'Mato Grosso do Sul' },
+  { value: 'MG', label: 'Minas Gerais' },
+  { value: 'PA', label: 'Pará' },
+  { value: 'PB', label: 'Paraíba' },
+  { value: 'PR', label: 'Paraná' },
+  { value: 'PE', label: 'Pernambuco' },
+  { value: 'PI', label: 'Piauí' },
+  { value: 'RJ', label: 'Rio de Janeiro' },
+  { value: 'RN', label: 'Rio Grande do Norte' },
+  { value: 'RS', label: 'Rio Grande do Sul' },
+  { value: 'RO', label: 'Rondônia' },
+  { value: 'RR', label: 'Roraima' },
+  { value: 'SC', label: 'Santa Catarina' },
+  { value: 'SP', label: 'São Paulo' },
+  { value: 'SE', label: 'Sergipe' },
+  { value: 'TO', label: 'Tocantins' },
+];
 
 type CheckoutContactFormValues = {
   name: string;
@@ -146,7 +175,7 @@ export function Checkout() {
                   control={control}
                   name="name"
                   render={({ field, fieldState }) => (
-                    <Field
+                    <FieldInput
                       field={field}
                       fieldState={fieldState}
                       label="Nome de exemplo"
@@ -158,7 +187,7 @@ export function Checkout() {
                   control={control}
                   name="email"
                   render={({ field, fieldState }) => (
-                    <Field
+                    <FieldInput
                       field={field}
                       fieldState={fieldState}
                       label="E-mail de exemplo"
@@ -171,7 +200,7 @@ export function Checkout() {
                   control={control}
                   name="phone"
                   render={({ field, fieldState }) => (
-                    <Field
+                    <FieldInput
                       field={field}
                       fieldState={fieldState}
                       label="Telefone (opcional)"
@@ -190,7 +219,7 @@ export function Checkout() {
                   control={control}
                   name="cep"
                   render={({ field, fieldState }) => (
-                    <Field
+                    <FieldInput
                       field={field}
                       fieldState={fieldState}
                       label="CEP (00000-000)"
@@ -202,21 +231,21 @@ export function Checkout() {
                   control={control}
                   name="street"
                   render={({ field, fieldState }) => (
-                    <Field field={field} fieldState={fieldState} label="Rua" />
+                    <FieldInput field={field} fieldState={fieldState} label="Rua" />
                   )}
                 />
                 <Controller
                   control={control}
                   name="number"
                   render={({ field, fieldState }) => (
-                    <Field field={field} fieldState={fieldState} label="Número" />
+                    <FieldInput field={field} fieldState={fieldState} label="Número" />
                   )}
                 />
                 <Controller
                   control={control}
                   name="extra"
                   render={({ field, fieldState }) => (
-                    <Field
+                    <FieldInput
                       field={field}
                       fieldState={fieldState}
                       label="Complemento"
@@ -228,18 +257,18 @@ export function Checkout() {
                   control={control}
                   name="city"
                   render={({ field, fieldState }) => (
-                    <Field field={field} fieldState={fieldState} label="Cidade" />
+                    <FieldInput field={field} fieldState={fieldState} label="Cidade" />
                   )}
                 />
                 <Controller
                   control={control}
                   name="state"
                   render={({ field, fieldState }) => (
-                    <Field
+                    <FieldSelect
                       field={field}
                       fieldState={fieldState}
                       label="Estado (UF)"
-                      pattern="[A-Za-z]{2}"
+                      options={BRAZILIAN_STATES}
                     />
                   )}
                 />
