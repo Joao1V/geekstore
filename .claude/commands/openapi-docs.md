@@ -9,11 +9,16 @@ argument-hint: "[caminho ou URL do openapi.json | vazio = detectar automaticamen
 
 Turns a single large OpenAPI spec into a set of small, per-resource markdown files
 that are cheap to read and easy to keep accurate — instead of every session grepping
-a multi-thousand-line JSON file or, worse, guessing a payload shape. This repo's
-`docs/api/` folder (see `docs/api/README.md`, `docs/api/user.md`,
-`docs/api/common-schemas.md`) is a working example of the target output — use it as
-the concrete reference for formatting if you're unsure how something should look,
-but this command is meant to run in **any** project, not just this one.
+route files or a multi-thousand-line JSON file or, worse, guessing a payload shape.
+
+The output (`docs/api/`) is the project's **API and business-rule map by module**: what
+each endpoint accepts and returns, plus the domain rules that govern it. It also tells
+the backend what is missing — anything the frontend needs that isn't in these docs
+is a request to make to `apps/api`, instead of a guess.
+
+In GeekStore the spec comes from `apps/api` itself (`@fastify/swagger`, served at
+`/documentation/json` when the API is running), so the flow is: API changes → spec
+changes → `/openapi-docs` → docs follow. Never hand-write an endpoint into the docs.
 
 This command has two modes, auto-detected:
 
@@ -27,16 +32,17 @@ Figure out, in order of precedence: explicit values in `$ARGUMENTS` > values alr
 established in a previous run (read them back from the existing output, don't ask
 again) > sensible defaults > ask the user.
 
-- **Spec source**: a local path or a URL to fetch (`curl`/`WebFetch`) the OpenAPI JSON
-  (or YAML — convert to JSON first if so). If `$ARGUMENTS` doesn't specify one and no
-  previous run exists, ask the user where the spec lives.
+- **Spec source**: a local path or a URL to fetch (`curl`) the OpenAPI JSON (or YAML —
+  convert to JSON first if so). Default for GeekStore: `GET <api-url>/documentation/json`
+  from a locally running `apps/api` (`pnpm dev`; the base URL is in `apps/api`'s
+  `.env`/`.env.example`). If the API isn't running and `$ARGUMENTS` gives nothing, ask.
 - **Output dir**: where the per-resource `.md` files go. Default `docs/api/` if it
   exists or the project has no strong opinion; otherwise ask. This is also where the
   spec copy is stored, at `<output_dir>/_openapi.json` — that stored copy is both the
   rendered source-of-truth reference and the baseline for future diffs. Never hand-edit
   it.
 - **Doc language**: match whatever's already in the output dir if regenerating; else
-  match the project's stated UI/doc language (check `CLAUDE.md`); else ask.
+  pt-BR (per `CLAUDE.md`). Identifiers, paths and field names stay in English.
 
 ## Step 1 — First run (full split)
 
@@ -46,7 +52,7 @@ Skip this whole step if `<output_dir>/_openapi.json` already exists — go to St
    diff baseline for every future run — don't skip writing it even if you also keep
    the original elsewhere.
 2. **Group endpoints into resources.** Primary heuristic: the first non-parameter path
-   segment (`/user/{id}` → `user`, `/pipeline-lane/...` → `pipeline-lane`). This is a
+   segment (`/api/auth/login` → `auth`, `/api/skus/{id}` → `sku`; drop the `/api` prefix). This is a
    better signal than the spec's `tags` — specs are often tagged coarsely (e.g. three
    tags covering 130+ endpoints), which is too broad to be useful as a file split.
    Apply judgment on top of the raw grouping:
@@ -59,25 +65,42 @@ Skip this whole step if `<output_dir>/_openapi.json` already exists — go to St
    - Target roughly 5-50 endpoints per file. Below that, consider merging into a
      related file; above it, consider splitting — but cohesion beats the number, don't
      split a genuinely single concept just to hit a count.
+   - Prefer the project's modules (`docs/SPEC.md` §3, e.g. Catálogo e SKU, Estoque,
+     Pedidos) as the grouping when a path prefix and a module disagree.
    - Cross-link instead of duplicating: if resource A's payload has a field that's
-     really an action on resource B (e.g. "assign lead to law firm" lives under
-     `/lead/{id}/law-firm` but is conceptually a law-firm link), document it in
+     really an action on resource B (e.g. "reserve stock for an order" lives under
+     `/orders/{id}/reserve` but is conceptually a stock movement), document it in
      whichever file owns the *state change* and mention it with a one-line pointer
      from the other file.
-3. **Per resource file** (e.g. `<output_dir>/user.md`), for each endpoint in that
+3. **Per resource file** (e.g. `<output_dir>/sku.md`), for each endpoint in that
    group:
    - Heading: `### `METHOD /path``
    - One-line summary/description from the spec
    - Auth requirement, if the spec's `security` says so
    - **Parameters** table (path/query/header): `Nome | Local | Obrigatório | Tipo | Descrição`
    - **Request body** table, if any: `Campo | Tipo | Obrigatório | Descrição`. Flatten
-     nested objects with dot-notation (`avatar_object.name`) and arrays with `[]`
-     (`boards[].permission`) — don't nest tables inside tables.
+     nested objects with dot-notation (`dimensions.weight`) and arrays with `[]`
+     (`items[].sku_id`) — don't nest tables inside tables.
    - **Resposta**: name the response schema if it maps to a named component, otherwise
      describe the inline shape. Note when it's the standard paginated envelope (link to
      the pagination section instead of re-describing it).
    - Separate endpoints with `---`.
-   Below all endpoints, add a `## Schemas` section: every named schema from
+   After the endpoints, add a hand-written block that survives regeneration:
+
+   ```markdown
+   <!-- MANUAL:rules -->
+   ## Regras de negócio
+   - {rule enforced by the API for this resource, with its SPEC/CLAUDE.md ID when one
+     exists — e.g. "RF-EST-02: toda alteração de estoque vira movimentação"}
+   <!-- /MANUAL:rules -->
+   ```
+
+   Fill it only with rules that are actually enforced in `apps/api` or fixed in
+   `docs/SPEC.md`/`CLAUDE.md` (SKU as the unit, money in cents, stock ledger,
+   idempotent webhooks, frozen order values...). On regeneration, copy this block over
+   verbatim from the old file. Never invent a rule.
+
+   Below that, add a `## Schemas` section: every named schema from
    `components.schemas` that's referenced *only* by this resource's endpoints, each as
    `## `schema_name`` + description + the same flattened field table.
 4. **Shared/orphan schemas** — anything referenced by 3+ unrelated resources (response
@@ -91,7 +114,8 @@ Skip this whole step if `<output_dir>/_openapi.json` already exists — go to St
    actually calls this API (auth flow, client wrapper, etc.) if such a doc exists —
    don't duplicate that content here, just point to it.
 6. Every generated file gets a one-line header noting it's generated from the spec and
-   shouldn't be hand-edited — e.g. `> Fonte: OpenAPI spec (`<output_dir>/_openapi.json`). Não editar manualmente — regenerar quando a spec mudar.` (translate to the doc language in use).
+   shouldn't be hand-edited (except the `MANUAL:rules` block) — e.g.
+   `> Fonte: OpenAPI spec (`<output_dir>/_openapi.json`). Não editar manualmente — regenerar quando a spec mudar.`
 
 ## Step 2 — Update run (diff-based)
 
@@ -112,7 +136,8 @@ Runs whenever `<output_dir>/_openapi.json` already exists from a prior run.
    they extend a file or need a new one.
 4. Regenerate, **in full**, only the resource files that own at least one
    added/changed/removed item (simplest reliable approach — don't attempt line-level
-   patching of an existing file, just rewrite that one file from the new spec).
+   patching of an existing file, just rewrite that one file from the new spec,
+   carrying over its `MANUAL:rules` block).
    Files with zero affected items are untouched.
 5. Update `README.md` if the resource list or endpoint counts changed. Update
    `common-schemas.md` if a shared schema changed.
@@ -123,9 +148,9 @@ Runs whenever `<output_dir>/_openapi.json` already exists from a prior run.
    ```
    OpenAPI docs sync
    ──────────────────────────────
-   Added:    3 endpoints in lead.md, 1 new file webhook-log.md
-   Changed:  2 endpoints in squad.md (request body field added)
-   Removed:  1 endpoint in user.md (deprecated)
+   Added:    3 endpoints in sku.md, 1 new file stock.md
+   Changed:  2 endpoints in order.md (request body field added)
+   Removed:  1 endpoint in auth.md (deprecated)
    Unchanged: 19 files
    ──────────────────────────────
    ```
@@ -160,8 +185,10 @@ exist — don't skip this silently):
 
 ## Rules
 
-- Never hand-edit a generated `.md` file or the stored `_openapi.json` copy outside
-  this command — always regenerate.
+- Never hand-edit a generated `.md` file (other than its `MANUAL:rules` block) or the
+  stored `_openapi.json` copy outside this command — always regenerate.
+- If the docs lack something the frontend needs, say so as a backend request
+  (endpoint/field to add in `apps/api`) — don't work around it or invent the shape.
 - Don't invent field descriptions the spec doesn't provide; leave the description cell
   empty rather than guessing.
 - On update runs, only touch files the diff actually implicates — resist the urge to

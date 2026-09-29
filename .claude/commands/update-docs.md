@@ -12,7 +12,7 @@ Sync documentation with the codebase, generating from source-of-truth files.
 |--------|-----------|
 | `package.json` scripts | Available commands reference |
 | `.env.example` | Environment variable documentation |
-| `openapi.yaml` / route files | API endpoint reference |
+| API spec (`/documentation/json`) | API endpoint reference — handled by `/openapi-docs`, skip here |
 | Source code exports | Public API documentation |
 | `Dockerfile` / `docker-compose.yml` | Infrastructure setup docs |
 
@@ -25,9 +25,9 @@ Sync documentation with the codebase, generating from source-of-truth files.
 ```markdown
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start development server with hot reload |
-| `npm run build` | Production build with type checking |
-| `npm test` | Run test suite with coverage |
+| `pnpm dev` | Start development servers (Turborepo) |
+| `pnpm build` | Production build |
+| `pnpm typecheck` | Type check all packages |
 ```
 
 ## Step 3: Generate Environment Documentation
@@ -44,23 +44,11 @@ Sync documentation with the codebase, generating from source-of-truth files.
 | `LOG_LEVEL` | No | Logging verbosity (default: info) | `debug`, `info`, `warn`, `error` |
 ```
 
-## Step 4: Update Contributing Guide
+## Step 4: Update Contributing Guide and Runbook (only if they already exist)
 
-Generate or update `docs/CONTRIBUTING.md` with:
-- Development environment setup (prerequisites, install steps)
-- Available scripts and their purposes
-- Testing procedures (how to run, how to write new tests)
-- Code style enforcement (linter, formatter, pre-commit hooks)
-- PR submission checklist
-
-## Step 5: Update Runbook
-
-Generate or update `docs/RUNBOOK.md` with:
-- Deployment procedures (step-by-step)
-- Health check endpoints and monitoring
-- Common issues and their fixes
-- Rollback procedures
-- Alerting and escalation paths
+Update `docs/CONTRIBUTING.md` and `docs/RUNBOOK.md` **only when the files already
+exist**. `CLAUDE.md` says not to create documentation beyond what was asked, so if
+they're missing, list them in the summary as "not created" and let the user decide.
 
 ## Step 6: Staleness Check
 
@@ -73,10 +61,10 @@ Generate or update `docs/RUNBOOK.md` with:
 ```
 Documentation Update
 ──────────────────────────────
-Updated:  docs/CONTRIBUTING.md (scripts table)
+Updated:  README.md (scripts table)
 Updated:  docs/ENV.md (3 new variables)
 Flagged:  docs/DEPLOY.md (142 days stale)
-Skipped:  docs/API.md (no changes detected)
+Skipped:  docs/CONTRIBUTING.md (not created, not requested)
 ──────────────────────────────
 ```
 
@@ -85,4 +73,4 @@ Skipped:  docs/API.md (no changes detected)
 - **Single source of truth**: Always generate from code, never manually edit generated sections
 - **Preserve manual sections**: Only update generated sections; leave hand-written prose intact
 - **Mark generated content**: Use `<!-- AUTO-GENERATED -->` markers around generated sections
-- **Don't create docs unprompted**: Only create new doc files if the command explicitly requests it
+- **Don't create docs unprompted**: Only update docs that already exist, or create a new one when the user names it. API reference is `/openapi-docs`, not this command

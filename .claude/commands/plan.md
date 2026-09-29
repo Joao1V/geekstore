@@ -57,7 +57,7 @@ Before writing the plan, search the codebase for conventions the implementation 
 | Naming | File, function, type, command, or script naming in the affected area |
 | Error handling | How failures are raised, returned, logged, or handled gracefully |
 | Logging | Levels, format, and what gets logged |
-| Data access | Repository, service, query, or filesystem patterns |
+| Data access | Repository, service, query, or filesystem patterns; for API shapes check `docs/api/README.md` (see `/openapi-docs`) before reading route code |
 | Tests | Test file location, framework, fixtures, and assertion style |
 
 If no similar code exists, state that explicitly. Do not invent a pattern.
@@ -131,57 +131,46 @@ After writing the artifact, report its path and WAIT for confirmation before wri
 ## Example Usage
 
 ```
-User: /plan I need to add real-time notifications when markets resolve
+User: /plan I need an "avise-me quando chegar" (RF-VIT-09) for out-of-stock SKUs
 
 Assistant:
-# Implementation Plan: Real-Time Market Resolution Notifications
+# Implementation Plan: Back-in-Stock Notification
 
 ## Requirements Restatement
-- Send notifications to users when markets they're watching resolve
-- Support multiple notification channels (in-app, email, webhook)
-- Ensure notifications are delivered reliably
-- Include market outcome and user's position result
+- Customer subscribes to a SKU that has no available stock (guest or logged in)
+- When the SKU's available stock goes from 0 to > 0, subscribers get an e-mail once
+- Subscription is per SKU (never per product) and idempotent per (sku, e-mail)
 
 ## Implementation Phases
 
-### Phase 1: Database Schema
-- Add notifications table with columns: id, user_id, market_id, type, status, created_at
-- Add user_notification_preferences table for channel preferences
-- Create indexes on user_id and market_id for performance
+### Phase 1: Database Schema (packages/db)
+- Add `stock_alert_subscription` table: `stock_alert_subscription_id` (UUID v7 CHAR(36)),
+  `sku_id`, `email`, `notified_at` (nullable), `created_at`
+- Unique index on (`sku_id`, `email`); index on `sku_id`
+- Versioned Prisma migration (never edit an applied one)
 
-### Phase 2: Notification Service
-- Create notification service in lib/notifications.ts
-- Implement notification queue using BullMQ/Redis
-- Add retry logic for failed deliveries
-- Create notification templates
+### Phase 2: API module (apps/api/src/modules/stock-alert)
+- Zod request/response schemas in `packages/shared`
+- `POST /api/stock-alerts` (rate limited), conflict-safe insert
+- Enqueue a BullMQ job when a stock movement makes available > 0
 
-### Phase 3: Integration Points
-- Hook into market resolution logic (when status changes to "resolved")
-- Query all users with positions in market
-- Enqueue notifications for each user
+### Phase 3: Worker and e-mail
+- Job loads pending subscriptions for the SKU, sends the e-mail, sets `notified_at`
+- Retry with backoff; the job must be idempotent
 
-### Phase 4: Frontend Components
-- Create NotificationBell component in header
-- Add NotificationList modal
-- Implement real-time updates via Supabase subscriptions
-- Add notification preferences page
+### Phase 4: Storefront (apps/web, store mode)
+- Form on the product page with RHF + `Controller` + `FieldInput`
+- Call the API over HTTP via React Query mutation (web never touches the DB)
 
 ## Dependencies
-- Redis (for queue)
-- Email service (SendGrid/Resend)
-- Supabase real-time subscriptions
+- M03 Estoque (movements), M13 Comunicação (transactional e-mail), Redis/BullMQ
 
 ## Risks
-- HIGH: Email deliverability (SPF/DKIM required)
-- MEDIUM: Performance with 1000+ users per market
-- MEDIUM: Notification spam if markets resolve frequently
-- LOW: Real-time subscription overhead
+- HIGH: duplicate e-mails if the job is not idempotent
+- MEDIUM: e-mail deliverability (SPF/DKIM/DMARC)
+- LOW: spam on the public endpoint (rate limit + Zod validation)
 
 ## Estimated Complexity: MEDIUM
-- Backend: 4-6 hours
-- Frontend: 3-4 hours
-- Testing: 2-3 hours
-- Total: 9-13 hours
 
 **WAITING FOR CONFIRMATION**: Proceed with this plan? (yes/no/modify)
 ```

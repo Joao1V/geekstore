@@ -19,8 +19,8 @@ Create or update codemaps in `docs/CODEMAPS/` (or `.reports/codemaps/`):
 | File | Contents |
 |------|----------|
 | `architecture.md` | High-level system diagram, service boundaries, data flow |
-| `backend.md` | API routes, middleware chain, service → repository mapping |
-| `frontend.md` | Page tree, component hierarchy, state management flow |
+| `backend.md` | API routes (apps/api modules), plugins, service → Prisma mapping |
+| `frontend.md` | Page tree by route group (store/admin), component hierarchy, Zustand vs React Query flow |
 | `data.md` | Database tables, relationships, migration history |
 | `dependencies.md` | External services, third-party integrations, shared libraries |
 
@@ -32,17 +32,17 @@ Each codemap should be token-lean — optimized for AI context consumption:
 # Backend Architecture
 
 ## Routes
-POST /api/users → UserController.create → UserService.create → UserRepo.insert
-GET  /api/users/:id → UserController.get → UserService.findById → UserRepo.findById
+POST /api/auth/login → auth.routes → auth.controller → auth.service.login → prisma.user
+GET  /health → health.routes
 
 ## Key Files
-src/services/user.ts (business logic, 120 lines)
-src/repos/user.ts (database access, 80 lines)
+apps/api/src/modules/auth/auth.service.ts (business logic)
+apps/api/src/modules/auth/auth.routes.ts (HTTP layer)
 
 ## Dependencies
-- MySQL (primary data store)
-- Redis (session cache, rate limiting)
-- Stripe (payment processing)
+- MySQL 8 (primary data store, Prisma)
+- Redis (BullMQ queues, rate limiting)
+- Vindi (payments, from F3)
 ```
 
 ## Step 3: Diff Detection

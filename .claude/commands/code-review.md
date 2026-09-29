@@ -143,10 +143,10 @@ Detect the project type from config files (`package.json`, `Cargo.toml`, `go.mod
 
 **Node.js / TypeScript** (has `package.json`):
 ```bash
-npm run typecheck 2>/dev/null || npx tsc --noEmit 2>/dev/null  # Type check
-npm run lint                                                    # Lint
-npm test                                                        # Tests
-npm run build                                                   # Build
+pnpm typecheck   # Type check
+pnpm lint        # Biome lint
+pnpm test        # Tests (vitest, once they exist)
+pnpm build       # Build
 ```
 
 Run only the commands that apply to the detected project type. Record pass/fail for each.
