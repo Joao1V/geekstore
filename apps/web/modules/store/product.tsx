@@ -15,31 +15,27 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Action, Dialog, Price, Quantity } from '@/components/ui';
+import { Controller, useForm } from 'react-hook-form';
+import { Action, Dialog, FieldInput, Price, Quantity } from '@/components/ui';
 import { money, type Product, pixPrice, products } from '@/lib/catalog';
 import { ProductGrid } from './catalog';
 import { useCartStore } from './state/cart-store';
 
-export function Freight() {
-  const [cep, setCep] = useState('');
-  const [result, setResult] = useState(false);
-  const [error, setError] = useState('');
+type FreightFormValues = { cep: string };
 
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault();
+export function Freight() {
+  const [result, setResult] = useState(false);
+  const { control, handleSubmit, setError } = useForm<FreightFormValues>({
+    defaultValues: { cep: '' },
+  });
+
+  const submit = ({ cep }: FreightFormValues) => {
     if (cep.replace(/\D/g, '').length !== 8) {
-      setError('Digite um CEP com 8 números.');
+      setError('cep', { message: 'Digite um CEP com 8 números.' });
       setResult(false);
       return;
     }
-    setError('');
     setResult(true);
-  };
-
-  const onCepChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const digits = event.target.value.replace(/\D/g, '').slice(0, 8);
-    setCep(digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits);
-    setResult(false);
   };
 
   return (
@@ -47,22 +43,31 @@ export function Freight() {
       <h3>
         <Truck size={18} /> Frete e prazo
       </h3>
-      <form onSubmit={submit}>
-        <input
-          inputMode="numeric"
-          aria-label="CEP para cálculo de frete"
-          placeholder="00000-000"
-          value={cep}
-          maxLength={9}
-          onChange={onCepChange}
+      <form onSubmit={handleSubmit(submit)}>
+        <Controller
+          control={control}
+          name="cep"
+          render={({ field, fieldState }) => (
+            <FieldInput
+              field={{
+                ...field,
+                onChange: (event) => {
+                  const digits = event.target.value.replace(/\D/g, '').slice(0, 8);
+                  field.onChange(
+                    digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits
+                  );
+                  setResult(false);
+                },
+              }}
+              fieldState={fieldState}
+              label="CEP para cálculo de frete"
+              inputMode="numeric"
+              maxLength={9}
+            />
+          )}
         />
-        <Button type="submit">Calcular</Button>
+        <Action type="submit">Calcular</Action>
       </form>
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
-      )}
       {result && (
         <p role="status">
           Simulação: entrega padrão de R$ 19,90, em 5–8 dias úteis. A transportadora ainda não está

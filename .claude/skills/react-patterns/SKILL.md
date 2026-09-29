@@ -17,7 +17,7 @@ Idiomatic React 18/19 patterns for building robust, accessible, performant compo
 - Migrating class components or older `forwardRef`/`useEffect`-heavy code
 - Choosing between local state, lifted state, context, and external stores
 - Working with Server Components / Client Components (Next.js App Router, RSC)
-- Implementing forms with React 19 actions or controlled inputs
+- Implementing forms (this project: react-hook-form + `Controller`, see `form-fields` skill — not React 19 form actions)
 - Wiring data fetching with TanStack Query / SWR / RSC
 
 ## Core Principles
@@ -86,9 +86,12 @@ Most pages do not need context or a global store. Resist abstraction until dupli
 
 ```tsx
 // Server Component - default, async, never ships JS for itself
+// In apps/web, this always fetches from apps/api over HTTP — apps/web never
+// imports @geekstore/db or touches the database directly (see CLAUDE.md).
 export default async function ProductPage({ params }: { params: { id: string } }) {
-  const product = await db.product.findUnique({ where: { id: params.id } });
-  if (!product) notFound();
+  const res = await fetch(`${API_URL}/api/products/${params.id}`);
+  if (!res.ok) notFound();
+  const product = await res.json();
   return <ProductView product={product} />;
 }
 
@@ -129,7 +132,18 @@ Boundaries:
 
 ## Forms
 
-### React 19 form actions (preferred for new code)
+**This project's forms are not the generic React 19 `useActionState`/form-action pattern below.**
+Every form in `apps/web` uses react-hook-form's `useForm()` with each field wrapped in an
+explicit `<Controller>` — mandatory, not a style preference (HeroUI's inputs don't forward a
+plain DOM ref the way `register()` expects). Submission calls `apps/api` over HTTP (`fetch`),
+never a Server Action touching a database directly — `apps/web` never imports `@geekstore/db`
+(see `CLAUDE.md`). See the `form-fields` skill for the full contract (the `FieldInput`/
+`FieldSelect`/... family in `components/ui/`, isInvalid/error derivation, Zod validation via
+`@hookform/resolvers/zod`) and `apps/web/modules/admin/admin-login.tsx` as the reference
+implementation. The pattern below is kept for context (other React/Next.js codebases without
+this project's API-boundary constraint) but is not what to write here.
+
+### React 19 form actions (generic reference, not used in this project)
 
 ```tsx
 "use client";
@@ -157,13 +171,12 @@ export function UserForm() {
 }
 ```
 
-### Controlled inputs
-
-Use controlled when the value drives other UI, formats on every keystroke, or implements real-time validation.
-
 ### Complex forms
 
-For multi-step forms, dynamic field arrays, or cross-field validation: use a library (React Hook Form, TanStack Form). Roll-your-own state management for forms past trivial complexity is a maintenance trap.
+Multi-step forms, dynamic field arrays, or cross-field validation are exactly what
+react-hook-form is already handling here — see `apps/web/modules/store/checkout.tsx` (a
+three-step wizard) for how this project structures that: one `useForm()` per logically
+independent field set, not one per step.
 
 ## Data Fetching Decision Matrix
 
@@ -303,27 +316,41 @@ function SearchBox() {
 
 ### Optimistic UI with React 19 `useOptimistic`
 
+`useOptimistic` is orthogonal to the RHF+Controller rule above — it wraps the *submit handler*,
+not the field itself, so the field stays a normal `Controller`-wrapped `FieldInput`:
+
 ```tsx
 "use client";
 import { useOptimistic } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { FieldInput } from "@/components/ui";
+
+type MessageFormValues = { text: string };
 
 export function MessageList({ messages }: { messages: Message[] }) {
   const [optimistic, addOptimistic] = useOptimistic(
     messages,
     (state, newMessage: Message) => [...state, newMessage],
   );
+  const { control, handleSubmit, reset } = useForm<MessageFormValues>();
 
-  async function send(formData: FormData) {
-    const text = String(formData.get("text"));
+  const send = async ({ text }: MessageFormValues) => {
     addOptimistic({ id: "pending", text, sender: "me" });
     await saveMessage(text);
-  }
+    reset();
+  };
 
   return (
     <>
       <ul>{optimistic.map((m) => <li key={m.id}>{m.text}</li>)}</ul>
-      <form action={send}>
-        <input name="text" />
+      <form onSubmit={handleSubmit(send)}>
+        <Controller
+          control={control}
+          name="text"
+          render={({ field, fieldState }) => (
+            <FieldInput field={field} fieldState={fieldState} label="Mensagem" />
+          )}
+        />
         <button type="submit">Send</button>
       </form>
     </>

@@ -60,11 +60,15 @@ type CheckoutContactFormValues = {
   state: string;
 };
 
+type CouponFormValues = { coupon: string };
+
 export function Checkout() {
   const store = useCartStore();
   const { control, handleSubmit } = useForm<CheckoutContactFormValues>();
+  const { control: couponControl, handleSubmit: handleCouponSubmit } = useForm<CouponFormValues>({
+    defaultValues: { coupon: '' },
+  });
   const [step, setStep] = useState(0);
-  const [coupon, setCoupon] = useState('');
   const [applied, setApplied] = useState(false);
   const [couponMessage, setCouponMessage] = useState('');
   const [payment, setPayment] = useState('pix');
@@ -123,8 +127,7 @@ export function Checkout() {
     else setComplete(true);
   };
 
-  const submitCoupon = (event: React.FormEvent) => {
-    event.preventDefault();
+  const submitCoupon = ({ coupon }: CouponFormValues) => {
     const valid = coupon.trim().toUpperCase() === VALID_COUPON;
     setApplied(valid);
     setCouponMessage(
@@ -385,12 +388,13 @@ export function Checkout() {
               </div>
             );
           })}
-          <form className="coupon" onSubmit={submitCoupon}>
-            <input
-              aria-label="Cupom de desconto"
-              placeholder="Cupom: GEEK10"
-              value={coupon}
-              onChange={(e) => setCoupon(e.target.value)}
+          <form className="coupon" onSubmit={handleCouponSubmit(submitCoupon)}>
+            <Controller
+              control={couponControl}
+              name="coupon"
+              render={({ field }) => (
+                <input aria-label="Cupom de desconto" placeholder="Cupom: GEEK10" {...field} />
+              )}
             />
             <Button type="submit">Aplicar</Button>
           </form>

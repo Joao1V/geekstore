@@ -27,6 +27,8 @@ export function FieldInput<
   autoComplete,
   pattern,
   minLength,
+  maxLength,
+  inputMode,
 }: {
   field: ControllerRenderProps<TFieldValues, TName>;
   fieldState: ControllerFieldState;
@@ -37,6 +39,8 @@ export function FieldInput<
   autoComplete?: string;
   pattern?: string;
   minLength?: number;
+  maxLength?: number;
+  inputMode?: 'text' | 'numeric' | 'tel' | 'email' | 'decimal';
 }) {
   return (
     <HeroTextField
@@ -55,6 +59,8 @@ export function FieldInput<
         autoComplete={autoComplete}
         pattern={pattern}
         minLength={minLength}
+        maxLength={maxLength}
+        inputMode={inputMode}
         className="field-input"
       />
       {description && !fieldState.error && <Description>{description}</Description>}

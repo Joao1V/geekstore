@@ -18,6 +18,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Dialog, Quantity } from '@/components/ui';
 import { matches, money, products } from '@/lib/catalog';
 import { getMascot } from '@/lib/mascot';
@@ -26,11 +27,14 @@ import { StoreAlert } from './store-alert';
 
 const STORE_CATEGORIES = ['Colecionáveis', 'Games', 'Vestuário', 'RPG'];
 
+type SearchFormValues = { q: string };
+
 export function Shell({ children }: { children: ReactNode }) {
   const store = useCartStore();
   const router = useRouter();
   const path = usePathname();
-  const [search, setSearch] = useState('');
+  const { control, handleSubmit } = useForm<SearchFormValues>({ defaultValues: { q: '' } });
+  const search = useWatch({ control, name: 'q' });
   const [menu, setMenu] = useState(false);
   const [focused, setFocused] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -53,12 +57,11 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [path]);
 
   const count = store.lines.reduce((sum, line) => sum + line.qty, 0);
-  const results = products.filter((p) => matches(p, search)).slice(0, 4);
+  const results = products.filter((p) => matches(p, search ?? '')).slice(0, 4);
 
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault();
+  const submit = ({ q }: SearchFormValues) => {
     setFocused(false);
-    router.push(`/catalogo/?q=${encodeURIComponent(search)}`);
+    router.push(`/catalogo/?q=${encodeURIComponent(q)}`);
   };
 
   return (
@@ -75,15 +78,23 @@ export function Shell({ children }: { children: ReactNode }) {
             />
           </Link>
           <div className="search-wrap">
-            <form onSubmit={submit} className="search">
+            <form onSubmit={handleSubmit(submit)} className="search">
               <Search size={20} />
-              <input
-                aria-label="Buscar produtos"
-                value={search}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setTimeout(() => setFocused(false), 180)}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Qual é o seu próximo universo?"
+              <Controller
+                control={control}
+                name="q"
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    aria-label="Buscar produtos"
+                    onFocus={() => setFocused(true)}
+                    onBlur={() => {
+                      field.onBlur();
+                      setTimeout(() => setFocused(false), 180);
+                    }}
+                    placeholder="Qual é o seu próximo universo?"
+                  />
+                )}
               />
               <Button isIconOnly type="submit" aria-label="Pesquisar">
                 <ArrowRight size={20} />
