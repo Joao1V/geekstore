@@ -39,6 +39,8 @@ Infra: Dokploy num VPS, Traefik, Cloudflare. Fila BullMQ + Redis. Busca Meilisea
 - O `apps/web` nunca acessa o banco: só a API, por HTTP. Toda chamada à API no web é um service (`modules/<store|admin>/services/<domain>/`, skill `scaffolding-api-service`, só para `apps/web`), sem `fetch` solto em componente.
 - Nenhum dado de cartão passa pelo servidor.
 - Validação Zod em toda entrada; contratos ficam em `packages/shared`.
+- Padrão da API (`docs/api/common-schemas.md`, schemas em `packages/shared/src/common.ts`): JSON em snake_case (corpo, query, enums, banco); sucesso `{ data }`, lista `{ data, meta: { page, page_size, total, total_pages } }` com query `page`/`page_size`/`sort`; erro `{ error, code, message, details?, request_id }` com `code` de `apiErrorCodes`. Sem `/v1`.
+- O browser chama a API pela mesma origem (`/api/*`, rewrite do Next → `API_INTERNAL_URL`); o servidor do Next e os webhooks vão direto na API. `TRUST_PROXY_HOPS` na API deve refletir os proxies confiáveis à frente dela (rate limit por IP).
 
 ## Convenções
 

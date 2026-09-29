@@ -344,7 +344,7 @@ import { useMemo, useCallback } from 'react'
 // PASS: GOOD: Memoize expensive computations
 // Copy before sorting - Array.prototype.sort mutates in place
 const sortedProducts = useMemo(() => {
-  return [...products].sort((a, b) => a.priceCents - b.priceCents)
+  return [...products].sort((a, b) => a.price_cents - b.price_cents)
 }, [products])
 
 // PASS: GOOD: Memoize callbacks

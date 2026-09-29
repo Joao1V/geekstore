@@ -42,8 +42,9 @@ code into Server Components).
 
 Request/response contracts are Zod schemas in `packages/shared` (`CLAUDE.md`), shared with the API:
 
-- **Response types:** `z.infer` types exported by `@geekstore/shared`, passed as the generic to
-  the client (`api.get<AuthSessionResponse>(...)`). No `.parse()` on responses — the API already
+- **Response types:** the *data* type from `@geekstore/shared` (`z.infer` of the item schema, e.g.
+  `AuthSession`, not the `{ data }` wrapper), passed as the generic to the client
+  (`api.post<AuthSession>(...)`). No `.parse()` on responses — the API already
   serializes them through the same schema.
 - **Payload types (mutations):** the shared Zod schema is also the RHF `zodResolver` schema
   (see `form-fields`). User input is validated here and again in the API.
@@ -58,22 +59,39 @@ Request/response contracts are Zod schemas in `packages/shared` (`CLAUDE.md`), s
 One shared client, no per-domain wrappers and no static classes.
 
 ```ts
-api.get<T>(path, params?, options?)      // params: plain object, arrays become repeated keys
-api.post<T>(path, body?, options?)       // also put / patch / delete
+api.get<T>(path, params?, options?)       // returns T = the `data` of `{ data }`
+api.paginate<T>(path, params?, options?)  // lists: returns `{ data: T[], meta }` whole
+api.post<T>(path, body?, options?)        // also put / patch / delete (204 → undefined)
 // options: { accessToken?, cache?, next?, signal? }
 ```
 
-- Base URL from `NEXT_PUBLIC_API_URL`; sends the refresh cookie (`credentials: 'include'`); sets
-  `Content-Type` only when there is a body (Fastify rejects JSON with an empty body, e.g. `/refresh`).
-- Failures throw `ApiError` (`status`, `code`, `message`, `details`) built from the API's error
-  body (`docs/api/common-schemas.md`). Network failure → `status 0`, `code 'network_error'`.
-  Branch on `error.code`/`error.status`, never on message text.
+- **Response standard** (`docs/api/common-schemas.md`, schemas in `@geekstore/shared`): JSON is
+  snake_case; success is always `{ data }`, lists `{ data, meta: { page, page_size, total,
+  total_pages } }`. The client unwraps `data`, so `T` is the resource type (`AuthSession`,
+  `Sku`...) and components never see the envelope. Lists use `api.paginate` and keep `meta`.
+  Send list queries as `{ page, page_size, sort: 'created_at:desc', ...filters }`.
+- **Browser calls go through the Next proxy:** base URL is `<basePath>/api/...` on the same origin
+  (`rewrites` in `next.config.ts` → `API_INTERNAL_URL`), so there is no CORS and the refresh cookie
+  is first-party. The client appends the trailing slash the rewrite needs (`trailingSlash: true`).
+  **Server (RSC/prefetch) calls go straight to `API_INTERNAL_URL`**, never through the proxy.
+  `NEXT_PUBLIC_API_URL` no longer exists. Webhooks (Vindi, marketplaces) hit the API's public URL
+  directly, not the Next proxy.
+- `GET /health` is the one exception: it returns a bare `{ status: 'ok' }` for uptime checkers and is not called through `api`.
+- Failures throw `ApiError` (`status`, `code`, `message`, `details`, `requestId`) built from the
+  API's error body. Network failure → `status 0`, `code 'network_error'`. Branch on
+  `error.code`/`error.status`, never on message text.
+- Sends the refresh cookie (`credentials: 'include'`); sets `Content-Type` only when there is a
+  body (Fastify rejects JSON with an empty body, e.g. `/refresh`).
 - `accessToken` becomes `Authorization: Bearer`. The client lives in `lib/` (shared), so it never
   imports `modules/admin`/`modules/store`: the admin service passes the token from
   `useAdminAuthStore`. (No protected API route exists yet; the header convention is ours.)
 - `cache` / `next` are forwarded to `fetch`. Next 16 without `cacheComponents` (our config) does
   **not** cache `fetch` by default — for ISR/`revalidateTag` (D9) the server-side query must pass
   `next: { revalidate, tags }` or `cache: 'force-cache'`.
+- Proxy caveats: the API's per-IP rate limit only sees the real client IP if something in front of
+  Next sets `X-Forwarded-For` **and** `TRUST_PROXY_HOPS` in `apps/api` matches the number of trusted
+  hops (Next's rewrite forwards the header but does not append the caller). The refresh cookie has
+  `path=/api/auth`: if `BASE_PATH` is ever set, the cookie path must include it.
 - Reference implementation: `modules/admin/services/auth/mutations.ts` (login/refresh/logout).
 
 ## QueryClient and server hydration (TanStack Query "Advanced SSR")
@@ -98,26 +116,30 @@ api.post<T>(path, body?, options?)       // also put / patch / delete
 
 ## `queries.ts` — reads
 
-`queryOptions` (TanStack Query v5) factories (type names below like `ProductResponse`/`SkuPayload` are illustrative — the schemas don't exist in `packages/shared` yet): one definition of key + fetcher, usable in a client
+`queryOptions` (TanStack Query v5) factories (type names below like `Product`/`SkuPayload` are illustrative — the schemas don't exist in `packages/shared` yet): one definition of key + fetcher, usable in a client
 component **and** for server prefetch. No wrapper `useX()` hooks — components call
 `useQuery(skuQueryOptions(code))` directly.
 
 ```ts
 // modules/store/services/catalog/queries.ts
+import type { PaginationQuery, Product } from '@geekstore/shared';
 import { queryOptions } from '@tanstack/react-query';
-import type { ProductListResponse, ProductResponse } from '@geekstore/shared';
 import { api } from '@/lib/api';
 
-export const productListQueryOptions = (params: { category?: string; page?: number }) =>
+type ProductListParams = Partial<PaginationQuery> & { category?: string };
+
+// Lista: `api.paginate` devolve `{ data: Product[], meta }`.
+export const productListQueryOptions = (params: ProductListParams) =>
   queryOptions({
     queryKey: ['product', 'list', params],
-    queryFn: () => api.get<ProductListResponse>('/api/products', params),
+    queryFn: () => api.paginate<Product>('/api/products', params),
   });
 
+// Recurso único: `api.get` já entrega o `data` (um Product).
 export const productQueryOptions = (slug: string) =>
   queryOptions({
     queryKey: ['product', slug],
-    queryFn: () => api.get<ProductResponse>(`/api/products/${slug}`),
+    queryFn: () => api.get<Product>(`/api/products/${slug}`),
   });
 ```
 
@@ -148,13 +170,13 @@ const { data } = useQuery(productQueryOptions(slug));
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { SkuPayload, SkuResponse } from '@geekstore/shared';
+import type { Sku, SkuPayload } from '@geekstore/shared';
 import { api } from '@/lib/api';
 
 export function useCreateSku() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: SkuPayload) => api.post<SkuResponse>('/api/skus', payload),
+    mutationFn: (payload: SkuPayload) => api.post<Sku>('/api/skus', payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sku'] }),
   });
 }
@@ -175,7 +197,7 @@ export function useCreateSku() {
 | Location | `modules/<store\|admin>/services/<domain>/`, never a root `services/` |
 | HTTP | `import { api } from '@/lib/api'` only; no `fetch` inline in components, no per-domain classes; errors are `ApiError` |
 | QueryClient | `getQueryClient()` from `lib/get-query-client.ts` (new per request on the server, singleton in the browser) |
-| Types | From `@geekstore/shared`; no local response models, no `.parse()` on responses |
+| Types | From `@geekstore/shared` (the `data` type); no local response models, no `.parse()` on responses; wire fields are snake_case |
 | Reads | `queryOptions` factories in `queries.ts`; components call `useQuery(...)` directly |
 | Server prefetch | Public store pages only: `getQueryClient()` + `prefetchQuery(xQueryOptions(...))` + `HydrationBoundary`; never admin/logged-in data |
 | Writes | `useMutation` in `mutations.ts` (`"use client"`), invalidate in `onSuccess` |
@@ -189,6 +211,9 @@ export function useCreateSku() {
 - Writing `fetch(...)` directly in a component or a `useEffect` instead of a service.
 - Wrapping every `useQuery` in a same-named `useX` hook that adds nothing.
 - Defining a response `interface` locally instead of importing from `@geekstore/shared`.
+- Typing the generic as the `{ data }` envelope, or reading `.data` yourself: the client already unwrapped it (lists use `api.paginate`).
+- camelCase field names for API data (`priceCents`, `pageSize`): the wire format is snake_case (`price_cents`, `page_size`).
+- Pointing `NEXT_PUBLIC_API_URL`-style absolute URLs at the API from browser code: use the same-origin proxy path.
 - Marking `queries.ts` as `"use client"` — it then can't be used for server prefetch.
 - Hand-building query strings, or putting a URL string in `queryKey`.
 - Storing the fetched data in Zustand.

@@ -24,7 +24,7 @@ Encapsulate data access behind a consistent interface:
 
 ### API Response Format
 
-No success envelope: a successful response is the bare resource (or a paginated object), typed
-by a Zod schema in `packages/shared`. Every error uses one shape, `{ error, code, message,
-details? }` (`apps/api/src/core/_errors`), with a stable `code` clients can branch on. See
-`docs/api/common-schemas.md`.
+JSON is snake_case. Success is always `{ data }` (lists: `{ data, meta }` with `page`,
+`page_size`, `total`, `total_pages`), typed by Zod schemas in `packages/shared`. Every error uses
+one shape, `{ error, code, message, details?, request_id }` (`apps/api/src/core/_errors`), with a
+stable `code` clients can branch on. See `docs/api/common-schemas.md`.

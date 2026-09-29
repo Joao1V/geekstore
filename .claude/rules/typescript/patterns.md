@@ -11,17 +11,10 @@ paths:
 
 ## API Response Format
 
-No success envelope: responses are the bare resource typed from `@geekstore/shared`. Errors are
-always `{ error, code, message, details? }` (`ApiError` in `apps/web/lib/api.ts`).
-
-```typescript
-interface ApiErrorBody {
-  error: string
-  code: string
-  message: string
-  details?: unknown
-}
-```
+Wire format is snake_case; success is `{ data }` (lists `{ data, meta }`), types come from
+`@geekstore/shared` (`dataResponse`, `paginatedResponse`, `ApiErrorBody`). Errors are always
+`{ error, code, message, details?, request_id }` and surface in the web as `ApiError`
+(`apps/web/lib/api.ts`). Don't redeclare these shapes locally.
 
 ## Custom Hooks Pattern
 

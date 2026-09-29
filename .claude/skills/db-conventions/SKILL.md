@@ -9,6 +9,7 @@ description: Convenções de nomenclatura de banco de dados do GeekStore (MySQL 
 - Nomes de model, campo e tabela são em **inglês**.
 - Tipo da PK é sempre UUID v7 (`@id @default(uuid(7)) @db.Char(36)`), nunca int sequencial — mantém ordenação cronológica no índice e evita risco de enumeração. MySQL não tem tipo `UUID` nativo, então usa-se `CHAR(36)` (não `@db.Uuid`, que é só Postgres). FKs também levam `@db.Char(36)`.
 - Nome da tabela no banco via `@@map("table_name")` em snake_case singular, em inglês.
+- O JSON da API também é snake_case (mesmos nomes do banco, ex.: `sku_id`, `created_at`, `price_cents`); o Prisma já devolve assim, sem conversão.
 - Dinheiro sempre em centavos (`Int`/`BigInt`) ou `Decimal` com precisão explícita (`@db.Decimal(10, 2)`) — nunca `Float`.
 
 Exemplo:

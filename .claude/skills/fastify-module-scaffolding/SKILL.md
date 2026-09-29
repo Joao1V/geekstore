@@ -180,23 +180,29 @@ de "muitos arquivos pequenos" do `coding-style.md`, mas sem fragmentar demais um
 // packages/shared/src/product.ts
 import { z } from 'zod';
 
+import { dataResponse } from './common';
+
 export const productBodySchema = z.object({
   name: z.string().min(1),
-  priceInCents: z.number().int().positive(),
+  price_cents: z.number().int().positive(),
 });
 export type ProductBody = z.infer<typeof productBodySchema>;
 
 export const productParamsSchema = z.object({
-  productId: z.string().uuid(),
+  product_id: z.string().uuid(),
 });
 export type ProductParams = z.infer<typeof productParamsSchema>;
 
-export const productResponseSchema = z.object({
-  productId: z.string().uuid(),
+export const productSchema = z.object({
+  product_id: z.string().uuid(),
   name: z.string(),
-  priceInCents: z.number().int(),
+  price_cents: z.number().int(),
   status: z.enum(['active', 'archived']),
 });
+export type Product = z.infer<typeof productSchema>;
+
+// Sucesso é sempre `{ data }`; lista é `{ data, meta }` (paginatedResponse) — ver "Padrão de resposta".
+export const productResponseSchema = dataResponse(productSchema);
 export type ProductResponse = z.infer<typeof productResponseSchema>;
 ```
 
@@ -228,6 +234,22 @@ Quando a `web` precisar do mesmo shape (formulário de produto, tipagem de respo
 importa o mesmo `ProductBody`/`ProductResponse` de `@geekstore/shared` — nunca redeclara um
 `interface`/`type` equivalente local. Isso é o ponto inteiro do pacote existir.
 
+## Padrão de resposta (vale para toda rota)
+
+Definido em `packages/shared/src/common.ts` e documentado em `docs/api/common-schemas.md`:
+
+- **JSON em snake_case** (corpo, query params, enums). O Prisma já devolve os campos em snake_case
+  (`user_id`, `price_cents`), então o service não converte nada. Só identificadores TypeScript
+  locais são camelCase.
+- **Sucesso:** `{ data }` via `dataResponse(schema)`; o controller responde `{ data: ... }`.
+  **Lista:** `{ data: [...], meta: { page, page_size, total, total_pages } }` via
+  `paginatedResponse(item)`, com query `paginationQuerySchema` (`page`, `page_size` padrão 20 e
+  máximo 100, `sort=campo:asc|desc` validado contra os campos permitidos do recurso).
+- **Erro:** sempre `{ error, code, message, details?, request_id }`; `code` é um dos
+  `apiErrorCodes`. Quem formata é o `errorHandler` (e o `notFoundHandler` para rota inexistente),
+  nunca o handler da rota. Novo código de erro = adicionar em `apiErrorCodes` primeiro.
+- Criação retorna 201 com `{ data }`; exclusão e logout, 204 sem corpo. Sem `/v1`.
+
 ## Erros comuns a evitar
 
 - Registrar rota via `@fastify/autoload` — este projeto não usa, registro é manual e explícito.
@@ -235,6 +257,7 @@ importa o mesmo `ProductBody`/`ProductResponse` de `@geekstore/shared` — nunca
 - Ler `process.env.X` fora de `core/config/env.ts`.
 - `reply.status(4xx).send(...)` manual pra um erro esperado dentro de um handler/service — jogue
   a `AppError` subclasse certa e deixe o `errorHandler` formatar.
+- Responder um recurso sem `{ data }` ou uma lista sem `meta`, ou usar camelCase em campo de resposta/query.
 - Colocar schema de contrato de rota dentro do módulo em vez de `packages/shared` — quebra a
   regra do `CLAUDE.md` de contratos em `packages/shared`.
 - Adicionar `@sentry/node`, mapeamento de erro do Prisma, ou plugin de rate-limit
