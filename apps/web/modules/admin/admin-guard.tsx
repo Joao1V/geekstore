@@ -20,7 +20,7 @@ export function AdminGuard({ children }: { children: ReactNode }) {
     if (useAdminAuthStore.getState().status !== 'idle') return;
     setStatus('loading');
     refreshSession(undefined, {
-      onSuccess: (session) => setSession(session.accessToken, session.user),
+      onSuccess: (session) => setSession(session.access_token, session.user),
       onError: () => {
         useAdminAuthStore.getState().clearSession();
         router.replace('/admin/entrar/');

@@ -26,7 +26,7 @@ export function AdminLogin() {
     setFormError('');
     try {
       const session = await login.mutateAsync(data);
-      setSession(session.accessToken, session.user);
+      setSession(session.access_token, session.user);
       router.replace('/admin/');
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Não foi possível entrar.');
