@@ -116,12 +116,28 @@ new `Field*` component" below for why.
   hook's `control`/`handleSubmit` under different local names (`bannerControl`/`editControl`),
   rather than trying to share one `useForm()` across unrelated field sets.
 
+- **`apps/web/modules/store/shell.tsx`** (header search) — a live-search-as-you-type field, not
+  a validate-then-submit form. Still `useForm()` + `Controller`, but reads the live value with
+  `useWatch({ control, name: 'q' })` instead of a parallel `useState` — the field driving other
+  UI (the suggestions dropdown) on every keystroke is exactly the "controlled inputs" case, and
+  RHF's `useWatch` covers it without a second source of truth.
+
+- **`apps/web/modules/store/product.tsx`** (`Freight`, the CEP field) — a `FieldInput` with an
+  input mask: `field.onChange` is wrapped in the `Controller` render prop to reformat digits
+  into `00000-000` before handing the value to RHF, and `FieldInput` was extended with
+  `inputMode`/`maxLength` (plain HTML input attributes, not a new field kind) once this became
+  the second real case needing them (`checkout.tsx`'s own `cep` field is the first, unmasked).
+
 ## Fields no `Field*` component covers yet
 
 Checkboxes, radios, file inputs, or anything without a `Field*` component: wrap the raw
 HeroUI/native control in `<Controller>` directly, same as `apps/web/modules/admin/admin.tsx`'s
 product-edit dialog (price/stock as `type="number"`, since `FieldInput` only covers text-like
-types):
+types). This also applies when the field's chrome genuinely doesn't fit `FieldInput`'s
+`Label`+`TextField` wrapper — `apps/web/modules/store/checkout.tsx`'s coupon input sits inside a
+compact pill with no visible label, so it wraps a bare `<input>` in `Controller` instead of
+forcing `FieldInput`'s structure onto a UI it wasn't designed for. Mismatched chrome is a
+legitimate reason to skip a `Field*` component; missing validation/error display is not.
 
 ```tsx
 <Controller
