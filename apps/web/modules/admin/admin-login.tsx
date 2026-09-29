@@ -8,13 +8,14 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { Action, FieldInput } from '@/components/ui';
-import { login } from './lib/auth-client';
+import { useLogin } from './services/auth/mutations';
 import { useAdminAuthStore } from './state/auth-store';
 
 export function AdminLogin() {
   const router = useRouter();
   const setSession = useAdminAuthStore((state) => state.setSession);
   const [formError, setFormError] = useState('');
+  const login = useLogin();
   const {
     control,
     handleSubmit,
@@ -24,7 +25,7 @@ export function AdminLogin() {
   const submit = async (data: AuthLoginBody) => {
     setFormError('');
     try {
-      const session = await login(data);
+      const session = await login.mutateAsync(data);
       setSession(session.accessToken, session.user);
       router.replace('/admin/');
     } catch (err) {

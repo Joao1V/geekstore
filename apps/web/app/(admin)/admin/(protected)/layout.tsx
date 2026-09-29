@@ -4,18 +4,24 @@ import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { AdminGuard } from '@/modules/admin/admin-guard';
-import { logout } from '@/modules/admin/lib/auth-client';
+import { useLogout } from '@/modules/admin/services/auth/mutations';
 import { useAdminAuthStore } from '@/modules/admin/state/auth-store';
 
 function AdminTopbar() {
   const router = useRouter();
   const user = useAdminAuthStore((state) => state.user);
   const clearSession = useAdminAuthStore((state) => state.clearSession);
+  const logout = useLogout();
 
   const handleLogout = async () => {
-    await logout();
-    clearSession();
-    router.replace('/admin/entrar/');
+    try {
+      await logout.mutateAsync();
+    } catch {
+      // A revogação no servidor é best-effort: a sessão local termina de qualquer forma.
+    } finally {
+      clearSession();
+      router.replace('/admin/entrar/');
+    }
   };
 
   return (

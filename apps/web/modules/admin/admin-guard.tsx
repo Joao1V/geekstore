@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 
-import { refreshSession } from './lib/auth-client';
+import { useRefreshSession } from './services/auth/mutations';
 import { useAdminAuthStore } from './state/auth-store';
 
 export function AdminGuard({ children }: { children: ReactNode }) {
@@ -12,17 +12,21 @@ export function AdminGuard({ children }: { children: ReactNode }) {
   const status = useAdminAuthStore((state) => state.status);
   const setSession = useAdminAuthStore((state) => state.setSession);
   const setStatus = useAdminAuthStore((state) => state.setStatus);
+  const { mutate: refreshSession } = useRefreshSession();
 
   useEffect(() => {
-    if (status !== 'idle') return;
+    // Lê o status atual do store (não o da closure): no StrictMode o efeito roda duas vezes e um
+    // segundo refresh com o mesmo cookie seria tratado como reuso de token e derrubaria a sessão.
+    if (useAdminAuthStore.getState().status !== 'idle') return;
     setStatus('loading');
-    refreshSession()
-      .then((session) => setSession(session.accessToken, session.user))
-      .catch(() => {
+    refreshSession(undefined, {
+      onSuccess: (session) => setSession(session.accessToken, session.user),
+      onError: () => {
         useAdminAuthStore.getState().clearSession();
         router.replace('/admin/entrar/');
-      });
-  }, [status, setSession, setStatus, router]);
+      },
+    });
+  }, [refreshSession, setSession, setStatus, router]);
 
   if (status === 'authenticated') return <>{children}</>;
   return <p className="wrap section">Verificando sessão…</p>;
