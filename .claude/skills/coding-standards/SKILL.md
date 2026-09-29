@@ -24,6 +24,15 @@ This skill is the shared floor, not the detailed framework playbook.
 - Setting up linting, formatting, or type-checking rules
 - Onboarding new contributors to coding conventions
 
+## Note for this project (GeekStore)
+
+The "API Design Standards" and "Database Queries" sections below are generic Next.js/Supabase
+illustrations — this project's API lives entirely in `apps/api` (Fastify + Prisma via
+`@geekstore/db`), never in Next.js Route Handlers, and never Supabase. See the
+`fastify-module-scaffolding` skill and `db-conventions` skill for the real patterns; treat the
+sections below as background for what a "REST API" or "DB query" concept looks like elsewhere,
+not as something to copy here.
+
 ## Scope Boundaries
 
 Activate this skill for:
@@ -356,11 +365,16 @@ src/
 
 ### File Naming
 
+Generic convention is PascalCase per component (`components/Button.tsx`) — **this project uses
+kebab-case everywhere in `apps/web` instead** (`admin-login.tsx`, `campaign-slider.tsx`), and a
+component kit that would otherwise grow into one giant file becomes a flat folder + `index.ts`
+barrel, not one folder per component (see `components/ui/` and `CLAUDE.md`). Follow the local
+convention here, not the generic one:
+
 ```
-components/Button.tsx          # PascalCase for components
-hooks/useAuth.ts              # camelCase with 'use' prefix
-lib/formatDate.ts             # camelCase for utilities
-types/market.types.ts         # camelCase with .types suffix
+modules/admin/admin-login.tsx  # kebab-case, not PascalCase
+modules/store/state/cart-store.ts
+components/ui/field-input.tsx  # + components/ui/index.ts barrel
 ```
 
 ## Comments & Documentation
@@ -371,9 +385,6 @@ types/market.types.ts         # camelCase with .types suffix
 // PASS: GOOD: Explain WHY, not WHAT
 // Use exponential backoff to avoid overwhelming the API during outages
 const delay = Math.min(1000 * Math.pow(2, retryCount), 30000)
-
-// Deliberately using mutation here for performance with large arrays
-items.push(newItem)
 
 // FAIL: BAD: Stating the obvious
 // Increment counter by 1

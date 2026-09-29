@@ -20,7 +20,7 @@ paths:
 
 ## Naming
 
-- Components: `PascalCase` for both the symbol and the file (`UserCard.tsx`, default export `UserCard`)
+- Components: `PascalCase` for the symbol (`UserCard`); the file itself follows the project's own convention — this project (`apps/web`) uses kebab-case filenames throughout (`admin-login.tsx` exporting `AdminLogin`), not `UserCard.tsx`; see `CLAUDE.md`
 - Custom hooks: `useCamelCase` for the symbol, kebab-case for the file when the project convention is kebab-case (`use-debounce.ts` exports `useDebounce`)
 - Context: `<Domain>Context` symbol, `<Domain>Provider` provider component, `use<Domain>` consumer hook
 - Event handlers: `handleClick`, `handleSubmit` inside the component; the prop that receives it is `onClick`, `onSubmit`
@@ -106,5 +106,10 @@ components/UserCard/
   UserCard.test.tsx
   index.ts              # re-export only
 ```
+
+In this project, apply the same idea with kebab-case filenames instead — a whole small kit of
+related components (not one component per folder) sits flat in one folder with a single shared
+barrel, e.g. `components/ui/` (`action.tsx`, `field-input.tsx`, `field-select.tsx`, ... +
+`index.ts`), not `components/ui/Action/Action.tsx`. See `CLAUDE.md` and the `form-fields` skill.
 
 Inline single-file components are fine for trivial presentational pieces.

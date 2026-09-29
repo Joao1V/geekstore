@@ -83,7 +83,15 @@ Every Suspense boundary needs an Error Boundary above it. The pair handles both 
 
 ## Forms
 
-### Uncontrolled (React 19 + form actions)
+**In `apps/web`, every form uses react-hook-form's `useForm()` with each field wrapped in an
+explicit `<Controller>` — not the generic patterns below, and not `useState` per field either
+way (controlled or uncontrolled). See the `form-fields` skill for the full contract (the
+`FieldInput`/`FieldSelect`/... family in `components/ui/`) and `apps/web/modules/admin/admin-login.tsx`
+as the reference implementation. `apps/web` also never uses Server Actions that touch a database
+directly — it only talks to `apps/api` over HTTP (`CLAUDE.md`). The patterns below are generic
+React reference material, not what to write here.
+
+### Uncontrolled (React 19 + form actions) — generic reference, not used in this project
 
 Prefer uncontrolled inputs with form actions when the form has a clear submit step. The browser owns the value; React reads it via `FormData` on submit.
 
@@ -103,20 +111,11 @@ export function UserForm() {
 }
 ```
 
-### Controlled
-
-Use controlled inputs when the value drives other UI, requires real-time validation, or formatting.
-
-```tsx
-const [email, setEmail] = useState("");
-return <input value={email} onChange={(e) => setEmail(e.target.value)} />;
-```
-
 ### Form Libraries
 
 For complex forms (multi-step, dynamic field arrays, cross-field validation), use a library:
 
-- React Hook Form — minimal re-renders, uncontrolled-first
+- React Hook Form — minimal re-renders, uncontrolled-first (this project's standard, always with `Controller`)
 - TanStack Form — typed, framework-agnostic
 - Final Form — when subscription-based re-renders matter
 
