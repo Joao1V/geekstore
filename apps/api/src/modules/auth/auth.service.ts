@@ -14,7 +14,7 @@ type IssuedRefreshToken = {
 };
 
 function toAuthUser(user: { user_id: string; email: string; name: string }): AuthUser {
-  return { userId: user.user_id, email: user.email, name: user.name };
+  return { user_id: user.user_id, email: user.email, name: user.name };
 }
 
 function newRefreshTokenExpiry(): Date {

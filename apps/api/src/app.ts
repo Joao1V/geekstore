@@ -8,7 +8,7 @@ import {
   validatorCompiler,
 } from 'fastify-type-provider-zod';
 
-import { errorHandler } from './core/_errors';
+import { errorHandler, notFoundHandler } from './core/_errors';
 import { envConfig } from './core/config';
 import { cookiePlugin } from './core/plugins/cookie.plugin';
 import { corsPlugin } from './core/plugins/cors.plugin';
@@ -19,9 +19,11 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { healthPlugin } from './modules/health/health.plugin';
 
 export function buildApp() {
-  const { NODE_ENV } = envConfig.server;
+  const { NODE_ENV, TRUST_PROXY_HOPS } = envConfig.server;
 
   const app = Fastify({
+    // Confia só nos N saltos mais próximos (hop 0 = a conexão direta); 0 = sem proxy confiável.
+    trustProxy: (_address, hop) => hop < TRUST_PROXY_HOPS,
     logger: {
       level: NODE_ENV === 'production' ? 'info' : 'debug',
       transport:
@@ -37,6 +39,7 @@ export function buildApp() {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   app.setErrorHandler(errorHandler);
+  app.setNotFoundHandler(notFoundHandler);
 
   // ── Security ──────────────────────────────────────────────────
   app.register(corsPlugin);

@@ -39,7 +39,7 @@ describe('auth.service (integration — requires a live DATABASE_URL)', () => {
   it('accepts the correct credentials', async () => {
     const user = await verifyCredentials(email, password);
     expect(user.email).toBe(email);
-    expect(user.userId).toBe(userId);
+    expect(user.user_id).toBe(userId);
   });
 
   it('rotates the refresh token and rejects reuse of the old one', async () => {
@@ -47,7 +47,7 @@ describe('auth.service (integration — requires a live DATABASE_URL)', () => {
     const rotated = await rotateRefreshToken(first.token);
 
     expect(rotated.token).not.toBe(first.token);
-    expect(rotated.user.userId).toBe(userId);
+    expect(rotated.user.user_id).toBe(userId);
 
     // Reusar o token antigo (já rotacionado) falha...
     await expect(rotateRefreshToken(first.token)).rejects.toThrow();

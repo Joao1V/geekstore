@@ -10,6 +10,14 @@ const envSchema = z.object({
     .pipe(z.number().int().positive()),
   HOST: z.string().default('0.0.0.0'),
   CORS_ORIGINS: z.string().default(''),
+  // Quantos proxies confiáveis existem na frente da API (Next rewrite, Traefik, Cloudflare...).
+  // 0 = ninguém: request.ip é o IP da conexão. Errar para mais permite forjar X-Forwarded-For
+  // e burlar o rate limit; errar para menos faz todo usuário parecer o IP do proxy.
+  TRUST_PROXY_HOPS: z
+    .string()
+    .default('0')
+    .transform((val) => Number.parseInt(val, 10))
+    .pipe(z.number().int().min(0)),
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET deve ter pelo menos 32 caracteres'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   REFRESH_TOKEN_TTL_DAYS: z
@@ -40,8 +48,8 @@ function getEnv(): Env {
 
 export const envConfig = {
   get server() {
-    const { NODE_ENV, PORT, HOST } = getEnv();
-    return { NODE_ENV, PORT, HOST };
+    const { NODE_ENV, PORT, HOST, TRUST_PROXY_HOPS } = getEnv();
+    return { NODE_ENV, PORT, HOST, TRUST_PROXY_HOPS };
   },
   get cors() {
     const { CORS_ORIGINS } = getEnv();

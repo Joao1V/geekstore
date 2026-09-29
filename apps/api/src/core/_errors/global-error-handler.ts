@@ -1,4 +1,6 @@
-import type { FastifyError, FastifyInstance, FastifyRequest } from 'fastify';
+import { STATUS_CODES } from 'node:http';
+import type { ApiErrorBody, ApiErrorCode } from '@geekstore/shared';
+import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   hasZodFastifySchemaValidationErrors,
   isResponseSerializationError,
@@ -7,15 +9,10 @@ import {
 import { AppError } from './app-error';
 import { ExternalApiError } from './external-api-error';
 
-/**
- * Formato canônico de toda resposta de erro da API.
- */
-export interface ErrorBody {
-  error: string;
-  code: string;
-  message: string;
-  details?: unknown;
-}
+const RATE_LIMITED_STATUS = 429;
+
+/** Formato canônico de toda resposta de erro da API (contrato em `@geekstore/shared`). */
+export type ErrorBody = ApiErrorBody;
 
 type FastifyErrorHandler = FastifyInstance['errorHandler'];
 
@@ -35,12 +32,14 @@ function buildValidationDetails(
 }
 
 function buildErrorBody(
+  requestId: string,
   error: string,
-  code: string,
+  code: ApiErrorCode,
   message: string,
   details?: unknown
 ): ErrorBody {
-  return details !== undefined ? { error, code, message, details } : { error, code, message };
+  const body = { error, code, message, request_id: requestId };
+  return details !== undefined ? { ...body, details } : body;
 }
 
 export const errorHandler: FastifyErrorHandler = (error, request: FastifyRequest, reply) => {
@@ -49,6 +48,7 @@ export const errorHandler: FastifyErrorHandler = (error, request: FastifyRequest
       .status(400)
       .send(
         buildErrorBody(
+          request.id,
           'Bad Request',
           'validation_failed',
           'Validation failed',
@@ -66,6 +66,7 @@ export const errorHandler: FastifyErrorHandler = (error, request: FastifyRequest
       .status(500)
       .send(
         buildErrorBody(
+          request.id,
           'Internal Server Error',
           'serialization_error',
           'Response serialization failed',
@@ -78,7 +79,7 @@ export const errorHandler: FastifyErrorHandler = (error, request: FastifyRequest
     request.log.error({ err: error, details: error.details }, error.message);
     return reply
       .status(error.status_code)
-      .send(buildErrorBody(error.error, error.code, error.message, error.details));
+      .send(buildErrorBody(request.id, error.error, error.code, error.message, error.details));
   }
 
   if (error instanceof AppError) {
@@ -87,7 +88,7 @@ export const errorHandler: FastifyErrorHandler = (error, request: FastifyRequest
     }
     return reply
       .status(error.status_code)
-      .send(buildErrorBody(error.error, error.code, error.message));
+      .send(buildErrorBody(request.id, error.error, error.code, error.message));
   }
 
   // Erros lançados pelo próprio Fastify ou por plugins oficiais (ex.: @fastify/rate-limit,
@@ -102,8 +103,9 @@ export const errorHandler: FastifyErrorHandler = (error, request: FastifyRequest
       .status(fastifyError.statusCode)
       .send(
         buildErrorBody(
-          fastifyError.name ?? 'Error',
-          fastifyError.code ?? 'request_error',
+          request.id,
+          STATUS_CODES[fastifyError.statusCode] ?? 'Error',
+          fastifyError.statusCode === RATE_LIMITED_STATUS ? 'rate_limited' : 'request_error',
           fastifyError.message
         )
       );
@@ -113,6 +115,25 @@ export const errorHandler: FastifyErrorHandler = (error, request: FastifyRequest
   return reply
     .status(500)
     .send(
-      buildErrorBody('Internal Server Error', 'internal_error', 'An unexpected error occurred')
+      buildErrorBody(
+        request.id,
+        'Internal Server Error',
+        'internal_error',
+        'An unexpected error occurred'
+      )
     );
 };
+
+/** Rota inexistente: o Fastify não passa por `setErrorHandler`, então precisa do próprio handler. */
+export function notFoundHandler(request: FastifyRequest, reply: FastifyReply) {
+  return reply
+    .status(404)
+    .send(
+      buildErrorBody(
+        request.id,
+        'Not Found',
+        'not_found',
+        `Rota ${request.method} ${request.url} não encontrada`
+      )
+    );
+}
