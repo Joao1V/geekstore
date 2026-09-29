@@ -12,8 +12,8 @@ Modern frontend patterns for React, Next.js, and performant user interfaces.
 ## When to Activate
 
 - Building React components (composition, props, rendering)
-- Managing state (useState, useReducer, Zustand, Context)
-- Implementing data fetching (SWR, React Query, server components)
+- Managing state (useState locally, Zustand globally — no useReducer, no Context)
+- Implementing data fetching (React Query, server components)
 - Optimizing performance (memoization, virtualization, code splitting)
 - Working with forms (validation, controlled inputs, Zod schemas)
 - Handling client-side routing and navigation
@@ -51,87 +51,63 @@ export function CardBody({ children }: { children: React.ReactNode }) {
 
 ### Compound Components
 
+Use HeroUI's compound components (Tabs, Accordion, Modal, ...) — they already own their state
+(docs: https://heroui.com/en/docs/react/components/tabs). For a custom one, state lives in a
+Zustand store, never in Context:
+
 ```typescript
-interface TabsContextValue {
+import { create } from 'zustand'
+
+interface TabsState {
   activeTab: string
   setActiveTab: (tab: string) => void
 }
 
-const TabsContext = createContext<TabsContextValue | undefined>(undefined)
-
-export function Tabs({ children, defaultTab }: {
-  children: React.ReactNode
-  defaultTab: string
-}) {
-  const [activeTab, setActiveTab] = useState(defaultTab)
-
-  return (
-    <TabsContext.Provider value={{ activeTab, setActiveTab }}>
-      {children}
-    </TabsContext.Provider>
-  )
-}
-
-export function TabList({ children }: { children: React.ReactNode }) {
-  return <div className="tab-list">{children}</div>
-}
+export const useTabsStore = create<TabsState>((set) => ({
+  activeTab: 'overview',
+  setActiveTab: (tab) => set({ activeTab: tab }),
+}))
 
 export function Tab({ id, children }: { id: string, children: React.ReactNode }) {
-  const context = useContext(TabsContext)
-  if (!context) throw new Error('Tab must be used within Tabs')
+  const isActive = useTabsStore((s) => s.activeTab === id)
+  const setActiveTab = useTabsStore((s) => s.setActiveTab)
 
   return (
-    <button
-      className={context.activeTab === id ? 'active' : ''}
-      onClick={() => context.setActiveTab(id)}
-    >
+    <button className={isActive ? 'active' : ''} onClick={() => setActiveTab(id)}>
       {children}
     </button>
   )
 }
-
-// Usage
-<Tabs defaultTab="overview">
-  <TabList>
-    <Tab id="overview">Overview</Tab>
-    <Tab id="details">Details</Tab>
-  </TabList>
-</Tabs>
 ```
+
+A module-level store is shared by every instance; if two instances of the widget can coexist
+on a page, prefer HeroUI's component (or plain props) instead.
 
 ### Render Props Pattern
 
 ```typescript
-interface DataLoaderProps<T> {
-  url: string
-  children: (data: T | null, loading: boolean, error: Error | null) => React.ReactNode
+interface DisclosureProps {
+  children: (isOpen: boolean, toggle: () => void) => React.ReactNode
 }
 
-export function DataLoader<T>({ url, children }: DataLoaderProps<T>) {
-  const [data, setData] = useState<T | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-
-  useEffect(() => {
-    fetch(url)
-      .then(res => res.json())
-      .then(setData)
-      .catch(setError)
-      .finally(() => setLoading(false))
-  }, [url])
-
-  return <>{children(data, loading, error)}</>
+export function Disclosure({ children }: DisclosureProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  return <>{children(isOpen, () => setIsOpen(open => !open))}</>
 }
 
 // Usage
-<DataLoader<Market[]> url="/api/markets">
-  {(markets, loading, error) => {
-    if (loading) return <Spinner />
-    if (error) return <Error error={error} />
-    return <MarketList markets={markets!} />
-  }}
-</DataLoader>
+<Disclosure>
+  {(isOpen, toggle) => (
+    <>
+      <button onClick={toggle}>Ver detalhes do produto</button>
+      {isOpen && <ProductDetails />}
+    </>
+  )}
+</Disclosure>
 ```
+
+Data loading does not go through render props or hand-rolled hooks — see
+"Server Data Fetching Hook" below.
 
 ## Custom Hooks Patterns
 
@@ -152,170 +128,45 @@ export function useToggle(initialValue = false): [boolean, () => void] {
 const [isOpen, toggleOpen] = useToggle()
 ```
 
-### Async Data Fetching Hook
+### Server Data Fetching Hook
+
+Server data in `apps/web` goes through React Query (`@tanstack/react-query`), prefetched in a
+Server Component and hydrated with `HydrationBoundary` — never a hand-written
+`useState` + `useEffect` + `fetch` hook (race conditions, no cache, no retry). The client
+only talks to `apps/api` over HTTP; the response type comes from `packages/shared`.
 
 ```typescript
-interface UseQueryOptions<T> {
-  onSuccess?: (data: T) => void
-  onError?: (error: Error) => void
-  enabled?: boolean
-}
+import { useQuery } from '@tanstack/react-query'
+import type { Sku } from '@geekstore/shared'
 
-export function useQuery<T>(
-  key: string,
-  fetcher: () => Promise<T>,
-  options?: UseQueryOptions<T>
-) {
-  const [data, setData] = useState<T | null>(null)
-  const [error, setError] = useState<Error | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  // Keep the latest fetcher/options in refs so refetch stays referentially
-  // stable even when callers pass inline functions and object literals.
-  // Without this, every render creates a new refetch, and the effect below
-  // re-runs after each state update - an infinite fetch loop.
-  const fetcherRef = useRef(fetcher)
-  const optionsRef = useRef(options)
-
-  const refetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const result = await fetcherRef.current()
-      setData(result)
-      optionsRef.current?.onSuccess?.(result)
-    } catch (err) {
-      const error = err as Error
-      setError(error)
-      optionsRef.current?.onError?.(error)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  const enabled = options?.enabled !== false
-
-  // Every useEffect grouped together, right before return (rules/react/hooks.md) — even though
-  // this one only syncs refs and has no direct relation to the one below.
-  useEffect(() => {
-    fetcherRef.current = fetcher
-    optionsRef.current = options
+export function useSku(code: string) {
+  return useQuery({
+    queryKey: ['sku', code],
+    queryFn: async (): Promise<Sku> => {
+      const res = await fetch(`${API_URL}/api/skus/${code}`)
+      if (!res.ok) throw new Error('Falha ao carregar o SKU')
+      return res.json()
+    },
   })
-
-  useEffect(() => {
-    if (enabled) {
-      refetch()
-    }
-  }, [key, enabled, refetch])
-
-  return { data, error, loading, refetch }
 }
 
 // Usage
-const { data: markets, loading, error, refetch } = useQuery(
-  'markets',
-  () => fetch('/api/markets').then(r => r.json()),
-  {
-    onSuccess: data => console.log('Fetched', data.length, 'markets'),
-    onError: err => console.error('Failed:', err)
-  }
-)
+const { data: sku, isPending, error, refetch } = useSku('FUN-POP-1248')
 ```
 
 ### Debounce Hook
 
-```typescript
-export function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value)
+use lib use-debounce
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value)
-    }, delay)
-
-    return () => clearTimeout(handler)
-  }, [value, delay])
-
-  return debouncedValue
-}
-
-// Usage
-const [searchQuery, setSearchQuery] = useState('')
-const debouncedQuery = useDebounce(searchQuery, 500)
-
-useEffect(() => {
-  if (debouncedQuery) {
-    performSearch(debouncedQuery)
-  }
-}, [debouncedQuery])
-```
-
-## State Management Patterns
-
-### Context + Reducer Pattern
-
-```typescript
-interface State {
-  markets: Market[]
-  selectedMarket: Market | null
-  loading: boolean
-}
-
-type Action =
-  | { type: 'SET_MARKETS'; payload: Market[] }
-  | { type: 'SELECT_MARKET'; payload: Market }
-  | { type: 'SET_LOADING'; payload: boolean }
-
-function reducer(state: State, action: Action): State {
-  switch (action.type) {
-    case 'SET_MARKETS':
-      return { ...state, markets: action.payload }
-    case 'SELECT_MARKET':
-      return { ...state, selectedMarket: action.payload }
-    case 'SET_LOADING':
-      return { ...state, loading: action.payload }
-    default:
-      return state
-  }
-}
-
-const MarketContext = createContext<{
-  state: State
-  dispatch: Dispatch<Action>
-} | undefined>(undefined)
-
-export function MarketProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, {
-    markets: [],
-    selectedMarket: null,
-    loading: false
-  })
-
-  return (
-    <MarketContext.Provider value={{ state, dispatch }}>
-      {children}
-    </MarketContext.Provider>
-  )
-}
-
-export function useMarkets() {
-  const context = useContext(MarketContext)
-  if (!context) throw new Error('useMarkets must be used within MarketProvider')
-  return context
-}
-```
-
-## Performance Optimization
 
 ### Memoization
 
 ```typescript
 // PASS: useMemo for expensive computations
 // Copy before sorting - Array.prototype.sort mutates in place
-const sortedMarkets = useMemo(() => {
-  return [...markets].sort((a, b) => b.volume - a.volume)
-}, [markets])
+const sortedProducts = useMemo(() => {
+  return [...products].sort((a, b) => a.priceCents - b.priceCents)
+}, [products])
 
 // PASS: useCallback for functions passed to children
 const handleSearch = useCallback((query: string) => {
@@ -323,11 +174,11 @@ const handleSearch = useCallback((query: string) => {
 }, [])
 
 // PASS: React.memo for pure components
-export const MarketCard = React.memo<MarketCardProps>(({ market }) => {
+export const ProductCard = React.memo<ProductCardProps>(({ product }) => {
   return (
-    <div className="market-card">
-      <h3>{market.name}</h3>
-      <p>{market.description}</p>
+    <div className="product-card">
+      <h3>{product.name}</h3>
+      <p>{product.description}</p>
     </div>
   )
 })
@@ -362,11 +213,11 @@ export function Dashboard() {
 ```typescript
 import { useVirtualizer } from '@tanstack/react-virtual'
 
-export function VirtualMarketList({ markets }: { markets: Market[] }) {
+export function VirtualProductList({ products }: { products: Product[] }) {
   const parentRef = useRef<HTMLDivElement>(null)
 
   const virtualizer = useVirtualizer({
-    count: markets.length,
+    count: products.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 100,  // Estimated row height
     overscan: 5  // Extra items to render
@@ -392,7 +243,7 @@ export function VirtualMarketList({ markets }: { markets: Market[] }) {
               transform: `translateY(${virtualRow.start}px)`
             }}
           >
-            <MarketCard market={markets[virtualRow.index]} />
+            <ProductCard product={products[virtualRow.index]} />
           </div>
         ))}
       </div>
@@ -416,22 +267,23 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { FieldInput } from '@/components/ui'
+import { Button } from '@heroui/react'
 
-const createMarketSchema = z.object({
+const createProductSchema = z.object({
   name: z.string().min(1, 'Nome obrigatório').max(200, 'Máximo 200 caracteres'),
   description: z.string().min(1, 'Descrição obrigatória'),
-  endDate: z.string().min(1, 'Data de encerramento obrigatória'),
+  slug: z.string().min(1, 'Slug obrigatório'),
 })
-type CreateMarketFormValues = z.infer<typeof createMarketSchema>
+type CreateProductFormValues = z.infer<typeof createProductSchema>
 
-export function CreateMarketForm() {
-  const { control, handleSubmit } = useForm<CreateMarketFormValues>({
-    resolver: zodResolver(createMarketSchema),
+export function CreateProductForm() {
+  const { control, handleSubmit } = useForm<CreateProductFormValues>({
+    resolver: zodResolver(createProductSchema),
   })
 
-  const submit = async (data: CreateMarketFormValues) => {
+  const submit = async (data: CreateProductFormValues) => {
     try {
-      await createMarket(data)
+      await createProduct(data)
       // Success handling
     } catch (error) {
       // Error handling
@@ -444,13 +296,13 @@ export function CreateMarketForm() {
         control={control}
         name="name"
         render={({ field, fieldState }) => (
-          <FieldInput field={field} fieldState={fieldState} label="Nome do mercado" />
+          <FieldInput field={field} fieldState={fieldState} label="Nome do produto" />
         )}
       />
 
       {/* Other fields, same Controller + Field* shape */}
 
-      <button type="submit">Create Market</button>
+      <Button type="submit">Criar produto</Button>
     </form>
   )
 }
@@ -506,24 +358,24 @@ export class ErrorBoundary extends React.Component<
 
 ## Animation Patterns
 
-### Framer Motion Animations
+### Motion Animations
 
 ```typescript
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'motion/react'
 
 // PASS: List animations
-export function AnimatedMarketList({ markets }: { markets: Market[] }) {
+export function AnimatedProductList({ products }: { products: Product[] }) {
   return (
     <AnimatePresence>
-      {markets.map(market => (
+      {products.map(product => (
         <motion.div
-          key={market.id}
+          key={product.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3 }}
         >
-          <MarketCard market={market} />
+          <ProductCard product={product} />
         </motion.div>
       ))}
     </AnimatePresence>
@@ -557,8 +409,6 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
   )
 }
 ```
-
-## Accessibility Patterns
 
 ### Keyboard Navigation
 
@@ -598,40 +448,6 @@ export function Dropdown({ options, onSelect }: DropdownProps) {
       {/* Dropdown implementation */}
     </div>
   )
-}
-```
-
-### Focus Management
-
-```typescript
-export function Modal({ isOpen, onClose, children }: ModalProps) {
-  const modalRef = useRef<HTMLDivElement>(null)
-  const previousFocusRef = useRef<HTMLElement | null>(null)
-
-  useEffect(() => {
-    if (isOpen) {
-      // Save currently focused element
-      previousFocusRef.current = document.activeElement as HTMLElement
-
-      // Focus modal
-      modalRef.current?.focus()
-    } else {
-      // Restore focus when closing
-      previousFocusRef.current?.focus()
-    }
-  }, [isOpen])
-
-  return isOpen ? (
-    <div
-      ref={modalRef}
-      role="dialog"
-      aria-modal="true"
-      tabIndex={-1}
-      onKeyDown={e => e.key === 'Escape' && onClose()}
-    >
-      {children}
-    </div>
-  ) : null
 }
 ```
 

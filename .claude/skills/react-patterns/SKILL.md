@@ -1,6 +1,6 @@
 ---
 name: react-patterns
-description: React 18/19 patterns including hooks discipline, server/client component boundaries, Suspense + error boundaries, form actions, data fetching, state management decision trees, and accessibility-first composition. Use when writing or reviewing React components.
+description: React 18/19 patterns including hooks discipline, server/client component boundaries, Suspense + error boundaries, forms, data fetching, state management decision trees, and accessibility-first composition. Use when writing or reviewing React components.
 metadata:
   origin: ECC
 ---
@@ -15,10 +15,10 @@ Idiomatic React 18/19 patterns for building robust, accessible, performant compo
 - Reviewing JSX/TSX files
 - Designing state shape or component composition
 - Migrating class components or older `forwardRef`/`useEffect`-heavy code
-- Choosing between local state, lifted state, context, and external stores
+- Choosing between local state, lifted state, and Zustand
 - Working with Server Components / Client Components (Next.js App Router, RSC)
 - Implementing forms (this project: react-hook-form + `Controller`, see `form-fields` skill — not React 19 form actions)
-- Wiring data fetching with TanStack Query / SWR / RSC
+- Wiring data fetching with React Query / RSC
 
 ## Core Principles
 
@@ -70,17 +70,14 @@ Used by one component?
 Used by parent + a few descendants?
   -> lift to nearest common ancestor
 
-Used across distant branches AND low-frequency reads (theme, auth, locale)?
-  -> React Context
-
-High-frequency updates shared across the tree?
-  -> external store (Zustand, Jotai, Redux Toolkit)
+Used across distant branches, across routes, or has complex transitions?
+  -> Zustand store (no Context, no useReducer)
 
 Derived from a server?
-  -> server-state library (TanStack Query, SWR, RSC fetch)
+  -> React Query (prefetch + HydrationBoundary) or RSC fetch, never Zustand
 ```
 
-Most pages do not need context or a global store. Resist abstraction until duplicated lifting becomes painful.
+Most pages do not need a global store. Resist abstraction until duplicated lifting becomes painful.
 
 ## Server / Client Components (RSC)
 
@@ -113,7 +110,7 @@ export function AddToCartButton({ productId }: { productId: string }) {
 Boundaries:
 
 - Server -> Client: pass serializable props or `children`
-- Client -> Server: invoke Server Actions via `<form action={...}>` or imperatively from event handlers
+- Client -> Server: call `apps/api` over HTTP (React Query mutation or `fetch` from an event handler) — no Server Actions that touch data
 - Never `import` a Server Component from a Client Component file — compose them via `children` instead
 
 ## Suspense + Error Boundaries
@@ -132,44 +129,14 @@ Boundaries:
 
 ## Forms
 
-**This project's forms are not the generic React 19 `useActionState`/form-action pattern below.**
 Every form in `apps/web` uses react-hook-form's `useForm()` with each field wrapped in an
 explicit `<Controller>` — mandatory, not a style preference (HeroUI's inputs don't forward a
-plain DOM ref the way `register()` expects). Submission calls `apps/api` over HTTP (`fetch`),
-never a Server Action touching a database directly — `apps/web` never imports `@geekstore/db`
+plain DOM ref the way `register()` expects). Submission calls `apps/api` over HTTP,
+never a Server Action touching a database — `apps/web` never imports `@geekstore/db`
 (see `CLAUDE.md`). See the `form-fields` skill for the full contract (the `FieldInput`/
 `FieldSelect`/... family in `components/ui/`, isInvalid/error derivation, Zod validation via
 `@hookform/resolvers/zod`) and `apps/web/modules/admin/admin-login.tsx` as the reference
-implementation. The pattern below is kept for context (other React/Next.js codebases without
-this project's API-boundary constraint) but is not what to write here.
-
-### React 19 form actions (generic reference, not used in this project)
-
-```tsx
-"use client";
-import { useActionState } from "react";
-
-const initial = { error: null as string | null };
-
-async function updateUserAction(_prev: typeof initial, formData: FormData) {
-  "use server";
-  const parsed = UserSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { error: "Invalid input" };
-  await db.user.update({ where: { id: parsed.data.id }, data: parsed.data });
-  return { error: null };
-}
-
-export function UserForm() {
-  const [state, formAction, pending] = useActionState(updateUserAction, initial);
-  return (
-    <form action={formAction}>
-      <input name="name" required />
-      <button type="submit" disabled={pending}>Save</button>
-      {state.error && <p role="alert">{state.error}</p>}
-    </form>
-  );
-}
-```
+implementation.
 
 ### Complex forms
 
@@ -183,8 +150,7 @@ independent field set, not one per step.
 | Need | Tool |
 |---|---|
 | Per-request data in Next.js App Router | RSC `await fetch()` |
-| Client-side cache + mutations + invalidation | TanStack Query |
-| Lightweight client cache + revalidation | SWR |
+| Client-side cache + mutations + invalidation | React Query |
 | Real-time subscriptions | Server-Sent Events, WebSockets, or the lib's subscription API |
 | One-off fire-and-forget | `fetch()` in an event handler |
 
@@ -209,7 +175,7 @@ Avoid `useEffect` + `fetch` for application data — race conditions, no cache, 
 </Page>
 ```
 
-### Compound components (shared state via Context)
+### Compound components (HeroUI ships them; custom ones keep state in Zustand)
 
 ```tsx
 <Tabs defaultValue="profile">
@@ -249,7 +215,7 @@ Wrap a component in `React.memo` only when:
 ### Avoiding Render Cascades
 
 - Lift state down rather than up where possible
-- Split context: one context per concern, so a change to `themeContext` does not re-render auth consumers
+- Zustand selectors: `useStore(s => s.field)` (+ `useShallow` for objects), never the whole store — a component re-renders only for the slice it reads
 - Use `useSyncExternalStore` for external state libraries — required for safe concurrent rendering
 
 ### Lists
@@ -263,56 +229,20 @@ Wrap a component in `React.memo` only when:
 - Every interactive element must be reachable by keyboard
 - Form inputs need labels — `<label htmlFor>` or `aria-label` if visually labeled by an icon
 - Manage focus on route changes and modal open/close
-- Run `axe` in component tests (see [skills/react-testing](../react-testing/SKILL.md))
-- Cross-link: [skills/accessibility/SKILL.md](../accessibility/SKILL.md) covers WCAG criteria and pattern libraries
 
 ## Routing
 
-This skill is router-agnostic. The patterns above work with React Router, TanStack Router, Next.js App Router, Remix Router. Router-specific patterns (loaders, actions, nested layouts) follow the router's documentation — those are framework concerns layered on top of React core.
-
-## Out of Scope (Pointer Sections)
-
-- **Next.js specifics**: App Router data loading, Route Handlers, Middleware, Parallel Routes — separate concern, use Next.js docs
-- **React Native**: Platform-specific patterns differ enough to warrant a separate `react-native-patterns` skill (not present yet)
-- **Remix**: Loader/action conventions overlap with RSC but follow Remix docs
+Routing in this project is the Next.js App Router only (route groups `(store)` / `(admin)`, `APP_MODE` at build). Framework specifics — Route Handlers, Middleware/`proxy.ts`, Parallel Routes — follow the Next.js docs and the `nextjs-turbopack` skill.
 
 ## Related
 
-- Rules: [rules/react/](../../rules/react/) — coding-style, hooks, patterns, security, testing
-- Skills: [react-performance](../react-performance/SKILL.md) for the Vercel-derived performance ruleset, [frontend-patterns](../frontend-patterns/SKILL.md) for cross-framework UI concerns, [accessibility](../accessibility/SKILL.md), [angular-developer](../angular-developer/SKILL.md) for framework comparison
-- Agents: `react-reviewer` for code review, `react-build-resolver` for build/bundler errors
-- Commands: `/react-review`, `/react-build`, `/react-test`
+- Rules: [rules/react/](../../rules/react/) — coding-style, hooks, patterns, security
+- Skills: [frontend-patterns](../frontend-patterns/SKILL.md) for UI concerns, [form-fields](../form-fields/SKILL.md) for forms
 
 ## Examples
 
 ### Custom hook for debounced search
-
-```tsx
-function useDebounce<T>(value: T, delay = 300): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(id);
-  }, [value, delay]);
-  return debounced;
-}
-
-function SearchBox() {
-  const [query, setQuery] = useState("");
-  const debounced = useDebounce(query, 300);
-  const { data } = useQuery({
-    queryKey: ["search", debounced],
-    queryFn: () => searchApi(debounced),
-    enabled: debounced.length > 0,
-  });
-  return (
-    <>
-      <input value={query} onChange={(e) => setQuery(e.target.value)} />
-      <Results items={data ?? []} />
-    </>
-  );
-}
-```
+use lib use-debounce
 
 ### Optimistic UI with React 19 `useOptimistic`
 
@@ -358,12 +288,11 @@ export function MessageList({ messages }: { messages: Message[] }) {
 }
 ```
 
-### Splitting context to avoid render cascades
+### Splitting state to avoid render cascades
 
 ```tsx
-// Two contexts: one rarely changes, one frequently
-const ThemeContext = createContext<Theme>("light");
-const NotificationsContext = createContext<Notification[]>([]);
-
-// A component that only consumes ThemeContext does NOT re-render when notifications change
+// One store per concern; components subscribe to slices
+const items = useCartStore((s) => s.items);          // re-renders only when items change
+const addItem = useCartStore((s) => s.addItem);      // actions are stable
+const { open, setOpen } = useUiStore(useShallow((s) => ({ open: s.open, setOpen: s.setOpen })));
 ```

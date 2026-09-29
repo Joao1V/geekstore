@@ -70,7 +70,7 @@ that are relevant to the task and project in front of you.
 | Channel | Check | If missing |
 |---------|-------|------------|
 | Repository search | `rg --files` and targeted `rg` queries | State that only visible files were inspected |
-| Package registry | `npm --version`, `python -m pip --version`, or project package manager | Use web/docs search and avoid claiming registry coverage |
+| Package registry | `pnpm --version` | Use web/docs search and avoid claiming registry coverage |
 | GitHub CLI | `gh auth status` | Use public web or local git history only |
 | MCP/docs tools | Available tool list or local MCP config | Fall back to official docs/web search |
 | Skills directory | `ls ~/.claude/skills ~/.codex/skills` where applicable | Say no local skill catalog was available |
@@ -95,7 +95,7 @@ Agent(subagent_type="general-purpose", prompt="
   Language/framework: [LANG]
   Constraints: [ANY]
 
-  Search: npm/PyPI, MCP servers, Claude Code skills, GitHub
+  Search: npm, MCP servers, Claude Code skills, GitHub
   Return: Structured comparison with recommendation
 ")
 ```
@@ -106,10 +106,9 @@ tool name exposed by the active harness.
 ## Search Shortcuts by Category
 
 ### Development Tooling
-- Linting → `eslint`, `ruff`, `textlint`, `markdownlint`
-- Formatting → `prettier`, `black`, `gofmt`
-- Testing → `jest`, `pytest`, `go test`
-- Pre-commit → `husky`, `lint-staged`, `pre-commit`
+- Linting and formatting → Biome (already configured at the repo root)
+- Testing → `vitest` (API), Playwright (E2E)
+- Pre-commit → `husky`, `lint-staged`
 
 ### AI/LLM Integration
 - Claude SDK → Context7 for latest docs

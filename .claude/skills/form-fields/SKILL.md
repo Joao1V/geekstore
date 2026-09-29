@@ -3,6 +3,8 @@ name: form-fields
 description: Use whenever a new form is added anywhere in apps/web (store or admin), an existing form is touched, or a new field type/kind is needed (select, radio, checkbox...). Every field must be wrapped in an explicit <Controller>, passing its field/fieldState render-prop args straight into the matching Field* component in components/ui/ (field-input.tsx, field-select.tsx, ...) — never a bare <form onSubmit> reading FormData, never a field that manually re-derives isInvalid/errorMessage from parallel useState, and never a new field-kind component named anything but Field<Kind>.
 ---
 
+> HeroUI docs for the underlying inputs: `TextField` https://heroui.com/en/docs/react/components/text-field, `Select` https://heroui.com/en/docs/react/components/select. Check them before adding a new field kind.
+
 # Forms: react-hook-form + Controller, always
 
 ## Rule (no exceptions)

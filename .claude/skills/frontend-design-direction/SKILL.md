@@ -1,6 +1,6 @@
 ---
 name: frontend-design-direction
-description: Set an ECC-specific frontend design direction for production UI work. Use when building or improving websites, dashboards, applications, components, landing pages, visual tools, or any web UI that needs stronger product-specific design judgment.
+description: Set a product-specific frontend design direction for production UI work. Use when building or improving websites, dashboards, applications, components, landing pages, visual tools, or any web UI that needs stronger product-specific design judgment.
 metadata:
   origin: community
 ---
@@ -10,12 +10,9 @@ metadata:
 Use this skill when the work is not just making UI function, but making it feel
 purposeful, polished, and appropriate to the product domain.
 
-Source: salvaged from stale community PR #1659 by `linus707`.
-
-Note: ECC intentionally does not rebundle the canonical Anthropic
-`frontend-design` skill. Install that from `anthropics/skills` when you want the
-official upstream skill. This skill is the ECC-specific design-direction salvage
-of the useful local guidance from #1659.
+Project context: Geek Store is a pt-BR geek-culture storefront (Funko, LEGO, games) built
+on HeroUI with the store's own theme tokens. The design direction should serve that audience
+and catalog, not a generic template.
 
 ## When to Use
 
