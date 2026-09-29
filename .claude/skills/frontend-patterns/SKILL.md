@@ -128,30 +128,18 @@ export function useToggle(initialValue = false): [boolean, () => void] {
 const [isOpen, toggleOpen] = useToggle()
 ```
 
-### Server Data Fetching Hook
+### Server Data Fetching
 
-Server data in `apps/web` goes through React Query (`@tanstack/react-query`), prefetched in a
-Server Component and hydrated with `HydrationBoundary` — never a hand-written
-`useState` + `useEffect` + `fetch` hook (race conditions, no cache, no retry). The client
-only talks to `apps/api` over HTTP; the response type comes from `packages/shared`.
+Server data in `apps/web` goes through React Query, prefetched in a Server Component and hydrated
+with `HydrationBoundary` — never a hand-written `useState` + `useEffect` + `fetch` hook, and no
+inline `fetch` in components. Every API call is a service (`queryOptions` factory in
+`services/<domain>/queries.ts`, `useMutation` in `mutations.ts`) built on the shared `lib/api`
+client, with types from `@geekstore/shared`. The full contract is the `scaffolding-api-service`
+skill.
 
 ```typescript
-import { useQuery } from '@tanstack/react-query'
-import type { Sku } from '@geekstore/shared'
-
-export function useSku(code: string) {
-  return useQuery({
-    queryKey: ['sku', code],
-    queryFn: async (): Promise<Sku> => {
-      const res = await fetch(`${API_URL}/api/skus/${code}`)
-      if (!res.ok) throw new Error('Falha ao carregar o SKU')
-      return res.json()
-    },
-  })
-}
-
-// Usage
-const { data: sku, isPending, error, refetch } = useSku('FUN-POP-1248')
+// component: call useQuery with the factory directly, no wrapper hook
+const { data: sku, isPending, error, refetch } = useQuery(skuQueryOptions('FUN-POP-1248'))
 ```
 
 ### Debounce Hook

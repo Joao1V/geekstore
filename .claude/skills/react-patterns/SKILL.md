@@ -85,11 +85,15 @@ Most pages do not need a global store. Resist abstraction until duplicated lifti
 // Server Component - default, async, never ships JS for itself
 // In apps/web, this always fetches from apps/api over HTTP — apps/web never
 // imports @geekstore/db or touches the database directly (see CLAUDE.md).
-export default async function ProductPage({ params }: { params: { id: string } }) {
-  const res = await fetch(`${API_URL}/api/products/${params.id}`);
-  if (!res.ok) notFound();
-  const product = await res.json();
-  return <ProductView product={product} />;
+// The call itself is a service (see scaffolding-api-service): prefetch, then hydrate.
+export default async function ProductPage({ params }: { params: { slug: string } }) {
+  const queryClient = new QueryClient();
+  await queryClient.prefetchQuery(productQueryOptions(params.slug));
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <ProductView slug={params.slug} />
+    </HydrationBoundary>
+  );
 }
 
 // Client Component - opt in with "use client"
@@ -110,7 +114,7 @@ export function AddToCartButton({ productId }: { productId: string }) {
 Boundaries:
 
 - Server -> Client: pass serializable props or `children`
-- Client -> Server: call `apps/api` over HTTP (React Query mutation or `fetch` from an event handler) — no Server Actions that touch data
+- Client -> Server: call `apps/api` over HTTP through a service (React Query mutation, see `scaffolding-api-service`) — no Server Actions that touch data, no inline `fetch` in components
 - Never `import` a Server Component from a Client Component file — compose them via `children` instead
 
 ## Suspense + Error Boundaries
@@ -150,9 +154,9 @@ independent field set, not one per step.
 | Need | Tool |
 |---|---|
 | Per-request data in Next.js App Router | RSC `await fetch()` |
-| Client-side cache + mutations + invalidation | React Query |
+| Client-side cache + mutations + invalidation | React Query, via `services/<domain>` (`scaffolding-api-service`) |
 | Real-time subscriptions | Server-Sent Events, WebSockets, or the lib's subscription API |
-| One-off fire-and-forget | `fetch()` in an event handler |
+| One-off fire-and-forget | a `useMutation` from a service, not an inline `fetch()` |
 
 Avoid `useEffect` + `fetch` for application data — race conditions, no cache, no retry, no Suspense integration.
 

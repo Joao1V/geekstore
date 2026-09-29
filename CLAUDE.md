@@ -36,7 +36,7 @@ Infra: Dokploy num VPS, Traefik, Cloudflare. Fila BullMQ + Redis. Busca Meilisea
 - Pedido congela valores, código e nome do SKU no momento da compra. Único por (canal, externalOrderId).
 - Pagamentos e webhooks são idempotentes.
 - Canais externos só entram por `ChannelConnector`; pagamento só por `PaymentProvider`.
-- O `apps/web` nunca acessa o banco: só a API, por HTTP.
+- O `apps/web` nunca acessa o banco: só a API, por HTTP. Toda chamada à API no web é um service (`modules/<store|admin>/services/<domain>/`, skill `scaffolding-api-service`, só para `apps/web`), sem `fetch` solto em componente.
 - Nenhum dado de cartão passa pelo servidor.
 - Validação Zod em toda entrada; contratos ficam em `packages/shared`.
 
