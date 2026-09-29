@@ -56,7 +56,7 @@ Infra: Dokploy num VPS, Traefik, Cloudflare. Fila BullMQ + Redis. Busca Meilisea
 ## Como trabalhar
 
 - Antes de implementar um módulo, leia a seção dele no @docs/SPEC.md e o critério de saída da fase.
-- Fase atual: F0. Atualize esta linha quando mudar de fase.
+- Fase atual: F1. Atualize esta linha quando mudar de fase.
 - Comandos (raiz): `pnpm dev`, `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm lint:fix`, `pnpm format`. Por app: `pnpm --filter @geekstore/db generate` (Prisma client). Testes: preencher quando o primeiro existir.
 - Banco local: `docker compose up -d` (MySQL 8.4, porta 3306). Copie `packages/db/.env.example` para `packages/db/.env`.
 - Não crie documentação além da pedida.
