@@ -12,6 +12,8 @@
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
+    "@bull-board/api": "^9.10.1",
+    "@bull-board/fastify": "^9.10.1",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.3.0",
     "@fastify/jwt": "^9.0.4",
@@ -21,10 +23,12 @@
     "@geekstore/db": "workspace:*",
     "@geekstore/shared": "workspace:*",
     "argon2": "^0.41.1",
+    "bullmq": "^6.3.9",
     "dotenv": "^17.4.2",
     "fastify": "^5.12.5",
     "fastify-plugin": "^6.0.0",
     "fastify-type-provider-zod": "^7.0.0",
+    "ioredis": "^6.0.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {

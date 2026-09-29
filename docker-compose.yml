@@ -14,5 +14,15 @@ services:
     volumes:
       - geekstore_mysql_data:/var/lib/mysql
 
+  redis:
+    image: redis:7-alpine
+    container_name: geekstore-redis
+    restart: unless-stopped
+    ports:
+      - '6381:6379'
+    volumes:
+      - geekstore_redis_data:/data
+
 volumes:
   geekstore_mysql_data:
+  geekstore_redis_data:

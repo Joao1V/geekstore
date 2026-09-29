@@ -13,6 +13,7 @@ import { envConfig } from './core/config';
 import { cookiePlugin } from './core/plugins/cookie.plugin';
 import { corsPlugin } from './core/plugins/cors.plugin';
 import { jwtPlugin } from './core/plugins/jwt.plugin';
+import { queuePlugin } from './core/plugins/queue.plugin';
 import { rateLimitPlugin } from './core/plugins/rate-limit.plugin';
 import { authRoutes } from './modules/auth/auth.routes';
 import { healthPlugin } from './modules/health/health.plugin';
@@ -42,6 +43,7 @@ export function buildApp() {
   app.register(cookiePlugin);
   app.register(rateLimitPlugin);
   app.register(jwtPlugin);
+  app.register(queuePlugin);
 
   app.register(fastifySwagger, {
     openapi: {

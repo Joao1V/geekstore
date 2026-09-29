@@ -18,6 +18,7 @@ const envSchema = z.object({
     .transform((val) => Number.parseInt(val, 10))
     .pipe(z.number().int().positive()),
   COOKIE_SECRET: z.string().min(32, 'COOKIE_SECRET deve ter pelo menos 32 caracteres'),
+  REDIS_URL: z.string().default('redis://localhost:6381'),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -62,5 +63,9 @@ export const envConfig = {
   get auth() {
     const { REFRESH_TOKEN_TTL_DAYS } = getEnv();
     return { REFRESH_TOKEN_TTL_DAYS };
+  },
+  get redis() {
+    const { REDIS_URL } = getEnv();
+    return { URL: REDIS_URL };
   },
 };
