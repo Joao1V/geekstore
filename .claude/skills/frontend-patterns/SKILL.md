@@ -176,10 +176,6 @@ export function useQuery<T>(
   // re-runs after each state update - an infinite fetch loop.
   const fetcherRef = useRef(fetcher)
   const optionsRef = useRef(options)
-  useEffect(() => {
-    fetcherRef.current = fetcher
-    optionsRef.current = options
-  })
 
   const refetch = useCallback(async () => {
     setLoading(true)
@@ -199,6 +195,13 @@ export function useQuery<T>(
   }, [])
 
   const enabled = options?.enabled !== false
+
+  // Every useEffect grouped together, right before return (rules/react/hooks.md) — even though
+  // this one only syncs refs and has no direct relation to the one below.
+  useEffect(() => {
+    fetcherRef.current = fetcher
+    optionsRef.current = options
+  })
 
   useEffect(() => {
     if (enabled) {
@@ -400,58 +403,35 @@ export function VirtualMarketList({ markets }: { markets: Market[] }) {
 
 ## Form Handling Patterns
 
-### Controlled Form with Validation
+**In `apps/web`, every form uses react-hook-form + an explicit `<Controller>` around each field —
+never raw `useState` for values/errors like the generic pattern below. See the `form-fields`
+skill for the full contract (the `FieldInput`/`FieldSelect`/... family in `components/ui/`,
+`isInvalid`/error derivation, validation via a shared Zod schema). Reference implementation:
+`apps/web/modules/admin/admin-login.tsx`.
+
+### Controlled Form with react-hook-form + Zod
 
 ```typescript
-interface FormData {
-  name: string
-  description: string
-  endDate: string
-}
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Controller, useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { FieldInput } from '@/components/ui'
 
-interface FormErrors {
-  name?: string
-  description?: string
-  endDate?: string
-}
+const createMarketSchema = z.object({
+  name: z.string().min(1, 'Nome obrigatório').max(200, 'Máximo 200 caracteres'),
+  description: z.string().min(1, 'Descrição obrigatória'),
+  endDate: z.string().min(1, 'Data de encerramento obrigatória'),
+})
+type CreateMarketFormValues = z.infer<typeof createMarketSchema>
 
 export function CreateMarketForm() {
-  const [formData, setFormData] = useState<FormData>({
-    name: '',
-    description: '',
-    endDate: ''
+  const { control, handleSubmit } = useForm<CreateMarketFormValues>({
+    resolver: zodResolver(createMarketSchema),
   })
 
-  const [errors, setErrors] = useState<FormErrors>({})
-
-  const validate = (): boolean => {
-    const newErrors: FormErrors = {}
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required'
-    } else if (formData.name.length > 200) {
-      newErrors.name = 'Name must be under 200 characters'
-    }
-
-    if (!formData.description.trim()) {
-      newErrors.description = 'Description is required'
-    }
-
-    if (!formData.endDate) {
-      newErrors.endDate = 'End date is required'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!validate()) return
-
+  const submit = async (data: CreateMarketFormValues) => {
     try {
-      await createMarket(formData)
+      await createMarket(data)
       // Success handling
     } catch (error) {
       // Error handling
@@ -459,15 +439,16 @@ export function CreateMarketForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input
-        value={formData.name}
-        onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-        placeholder="Market name"
+    <form onSubmit={handleSubmit(submit)}>
+      <Controller
+        control={control}
+        name="name"
+        render={({ field, fieldState }) => (
+          <FieldInput field={field} fieldState={fieldState} label="Nome do mercado" />
+        )}
       />
-      {errors.name && <span className="error">{errors.name}</span>}
 
-      {/* Other fields */}
+      {/* Other fields, same Controller + Field* shape */}
 
       <button type="submit">Create Market</button>
     </form>
