@@ -13,6 +13,23 @@ env:
 jobs:
   ci:
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: geekstore
+          MYSQL_USER: geekstore
+          MYSQL_PASSWORD: geekstore
+        ports:
+          - 3306:3306
+
     steps:
       - uses: actions/checkout@v4
 
@@ -33,6 +50,12 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Apply migrations
+        run: pnpm --filter @geekstore/db exec prisma migrate deploy
+
+      - name: Test (integration)
+        run: pnpm --filter api test:integration
 
       - name: Build
         run: pnpm build
