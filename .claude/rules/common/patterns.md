@@ -24,8 +24,7 @@ Encapsulate data access behind a consistent interface:
 
 ### API Response Format
 
-Use a consistent envelope for all API responses:
-- Include a success/status indicator
-- Include the data payload (nullable on error)
-- Include an error message field (nullable on success)
-- Include metadata for paginated responses (total, page, limit)
+No success envelope: a successful response is the bare resource (or a paginated object), typed
+by a Zod schema in `packages/shared`. Every error uses one shape, `{ error, code, message,
+details? }` (`apps/api/src/core/_errors`), with a stable `code` clients can branch on. See
+`docs/api/common-schemas.md`.

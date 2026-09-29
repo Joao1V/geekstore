@@ -11,16 +11,15 @@ paths:
 
 ## API Response Format
 
+No success envelope: responses are the bare resource typed from `@geekstore/shared`. Errors are
+always `{ error, code, message, details? }` (`ApiError` in `apps/web/lib/api.ts`).
+
 ```typescript
-interface ApiResponse<T> {
-  success: boolean
-  data?: T
-  error?: string
-  meta?: {
-    total: number
-    page: number
-    limit: number
-  }
+interface ApiErrorBody {
+  error: string
+  code: string
+  message: string
+  details?: unknown
 }
 ```
 

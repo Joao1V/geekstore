@@ -18,7 +18,7 @@ Container components own data fetching, state, and side effects. Presentational 
 ```tsx
 // Container — owns data
 export function UserPage({ userId }: { userId: string }) {
-  const { data: user, isLoading } = useUser(userId);
+  const { data: user, isLoading } = useQuery(userQueryOptions(userId));
   if (isLoading) return <Spinner />;
   if (!user) return <NotFound />;
   return <UserCard user={user} onSelect={handleSelect} />;

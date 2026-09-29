@@ -53,21 +53,48 @@ Request/response contracts are Zod schemas in `packages/shared` (`CLAUDE.md`), s
   not something to fake in the web app.
 - Money is integer cents everywhere; format only at render time (`components/ui/price.tsx`).
 
-## The HTTP client: `lib/api.ts`
+## The HTTP client: `lib/api.ts` (exists)
 
-One shared client, no per-domain wrappers and no static classes. **It doesn't exist yet** — create
-it the first time a service needs it, modeled on the private `parseJsonOrThrow` in
-`modules/admin/lib/auth-client.ts` (the only place that calls the API today):
+One shared client, no per-domain wrappers and no static classes.
 
-- Base URL from `process.env.NEXT_PUBLIC_API_URL`, `credentials: 'include'` (refresh cookie),
-  JSON in/out, `api.get/post/put/patch/delete<T>()` returning the parsed `T`.
-- Params for `get` as a plain object (serialized by the client) — never hand-build query strings.
-- Throws an `ApiError` carrying the API's error body (`{ error, code, message, details? }`, see
-  `docs/api/common-schemas.md`) so callers can branch on `code`/`status`.
-- It lives in `lib/` (shared by store and admin), so it must not import from `modules/admin` or
-  `modules/store`. The admin's access token lives in `useAdminAuthStore` (Zustand); the admin
-  service passes it in (option/header) — the client doesn't reach into a store itself.
-- Once it exists, migrate `auth-client.ts` onto it only when touching that file anyway.
+```ts
+api.get<T>(path, params?, options?)      // params: plain object, arrays become repeated keys
+api.post<T>(path, body?, options?)       // also put / patch / delete
+// options: { accessToken?, cache?, next?, signal? }
+```
+
+- Base URL from `NEXT_PUBLIC_API_URL`; sends the refresh cookie (`credentials: 'include'`); sets
+  `Content-Type` only when there is a body (Fastify rejects JSON with an empty body, e.g. `/refresh`).
+- Failures throw `ApiError` (`status`, `code`, `message`, `details`) built from the API's error
+  body (`docs/api/common-schemas.md`). Network failure → `status 0`, `code 'network_error'`.
+  Branch on `error.code`/`error.status`, never on message text.
+- `accessToken` becomes `Authorization: Bearer`. The client lives in `lib/` (shared), so it never
+  imports `modules/admin`/`modules/store`: the admin service passes the token from
+  `useAdminAuthStore`. (No protected API route exists yet; the header convention is ours.)
+- `cache` / `next` are forwarded to `fetch`. Next 16 without `cacheComponents` (our config) does
+  **not** cache `fetch` by default — for ISR/`revalidateTag` (D9) the server-side query must pass
+  `next: { revalidate, tags }` or `cache: 'force-cache'`.
+- Reference implementation: `modules/admin/services/auth/mutations.ts` (login/refresh/logout).
+
+## QueryClient and server hydration (TanStack Query "Advanced SSR")
+
+`lib/get-query-client.ts` is the single source of the client:
+
+- **Server: a new `QueryClient` per request** (a shared one would leak data between users).
+  **Browser: singleton.** `components/providers.tsx` and every Server Component use
+  `getQueryClient()` — never `new QueryClient()` or `useState(() => new QueryClient())`.
+- `staleTime` is 60s (> 0 avoids an immediate refetch after hydration); 4xx `ApiError`s are not
+  retried.
+- **Server Components only prefill the cache** (`prefetchQuery` + `dehydrate` +
+  `HydrationBoundary`); they never render from the fetched data themselves.
+- **Where to prefetch:** public store pages (catalog, product, home) — `await` the prefetch when
+  the data must be in the HTML (SEO, RNF-04). Secondary blocks may skip `await` (streaming) if
+  `shouldDehydrateQuery` also dehydrates `pending` queries. **Never in the admin or for
+  logged-in customer data:** the access token lives in browser memory and the server has no
+  cookie, so those screens use `useQuery` on the client.
+- Read with `useSuspenseQuery` for prefetched data (needs a `<Suspense>`/`loading.tsx` above) and
+  `useQuery` otherwise.
+- Don't use `initialData` for server data, and don't call Server Actions from a `queryFn`.
 
 ## `queries.ts` — reads
 
@@ -96,7 +123,7 @@ export const productQueryOptions = (slug: string) =>
 
 ```tsx
 // Server Component (store page): prefetch + hydrate, then the client component reads the cache
-const queryClient = new QueryClient();
+const queryClient = getQueryClient();
 await queryClient.prefetchQuery(productQueryOptions(slug));
 return (
   <HydrationBoundary state={dehydrate(queryClient)}>
@@ -134,10 +161,10 @@ export function useCreateSku() {
 ```
 
 - One `useMutation` per verb; `invalidateQueries` in `onSuccess` for the keys the write affects.
-- The form component owns user-facing error handling: `validation_failed` → RHF `setError` from
-  `details`, other codes → a message via `StoreAlert`/the admin equivalent. Admin 401 →
-  refresh once, else `clearSession()` (`useAdminAuthStore`). Keep that at the call site, not in
-  the hook's `onError`.
+- The form component owns user-facing error handling: catch `ApiError` and branch on `code`
+  (`validation_failed` → RHF `setError` from `details`; anything else → show `error.message`, as
+  `admin-login.tsx` does). Admin 401 → refresh once, else `clearSession()`
+  (`useAdminAuthStore`). Keep that at the call site, not in the hook's `onError`.
 - No optimistic updates (`onMutate`) unless a specific screen needs that UX.
 - Never `JSON.stringify` the payload yourself; the client does it.
 
@@ -146,10 +173,11 @@ export function useCreateSku() {
 | Concern | Convention |
 | --- | --- |
 | Location | `modules/<store\|admin>/services/<domain>/`, never a root `services/` |
-| HTTP | `import { api } from '@/lib/api'` only; no `fetch` inline in components, no per-domain classes |
+| HTTP | `import { api } from '@/lib/api'` only; no `fetch` inline in components, no per-domain classes; errors are `ApiError` |
+| QueryClient | `getQueryClient()` from `lib/get-query-client.ts` (new per request on the server, singleton in the browser) |
 | Types | From `@geekstore/shared`; no local response models, no `.parse()` on responses |
 | Reads | `queryOptions` factories in `queries.ts`; components call `useQuery(...)` directly |
-| Server prefetch | `prefetchQuery(xQueryOptions(...))` + `HydrationBoundary` in the Server Component |
+| Server prefetch | Public store pages only: `getQueryClient()` + `prefetchQuery(xQueryOptions(...))` + `HydrationBoundary`; never admin/logged-in data |
 | Writes | `useMutation` in `mutations.ts` (`"use client"`), invalidate in `onSuccess` |
 | Global state | Zustand only for UI/session/cart — never for server data |
 | Files | kebab-case, no barrel |
@@ -164,6 +192,8 @@ export function useCreateSku() {
 - Marking `queries.ts` as `"use client"` — it then can't be used for server prefetch.
 - Hand-building query strings, or putting a URL string in `queryKey`.
 - Storing the fetched data in Zustand.
+- Creating a `QueryClient` with `new`/`useState` instead of `getQueryClient()`, or sharing one across server requests.
+- Prefetching admin or logged-in customer data on the server (no token/cookie there).
 - Inventing a payload/endpoint shape that `docs/api/` and `apps/api` don't have.
 
 ## Related skills

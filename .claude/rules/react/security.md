@@ -151,7 +151,6 @@ When using `renderToString` or `renderToPipeableStream`:
 
 Production builds should ship without source maps, or with sourcemaps uploaded to an error tracker (Sentry) and stripped from the public bundle. Public source maps leak internal logic and file structure.
 
-## Agent Support
+## Review
 
-- Use `security-reviewer` agent for comprehensive security audits across the codebase
-- Use `react-reviewer` agent for React-specific patterns and the above rules in active code review
+- Run `/security-review` for security audits and `/code-review` for the React-specific rules above
