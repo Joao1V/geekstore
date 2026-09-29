@@ -71,7 +71,7 @@ Do not reach for generic wrapper `div` stacks when a semantic element exists.
 
 ## Naming
 
-- Components: PascalCase (`ScrollySection`, `SurfaceCard`)
+- Components: PascalCase for the symbol (`SurfaceCard`); the file is kebab-case (`surface-card.tsx`)
 - Hooks: `use` prefix (`useReducedMotion`)
 - CSS classes: kebab-case or utility classes
 - Animation timelines: camelCase with intent (`heroRevealTl`)

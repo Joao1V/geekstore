@@ -22,7 +22,7 @@ paths:
 
 - Components: `PascalCase` for the symbol (`UserCard`); the file itself follows the project's own convention — this project (`apps/web`) uses kebab-case filenames throughout (`admin-login.tsx` exporting `AdminLogin`), not `UserCard.tsx`; see `CLAUDE.md`
 - Custom hooks: `useCamelCase` for the symbol, kebab-case for the file when the project convention is kebab-case (`use-debounce.ts` exports `useDebounce`)
-- Context: `<Domain>Context` symbol, `<Domain>Provider` provider component, `use<Domain>` consumer hook
+- Zustand stores: `use<Domain>Store` hook, file `<domain>-store.ts` (e.g. `useCartStore` in `cart-store.ts`)
 - Event handlers: `handleClick`, `handleSubmit` inside the component; the prop that receives it is `onClick`, `onSubmit`
 - Boolean props: `isLoading`, `hasError`, `canSubmit` — never `loading` or `error` alone for booleans
 
@@ -89,8 +89,8 @@ See [hooks.md](hooks.md) for the full ruleset. Style highlights:
 ## State
 
 - Local first (`useState`), lift only when shared
-- Context for cross-cutting state read by many components (theme, auth, i18n) — not for high-frequency updates
-- External store (Zustand, Jotai, Redux Toolkit) when state must persist across route changes, sync across tabs, or be debugged via devtools
+- No `createContext`/`useContext` and no `useReducer` in our own code: global state (auth session, cart, UI flags, theme) lives in Zustand, read with selectors (`useCartStore(s => s.items)`). Provider components from libraries (React Query, HeroUI) are fine
+- Zustand (UI and local cart only) when state must persist across route changes or sync across tabs; server data belongs in React Query
 - Never duplicate state that can be derived — compute during render
 
 ## Class Components
@@ -100,14 +100,13 @@ Forbidden in new code. Convert legacy class components to function components wh
 ## File Layout per Component
 
 ```
-components/UserCard/
-  UserCard.tsx
-  UserCard.module.css   # or styled-components, or Tailwind classes inline
-  UserCard.test.tsx
+components/user-card/
+  user-card.tsx
+  user-card.test.tsx
   index.ts              # re-export only
 ```
 
-In this project, apply the same idea with kebab-case filenames instead — a whole small kit of
+In this project, filenames are kebab-case (as above) and a whole small kit of
 related components (not one component per folder) sits flat in one folder with a single shared
 barrel, e.g. `components/ui/` (`action.tsx`, `field-input.tsx`, `field-select.tsx`, ... +
 `index.ts`), not `components/ui/Action/Action.tsx`. See `CLAUDE.md` and the `form-fields` skill.

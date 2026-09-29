@@ -34,11 +34,11 @@ export function UserCard({ user, onSelect }: { user: User; onSelect: (id: string
 
 1. Used by one component → `useState` inside it
 2. Used by parent + a few children → lift to nearest common ancestor, pass via props
-3. Used across distant branches → React Context **for low-frequency reads only** (theme, auth, locale)
-4. High-frequency updates shared across the tree → external store (Zustand, Jotai, Redux Toolkit)
-5. Server-derived data → server-state library (TanStack Query, SWR, RSC fetch) — not application state
+3. Used across distant branches or across routes → Zustand store (this project's global state; no Context, no `useReducer`)
+4. Complex local transitions (3+ related values) → still a small Zustand store, not `useReducer`
+5. Server-derived data → React Query (prefetch on the server + `HydrationBoundary`) or an RSC `await` — never Zustand, never `useState` + `useEffect`
 
-Context misused for frequently changing values causes every consumer to re-render on every update.
+Read Zustand with narrow selectors (`useStore(s => s.field)`, `useShallow` for objects) so a component only re-renders for what it uses. Never `useStore()` without a selector.
 
 ## Server / Client Component Boundary (RSC, Next.js App Router)
 
@@ -91,42 +91,17 @@ as the reference implementation. `apps/web` also never uses Server Actions that 
 directly — it only talks to `apps/api` over HTTP (`CLAUDE.md`). The patterns below are generic
 React reference material, not what to write here.
 
-### Uncontrolled (React 19 + form actions) — generic reference, not used in this project
-
-Prefer uncontrolled inputs with form actions when the form has a clear submit step. The browser owns the value; React reads it via `FormData` on submit.
-
-```tsx
-async function action(formData: FormData) {
-  "use server";
-  await saveUser({ name: String(formData.get("name")) });
-}
-
-export function UserForm() {
-  return (
-    <form action={action}>
-      <input name="name" required />
-      <button type="submit">Save</button>
-    </form>
-  );
-}
-```
-
 ### Form Libraries
 
-For complex forms (multi-step, dynamic field arrays, cross-field validation), use a library:
-
-- React Hook Form — minimal re-renders, uncontrolled-first (this project's standard, always with `Controller`)
-- TanStack Form — typed, framework-agnostic
-- Final Form — when subscription-based re-renders matter
+React Hook Form is this project's standard, always with `Controller` (see the `form-fields` skill). Do not introduce another form library.
 
 ## Data Fetching
 
 | Strategy | When |
 |---|---|
-| RSC fetch (`await` in Server Component) | Per-request data in Next.js App Router, no client-side cache needed |
-| TanStack Query | Client-side cache, mutations, optimistic updates, polling |
-| SWR | Lightweight cache + revalidation, simpler than TanStack Query |
-| `fetch` in `useEffect` | Avoid — race conditions, no cache, no retry. Only acceptable for one-off fire-and-forget |
+| RSC fetch (`await` in Server Component) | Per-request data in the store's Server Components, no client-side cache needed |
+| React Query | Client-side cache, mutations, optimistic updates, polling; prefetch on the server + `HydrationBoundary` |
+| `fetch` in `useEffect` | Avoid — race conditions, no cache, no retry |
 
 Never fetch in a `useEffect` when a real cache library is available — they handle deduping, cache invalidation, error retry, and Suspense integration.
 
@@ -145,7 +120,7 @@ Never fetch in a `useEffect` when a real cache library is available — they han
 
 ## Compound Components
 
-For related controls (Tabs, Accordion, Menu), use compound components sharing state via Context:
+For related controls (Tabs, Accordion, Menu), use HeroUI's compound components — they already share state internally (docs: https://heroui.com/en/docs/react/components/tabs). Only when HeroUI has no equivalent, build a compound component whose state lives in a small Zustand store instead of Context. Generic shape (check the HeroUI docs for the exact part names):
 
 ```tsx
 <Tabs defaultValue="profile">

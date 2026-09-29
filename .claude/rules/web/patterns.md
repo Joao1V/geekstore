@@ -31,8 +31,8 @@ Use compound components when related UI shares state and interaction semantics:
 </Tabs>
 ```
 
-- Parent owns state
-- Children consume via context
+- Prefer HeroUI's compound components (they own their state)
+- For a custom widget, keep shared state in a Zustand store, never in Context
 - Prefer this over prop drilling for complex widgets
 
 ### Render Props / Slots
@@ -52,10 +52,10 @@ Treat these separately:
 
 | Concern | Tooling |
 |---------|---------|
-| Server state | TanStack Query, SWR, tRPC |
-| Client state | Zustand, Jotai, signals |
+| Server state | React Query (+ RSC fetch) |
+| Client state | Zustand (UI and local cart only) |
 | URL state | search params, route segments |
-| Form state | React Hook Form or equivalent |
+| Form state | React Hook Form with `Controller` (see `form-fields` skill) |
 
 - Do not duplicate server state into client stores
 - Derive values instead of storing redundant computed state

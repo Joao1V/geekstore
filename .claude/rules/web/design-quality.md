@@ -50,7 +50,7 @@ Every meaningful frontend surface should demonstrate at least four of these:
 2. Define a palette intentionally.
 3. Choose typography deliberately.
 4. Gather at least a small set of real references.
-5. Use ECC design/frontend skills where relevant.
+5. Use the `frontend-design-direction` skill where relevant.
 
 ## Worthwhile Style Directions
 
@@ -68,7 +68,7 @@ Do not default to dark mode automatically. Choose the visual direction the produ
 
 ## Component Checklist
 
-- [ ] Does it avoid looking like a default Tailwind or shadcn template?
+- [ ] Does it avoid looking like a default HeroUI template (theme tokens, not stock styling)?
 - [ ] Does it have intentional hover/focus/active states?
 - [ ] Does it use hierarchy rather than uniform emphasis?
 - [ ] Would this look believable in a real product screenshot?

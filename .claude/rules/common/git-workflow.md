@@ -12,9 +12,8 @@
 
 Types: feat, fix, refactor, docs, test, chore, perf, ci
 
-Scope = the directory/module the change lives in (e.g. `api`, `map`, `auth`, `squad-cycle`) — never omit it, even for a one-file change. Description and body are always English, even though this project's UI/comments/commit conversations are in Portuguese.
+Scope = the directory/module the change lives in (e.g. `api`, `web`, `db`, `shared`, `auth`, `catalog`, `stock`) — never omit it, even for a one-file change. Description and body are always English, even though this project's UI/comments/commit conversations are in Portuguese.
 
-Note: To disable co-author attribution on commits, set `"includeCoAuthoredBy": false` in `~/.claude/settings.json` (Claude Code appends `Co-Authored-By` by default; ECC does not ship this setting).
 
 ## Pull Request Workflow
 

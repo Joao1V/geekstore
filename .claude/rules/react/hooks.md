@@ -209,7 +209,7 @@ export function useDebounce<T>(value: T, delay: number): T {
 - Initial state from prop only at mount: pass a function `useState(() => computeInitial(prop))` when computation is expensive
 - Functional updater when the new state depends on the old: `setCount(c => c + 1)` — never `setCount(count + 1)` inside async or batched contexts
 - Group related state into one object only when they always change together; otherwise split into multiple `useState` calls
-- Use `useReducer` once state transitions are conditional on the previous state or there are 3+ related values
+- No `useReducer` in this project: when transitions get complex, move the state and its actions into a Zustand store (state + named actions), not a reducer
 
 ## `useRef` Patterns
 
@@ -239,7 +239,7 @@ const isOnline = useSyncExternalStore(
 
 ## React 19 Additions
 
-- `use()` — unwrap promises and contexts inline; usable conditionally (only hook with that property)
+- `use()` — unwrap promises inline; usable conditionally (only hook with that property). Not for reading our own Context: we don't create any
 - `useFormStatus()` / `useFormState()` (or `useActionState`) — form submission state without prop drilling
 - `useOptimistic()` — optimistic UI updates while a server action is pending
 - `useTransition()` — mark non-urgent state updates so urgent ones stay responsive

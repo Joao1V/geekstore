@@ -73,32 +73,12 @@ React warns about `javascript:` URLs in `href` in development mode, but does not
 
 Modern browsers default to `noopener` when `target="_blank"`, but do not rely on browser defaults — be explicit.
 
-## Server Action Input Validation
+## Input Validation (apps/web → apps/api)
 
-Server Actions (`"use server"`) run with the same trust level as a public API endpoint. Validate every input.
+`apps/web` does not use Server Actions that touch data — it calls `apps/api` over HTTP, and the API is the trust boundary. Every request body is validated there with the Zod schema from `packages/shared`. Client-side validation (RHF + `zodResolver`, same schema) is only UX, never the guarantee.
 
-```tsx
-"use server";
-import { z } from "zod";
-
-const Input = z.object({
-  email: z.string().email(),
-  age: z.number().int().min(0).max(120),
-});
-
-export async function updateUser(_state: unknown, formData: FormData) {
-  const parsed = Input.safeParse({
-    email: formData.get("email"),
-    age: Number(formData.get("age")),
-  });
-  if (!parsed.success) return { error: parsed.error.flatten() };
-  // ...
-}
-```
-
-- Authenticate inside the action — do not trust the client-side route gate
-- Authorize: confirm the current user has permission for the specific record they are mutating
-- Rate limit sensitive actions
+- Authenticate and authorize in the API — never rely on a client-side route gate
+- Rate limit sensitive endpoints (login, checkout) in the API
 
 ## Secret Exposure via Env Vars
 
@@ -107,9 +87,6 @@ Prefixed env vars are bundled into the client. Treat them as public.
 | Framework | Public prefix | Private |
 |---|---|---|
 | Next.js | `NEXT_PUBLIC_*` | All others |
-| Vite | `VITE_*` | `.env` server-side only |
-| Create React App | `REACT_APP_*`, plus `NODE_ENV` and `PUBLIC_URL` | All others (anything without the `REACT_APP_` prefix is server-side only) |
-| Remix | `process.env` access in `loader`/`action` only | Same |
 
 ```ts
 // CRITICAL: secret leaked to client bundle
@@ -139,7 +116,7 @@ frame-ancestors 'none';
 ```
 
 - Avoid `unsafe-inline` and `unsafe-eval` in `script-src`
-- For SSR with inline scripts (Next.js streaming, hydration data), use per-request nonces — both Next.js and Remix support nonce injection
+- For SSR with inline scripts (Next.js streaming, hydration data), use per-request nonces — Next.js support nonce injection
 - `style-src 'unsafe-inline'` is often unavoidable for CSS-in-JS libraries — document the tradeoff
 
 ## Prototype Pollution via Object Spread
