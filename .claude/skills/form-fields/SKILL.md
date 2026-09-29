@@ -1,6 +1,6 @@
 ---
 name: form-fields
-description: Use whenever a new form is added anywhere in apps/web (store or admin), or an existing form is touched. Every field must be wrapped in an explicit <Controller>, passing its field/fieldState render-prop args straight into the shared Field component in components/ui.tsx — never a bare <form onSubmit> reading FormData, and never a field that manually re-derives isInvalid/errorMessage from parallel useState.
+description: Use whenever a new form is added anywhere in apps/web (store or admin), or an existing form is touched. Every field must be wrapped in an explicit <Controller>, passing its field/fieldState render-prop args straight into the shared Field component in components/ui/field.tsx — never a bare <form onSubmit> reading FormData, and never a field that manually re-derives isInvalid/errorMessage from parallel useState.
 ---
 
 # Forms: react-hook-form + Controller, always
@@ -23,7 +23,7 @@ component below exists to kill. A new form that skips `Field`/`Controller` reint
 
 ## The shared `Field` component
 
-`apps/web/components/ui.tsx` exports `Field` — the only text-input component forms should use.
+`apps/web/components/ui/field.tsx` exports `Field` — the only text-input component forms should use.
 It's presentational only: it takes the `field`/`fieldState` pair straight from a `Controller`
 render prop, plus a flat, HeroUI-v2-like set of display props (`label`, `description`, whatever
 HTML attributes the input needs) — the caller always supplies the `<Controller>`:
@@ -112,7 +112,7 @@ Numeric inputs, checkboxes, radios, file inputs, or anything else outside `Field
 ```
 
 Don't broaden `Field`'s prop surface to fake-support a numeric type just to avoid writing this —
-extract a dedicated `NumberField` (or similar) into `components/ui.tsx` once a second real numeric
+extract a dedicated `NumberField` (or similar) into `components/ui/` once a second real numeric
 form shows up, following YAGNI (`rules/common/coding-style.md`). One inline `Controller` doesn't
 justify a new shared component yet.
 
