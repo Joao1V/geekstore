@@ -166,151 +166,6 @@ a svg {
   font-size: 14px;
   margin-bottom: 24px;
 }
-.price {
-  font-size: 29px;
-  line-height: 1.2;
-  font-weight: 800;
-  white-space: nowrap;
-  letter-spacing: -0.045em;
-}
-.price small {
-  font-size: 0.52em;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-.price sup {
-  vertical-align: top;
-  position: relative;
-  top: 0.18em;
-  font-size: 0.47em;
-  font-weight: 400;
-  letter-spacing: 0;
-  margin-left: 2px;
-}
-.pix {
-  font-size: 12px;
-  margin-top: 4px;
-}
-.pix span {
-  color: var(--brand-orange);
-  font-weight: 800;
-  margin-left: 5px;
-}
-.breadcrumbs {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 26px;
-}
-.detail-grid {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: 65px;
-}
-.detail-image {
-  position: relative;
-  aspect-ratio: 1;
-  border: 2px solid #111;
-  box-shadow: 9px 9px var(--ink-shadow);
-  border-radius: 20px;
-  overflow: hidden;
-  display: block;
-  background: #eae9e8;
-  width: 100%;
-}
-.detail-image img {
-  object-fit: cover;
-}
-.detail-image > span {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: #fff;
-  color: #111;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 800;
-}
-.detail-note {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-  font-size: 14px;
-  border-top: 1px solid var(--border);
-  margin-top: 25px;
-  padding-top: 25px;
-}
-.detail-note svg {
-  color: var(--brand-orange);
-  flex-shrink: 0;
-}
-.buy-panel h1 {
-  font-size: 32px;
-  font-weight: 900;
-  line-height: 1.16;
-  letter-spacing: -0.035em;
-  margin: 10px 0 16px;
-}
-.detail-price {
-  margin: 24px 0;
-}
-.detail-price > del {
-  display: block;
-  color: var(--muted);
-  font-size: 14px;
-  margin-bottom: 8px;
-}
-.detail-price .price {
-  font-size: 43px;
-}
-.detail-price > p:last-child {
-  font-size: 14px;
-  color: var(--muted);
-  margin-top: 10px;
-}
-.sizes {
-  border: 0;
-  padding: 0;
-  margin-bottom: 20px;
-  display: flex;
-  gap: 10px;
-}
-.sizes legend {
-  font-size: 14px;
-  font-weight: 800;
-  margin-bottom: 9px;
-}
-.sizes button {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--foreground);
-  min-width: 43px;
-  border-radius: 8px;
-}
-.sizes .chosen {
-  border: 2px solid #ffbd08;
-  background: #ffbd0822;
-}
-.quantity-row {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  margin: 22px 0;
-}
-.quantity-row .quantity-label {
-  font-size: 13px;
-  font-weight: 800;
-}
-.quantity-row small {
-  color: var(--muted);
-  font-size: 12px;
-}
 .quantity {
   display: inline-flex;
   align-items: center;
@@ -321,9 +176,6 @@ a svg {
   background: var(--surface);
   color: var(--foreground);
   margin-top: 5px;
-}
-.quantity-row .quantity-label .quantity {
-  display: flex;
 }
 .quantity > button {
   min-width: 32px;
@@ -338,38 +190,6 @@ a svg {
   text-align: center;
   font-size: 14px;
   font-weight: 800;
-}
-.secondary-actions {
-  display: flex;
-  gap: 12px;
-  margin: 12px 0 20px;
-}
-.secondary-actions .action {
-  flex: 1;
-}
-.favorite-detail {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--foreground);
-  width: 49px;
-  height: 49px;
-}
-.freight {
-  border-top: 1px solid var(--border);
-  padding-top: 20px;
-  margin-top: 20px;
-}
-.freight h3 {
-  display: flex;
-  gap: 8px;
-  font-weight: 800;
-  font-size: 14px;
-  align-items: center;
-}
-.freight form {
-  display: flex;
-  gap: 8px;
-  margin: 12px 0;
 }
 .freight input,
 .coupon input {
@@ -387,55 +207,6 @@ a svg {
   color: var(--foreground);
   font-size: 14px;
   font-weight: 800;
-}
-.freight > small {
-  font-size: 12px;
-  color: var(--muted);
-}
-.freight > p {
-  font-size: 13px;
-  margin: 12px 0;
-}
-.trust-link {
-  display: flex;
-  gap: 8px;
-  font-size: 13px;
-  align-items: center;
-  margin-top: 18px;
-}
-.detail-information {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 65px;
-  padding: 60px 0;
-  margin-bottom: 15px;
-}
-.detail-information p {
-  line-height: 1.8;
-  color: var(--muted);
-}
-.detail-information dl {
-  background: var(--surface);
-  padding: 25px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-}
-.detail-information dl > div {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  padding: 13px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 14px;
-  gap: 10px;
-}
-.detail-information dt {
-  font-weight: 800;
-}
-.detail-information dd {
-  color: var(--muted);
-}
-.mobile-buy {
-  display: none;
 }
 .geek-dialog {
   background: var(--surface);
@@ -461,11 +232,6 @@ a svg {
 }
 .zoom-dialog {
   max-width: 900px;
-}
-.zoom-image {
-  width: 100%;
-  max-height: 70vh;
-  object-fit: contain;
 }
 .checkout-grid {
   display: grid;
@@ -864,12 +630,6 @@ th button {
   color: var(--muted);
 }
 @media (max-width: 1050px) {
-  .price {
-    font-size: 26px;
-  }
-  .detail-grid {
-    gap: 35px;
-  }
   .checkout-grid {
     gap: 22px;
   }
@@ -878,64 +638,6 @@ th button {
   }
 }
 @media (max-width: 767px) {
-  .price {
-    font-size: 24px;
-  }
-  .pix {
-    font-size: 11px;
-  }
-  .pix > span {
-    display: block;
-    margin-left: 0;
-  }
-  .detail-grid {
-    grid-template-columns: 1fr;
-    gap: 28px;
-  }
-  .breadcrumbs {
-    font-size: 12px;
-  }
-  .detail-image {
-    max-height: 470px;
-  }
-  .detail-note {
-    display: none;
-  }
-  .buy-panel h1 {
-    font-size: 29px;
-  }
-  .detail-price .price {
-    font-size: 38px;
-  }
-  .detail-information {
-    grid-template-columns: 1fr;
-    gap: 20px;
-    padding: 35px 0;
-  }
-  .detail-information .section-title {
-    font-size: 32px;
-  }
-  .mobile-buy {
-    display: flex;
-    position: fixed;
-    bottom: 0;
-    inset-inline: 0;
-    z-index: 40;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    padding: 10px 16px;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 -5px 20px #0001;
-  }
-  .mobile-buy .action {
-    min-height: 42px;
-    font-size: 13px;
-    padding: 10px 16px;
-  }
-  .product-detail {
-    padding-bottom: 65px;
-  }
   .geek-dialog {
     max-height: 90dvh;
   }
@@ -1243,5 +945,21 @@ th button {
   }
   & .section-title {
     margin: 0;
+  }
+}
+@utility pix {
+  font-size: 12px;
+  margin-top: 4px;
+  & span {
+    color: var(--brand-orange);
+    font-weight: 800;
+    margin-left: 5px;
+  }
+  @media (max-width: 767px) {
+    font-size: 11px;
+    & > span {
+      display: block;
+      margin-left: 0;
+    }
   }
 }
