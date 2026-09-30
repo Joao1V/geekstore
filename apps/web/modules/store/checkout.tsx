@@ -48,6 +48,14 @@ const BRAZILIAN_STATES = [
   { value: 'TO', label: 'Tocantins' },
 ];
 
+const CHECKOUT_TITLE = 'mb-2.5 text-[21px] font-black';
+const FORM_GRID = 'my-[25px] grid grid-cols-2 gap-5 max-md:grid-cols-1 max-md:gap-[15px]';
+const CHOICE_LIST = 'my-6 flex flex-col gap-3 border-0 p-0';
+const CHOICE_LABEL =
+  'flex cursor-pointer items-center gap-3 rounded-[10px] border border-border px-3.5 py-[17px] text-sm has-checked:border-geek-yellow has-checked:bg-[#ffbd080c]';
+const CHOICE_HINT = 'mt-[3px] block text-xs text-muted';
+const TOTAL_ROW = 'flex justify-between gap-[15px]';
+
 type CheckoutContactFormValues = {
   name: string;
   email: string;
@@ -153,27 +161,36 @@ export function Checkout() {
         Ambiente de demonstração. Use dados fictícios. Frete e pagamento são simulados; nenhum dado
         é enviado a uma loja ou gateway.
       </p>
-      <div className="checkout-grid">
+      <div className="mt-[30px] grid grid-cols-[1.35fr_1fr] items-start gap-9 max-tablet:gap-[22px] max-md:grid-cols-1">
         <div>
-          <div className="steps">
+          <div className="mb-6 flex gap-7 max-md:gap-[15px]">
             {CHECKOUT_STEPS.map((title, i) => (
               <button
                 key={title}
                 type="button"
                 disabled={i > step}
                 onClick={() => setStep(i)}
-                className={step === i ? 'active' : ''}
+                className={`flex items-center gap-2 text-sm font-extrabold max-md:text-xs ${step === i ? 'text-foreground' : 'text-muted'}`}
               >
-                <span>{i < step ? <Check size={16} /> : i + 1}</span>
+                <span
+                  className={`grid size-7 place-items-center rounded-full border max-md:size-[25px] ${step === i ? 'border-geek-yellow bg-geek-yellow text-[#111]' : 'border-border'}`}
+                >
+                  {i < step ? <Check size={16} /> : i + 1}
+                </span>
                 {title}
               </button>
             ))}
           </div>
-          <form className="checkout-form surface" onSubmit={handleSubmit(submitStep)}>
+          <form
+            className="surface p-[30px] max-tablet:p-[22px] max-md:px-[17px] max-md:py-[22px]"
+            onSubmit={handleSubmit(submitStep)}
+          >
             <fieldset hidden={step !== 0} disabled={step !== 0}>
-              <h2>Como podemos falar com você?</h2>
-              <p className="muted">Continue como visitante. Não é necessário criar uma conta.</p>
-              <div className="form-grid">
+              <h2 className={CHECKOUT_TITLE}>Como podemos falar com você?</h2>
+              <p className="muted text-sm">
+                Continue como visitante. Não é necessário criar uma conta.
+              </p>
+              <div className={FORM_GRID}>
                 <Controller
                   control={control}
                   name="name"
@@ -216,8 +233,8 @@ export function Checkout() {
               </div>
             </fieldset>
             <fieldset hidden={step !== 1} disabled={step !== 1}>
-              <h2>Onde sua coleção vai chegar?</h2>
-              <div className="form-grid">
+              <h2 className={CHECKOUT_TITLE}>Onde sua coleção vai chegar?</h2>
+              <div className={FORM_GRID}>
                 <Controller
                   control={control}
                   name="cep"
@@ -276,9 +293,9 @@ export function Checkout() {
                   )}
                 />
               </div>
-              <fieldset className="choice-list">
-                <legend>Entrega simulada</legend>
-                <label>
+              <fieldset className={CHOICE_LIST}>
+                <legend className="mb-3 text-sm font-extrabold">Entrega simulada</legend>
+                <label className={CHOICE_LABEL}>
                   <input
                     type="radio"
                     name="shipping"
@@ -286,9 +303,9 @@ export function Checkout() {
                     onChange={() => setShipping('standard')}
                   />
                   <Truck size={22} />
-                  <span>
+                  <span className="flex-1">
                     <strong>Padrão · 5–8 dias úteis</strong>
-                    <small>Estimativa de demonstração</small>
+                    <small className={CHOICE_HINT}>Estimativa de demonstração</small>
                   </span>
                   <strong>
                     {subtotal >= FREE_SHIPPING_THRESHOLD
@@ -296,7 +313,7 @@ export function Checkout() {
                       : money(STANDARD_SHIPPING_PRICE)}
                   </strong>
                 </label>
-                <label>
+                <label className={CHOICE_LABEL}>
                   <input
                     type="radio"
                     name="shipping"
@@ -304,32 +321,32 @@ export function Checkout() {
                     onChange={() => setShipping('express')}
                   />
                   <Truck size={22} />
-                  <span>
+                  <span className="flex-1">
                     <strong>Expressa · 2–4 dias úteis</strong>
-                    <small>Estimativa de demonstração</small>
+                    <small className={CHOICE_HINT}>Estimativa de demonstração</small>
                   </span>
                   <strong>{money(EXPRESS_SHIPPING_PRICE)}</strong>
                 </label>
               </fieldset>
             </fieldset>
             <fieldset hidden={step !== 2} disabled={step !== 2}>
-              <h2>Como prefere pagar?</h2>
-              <fieldset className="choice-list">
+              <h2 className={CHECKOUT_TITLE}>Como prefere pagar?</h2>
+              <fieldset className={CHOICE_LIST}>
                 <legend className="sr-only">Forma de pagamento</legend>
-                <label>
+                <label className={CHOICE_LABEL}>
                   <input
                     type="radio"
                     name="payment"
                     checked={payment === 'pix'}
                     onChange={() => setPayment('pix')}
                   />
-                  <span>
+                  <span className="flex-1">
                     <strong>Pix</strong>
-                    <small>5% de desconto no exemplo</small>
+                    <small className={CHOICE_HINT}>5% de desconto no exemplo</small>
                   </span>
                   <strong>{money(total)}</strong>
                 </label>
-                <label>
+                <label className={CHOICE_LABEL}>
                   <input
                     type="radio"
                     name="payment"
@@ -337,9 +354,9 @@ export function Checkout() {
                     onChange={() => setPayment('card')}
                   />
                   <CreditCard size={22} />
-                  <span>
+                  <span className="flex-1">
                     <strong>Cartão de crédito</strong>
-                    <small>Até 6x sem juros no exemplo</small>
+                    <small className={CHOICE_HINT}>Até 6x sem juros no exemplo</small>
                   </span>
                 </label>
               </fieldset>
@@ -348,16 +365,16 @@ export function Checkout() {
                 habilitado após a integração com o gateway.
               </p>
             </fieldset>
-            <div className="checkout-actions">
+            <div className="mt-[30px] flex justify-end gap-3.5">
               {step > 0 && <Button onPress={() => setStep(step - 1)}>Voltar</Button>}
-              <Action type="submit">
+              <Action type="submit" className="max-md:flex-1">
                 {step === 2 ? 'Concluir simulação' : 'Continuar'} <ArrowRight size={18} />
               </Action>
             </div>
           </form>
         </div>
-        <aside className="order-summary surface">
-          <h2>Resumo do carrinho</h2>
+        <aside className="surface sticky top-[140px] p-[25px] max-md:static max-md:order-2">
+          <h2 className={CHECKOUT_TITLE}>Resumo do carrinho</h2>
           <ShippingProgress total={subtotal} />
           {store.lines.map((line, i) => {
             const product = products.find((p) => p.id === line.id);
@@ -366,13 +383,25 @@ export function Checkout() {
               .filter((l, j) => l.id === line.id && i !== j)
               .reduce((sum, l) => sum + l.qty, 0);
             return (
-              <div className="summary-line" key={`${line.id}-${line.size}`}>
-                <Image src={product.image} alt={product.name} width={54} height={67} />
+              <div
+                className="grid grid-cols-[54px_1fr_24px] gap-3 border-b border-border py-[18px]"
+                key={`${line.id}-${line.size}`}
+              >
+                <Image
+                  className="h-[67px] w-[54px] rounded-lg object-cover"
+                  src={product.image}
+                  alt={product.name}
+                  width={54}
+                  height={67}
+                />
                 <div>
-                  <strong>{product.name}</strong>
-                  {line.size && <small>Tamanho {line.size}</small>}
-                  <span>{money(product.price * line.qty)}</span>
+                  <strong className="block text-[13px] leading-[1.35]">{product.name}</strong>
+                  {line.size && (
+                    <small className="block text-xs text-muted">Tamanho {line.size}</small>
+                  )}
+                  <span className="text-[13px]">{money(product.price * line.qty)}</span>
                   <Quantity
+                    size="compact"
                     value={line.qty}
                     max={product.stock - reservedElsewhere}
                     onChange={(qty) => store.quantity(i, qty)}
@@ -380,6 +409,7 @@ export function Checkout() {
                 </div>
                 <Button
                   isIconOnly
+                  className="min-w-[22px] bg-transparent p-0 text-muted"
                   aria-label={`Remover ${product.name}`}
                   onPress={() => store.quantity(i, 0)}
                 >
@@ -388,7 +418,11 @@ export function Checkout() {
               </div>
             );
           })}
-          <form className="coupon" onSubmit={handleCouponSubmit(submitCoupon)}>
+          {/* "coupon" é marcador: o globals.css ainda estiliza o input/botão do cupom (junto com os campos de formulário). */}
+          <form
+            className="coupon mt-[23px] flex gap-1.5"
+            onSubmit={handleCouponSubmit(submitCoupon)}
+          >
             <Controller
               control={couponControl}
               name="coupon"
@@ -403,28 +437,30 @@ export function Checkout() {
               {couponMessage}
             </p>
           )}
-          <dl className="totals">
-            <div>
+          <dl className="mt-[23px]">
+            <div className={`${TOTAL_ROW} py-[7px] text-sm`}>
               <dt>Subtotal</dt>
               <dd>{money(subtotal)}</dd>
             </div>
             {discount > 0 && (
-              <div>
+              <div className={`${TOTAL_ROW} py-[7px] text-sm`}>
                 <dt>Cupom</dt>
                 <dd>−{money(discount)}</dd>
               </div>
             )}
-            <div>
+            <div className={`${TOTAL_ROW} py-[7px] text-sm`}>
               <dt>Frete simulado</dt>
               <dd>{freight ? money(freight) : 'Grátis'}</dd>
             </div>
             {pixDiscount > 0 && (
-              <div>
+              <div className={`${TOTAL_ROW} py-[7px] text-sm`}>
                 <dt>Desconto Pix</dt>
                 <dd>−{money(pixDiscount)}</dd>
               </div>
             )}
-            <div className="total">
+            <div
+              className={`${TOTAL_ROW} mt-3 border-t border-border pt-[18px] pb-[7px] text-[23px] font-black`}
+            >
               <dt>Total</dt>
               <dd>{money(total)}</dd>
             </div>
