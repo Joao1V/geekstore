@@ -27,6 +27,24 @@ import { StoreAlert } from './store-alert';
 
 const STORE_CATEGORIES = ['Colecionáveis', 'Games', 'Vestuário', 'RPG'];
 
+const ICON_BTN =
+  'place-items-center size-[39px] min-w-[39px] rounded-[10px] p-0 text-white hover:bg-[#ffffff14] max-md:size-[34px] max-md:min-w-[34px]';
+const NAV_LINK = 'hover:text-geek-yellow';
+const FOOTER_LINK = 'mb-2.5 block text-sm';
+const FOOTER_TEXT = 'my-3 text-[13px] leading-[1.8]';
+const FOOTER_TITLE = 'mb-[18px] text-[15px] font-extrabold text-white';
+const FREE_SHIPPING_THRESHOLD = 299;
+
+const BENEFITS = [
+  { icon: Truck, title: 'Entrega para seu CEP', text: 'Consulte opções na compra' },
+  { icon: ShieldCheck, title: 'Condições transparentes', text: 'Preço e frete antes de finalizar' },
+  {
+    icon: PackageCheck,
+    title: 'Sua coleção em boas mãos',
+    text: 'Conheça cada detalhe do produto',
+  },
+];
+
 type SearchFormValues = { q: string };
 
 export function Shell({ children }: { children: ReactNode }) {
@@ -66,10 +84,17 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <header className={`site-header ${scrolled ? 'scrolled' : ''}`}>
-        <div className="header-main wrap">
-          <Link className="logo" href="/" aria-label="GeekStore, início">
+      <header
+        className={`fixed inset-x-0 top-0 z-50 border-b border-[#ffffff1f] bg-[#09090c] text-white transition-shadow duration-200 ${scrolled ? '[box-shadow:0_8px_24px_#00000059]' : ''}`}
+      >
+        <div className="wrap flex h-[78px] items-center gap-6 max-tablet:gap-[15px] max-md:grid max-md:h-28 max-md:grid-cols-[1fr_auto] max-md:gap-2 max-md:py-2">
+          <Link
+            className="w-[165px] shrink-0 rounded-xl bg-[#080808] px-3 py-[5px] max-tablet:w-[140px] max-md:w-[127px] max-md:px-2 max-md:py-0.5"
+            href="/"
+            aria-label="GeekStore, início"
+          >
             <Image
+              className="block h-[53px] w-full max-md:h-[42px]"
               src="/assets/geekstore-logo.png"
               alt="GeekStore"
               width={170}
@@ -77,8 +102,11 @@ export function Shell({ children }: { children: ReactNode }) {
               priority
             />
           </Link>
-          <div className="search-wrap">
-            <form onSubmit={handleSubmit(submit)} className="search">
+          <div className="relative min-w-[120px] flex-1 max-md:col-span-full max-md:row-start-2">
+            <form
+              onSubmit={handleSubmit(submit)}
+              className="flex h-[46px] items-center gap-2.5 rounded-[10px] bg-[#f9f9f5] py-1 pr-[5px] pl-[15px] text-sm leading-normal font-semibold text-[#111] max-md:h-[41px]"
+            >
               <Search size={20} />
               <Controller
                 control={control}
@@ -86,6 +114,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 render={({ field }) => (
                   <input
                     {...field}
+                    className="w-full border-0 bg-transparent focus-visible:outline-none!"
                     aria-label="Buscar produtos"
                     onFocus={() => setFocused(true)}
                     onBlur={() => {
@@ -96,20 +125,36 @@ export function Shell({ children }: { children: ReactNode }) {
                   />
                 )}
               />
-              <Button isIconOnly type="submit" aria-label="Pesquisar">
+              <Button
+                isIconOnly
+                type="submit"
+                aria-label="Pesquisar"
+                className="size-9 min-w-9 rounded-lg bg-geek-yellow text-[#111]"
+              >
                 <ArrowRight size={20} />
               </Button>
             </form>
             {focused && search && (
-              <div className="suggestions">
-                <small>PRODUTOS</small>
+              <div className="absolute inset-x-0 top-[54px] z-[51] rounded-xl border border-border bg-surface p-[18px] text-foreground [box-shadow:0_20px_45px_#0003]">
+                <small className="text-xs tracking-[0.12em] text-muted">PRODUTOS</small>
                 {results.length ? (
                   results.map((p) => (
-                    <Link key={p.id} href={`/produto/${p.slug}/`} onClick={() => setFocused(false)}>
-                      <Image src={p.image} alt="" width={45} height={45} />
+                    <Link
+                      key={p.id}
+                      href={`/produto/${p.slug}/`}
+                      onClick={() => setFocused(false)}
+                      className="flex gap-3 border-b border-border py-3 text-sm font-extrabold"
+                    >
+                      <Image
+                        className="size-[45px] rounded-[7px] object-cover"
+                        src={p.image}
+                        alt=""
+                        width={45}
+                        height={45}
+                      />
                       <span>
                         {p.name}
-                        <small>{money(p.price)}</small>
+                        <small className="mt-1 block text-xs text-muted">{money(p.price)}</small>
                       </span>
                     </Link>
                   ))
@@ -119,26 +164,32 @@ export function Shell({ children }: { children: ReactNode }) {
               </div>
             )}
           </div>
-          <nav className="account-nav">
+          <nav className="flex gap-[18px] text-sm font-extrabold whitespace-nowrap max-tablet:gap-2.5 max-md:hidden">
             <Link href="/entrar/">Entrar</Link>
             <Link href="/cadastro/">Cadastre-se</Link>
           </nav>
-          <div className="header-actions">
-            <Link className="icon-btn favorites-icon" href="/favoritos/" aria-label="Favoritos">
+          <div className="flex items-center gap-[9px] max-md:col-start-2 max-md:row-start-1 max-md:gap-1.5">
+            <Link
+              className={`${ICON_BTN} grid max-tablet:hidden`}
+              href="/favoritos/"
+              aria-label="Favoritos"
+            >
               <Heart size={21} />
             </Link>
             <Button
               isIconOnly
               aria-label={`Abrir carrinho, ${count} itens`}
               onPress={() => store.setCartOpen(true)}
-              className="icon-btn cart-trigger"
+              className={`${ICON_BTN} relative grid bg-[#08080a]`}
             >
               <ShoppingCart size={22} />
-              <span>{count}</span>
+              <span className="absolute -top-1.5 -right-[7px] h-[18px] min-w-[18px] rounded-full bg-geek-yellow px-1 text-[11px] font-black text-[#111]">
+                {count}
+              </span>
             </Button>
             <Button
               isIconOnly
-              className="icon-btn"
+              className={`${ICON_BTN} grid bg-transparent`}
               aria-label={store.theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
               onPress={store.toggleTheme}
             >
@@ -146,7 +197,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </Button>
             <Button
               isIconOnly
-              className="icon-btn mobile-menu"
+              className={`${ICON_BTN} hidden bg-transparent max-md:grid`}
               aria-label="Menu"
               onPress={() => setMenu(!menu)}
             >
@@ -154,23 +205,27 @@ export function Shell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </div>
-        <div className="header-bottom wrap">
-          <nav>
+        <div className="wrap flex h-10 items-center justify-between text-[13px] text-[#d8d7db]">
+          <nav className="flex gap-[27px] font-bold max-md:w-full max-md:gap-[22px] max-md:overflow-x-auto max-md:text-xs max-md:whitespace-nowrap">
             {STORE_CATEGORIES.map((category) => (
-              <Link key={category} href={`/catalogo/?categoria=${encodeURIComponent(category)}`}>
+              <Link
+                key={category}
+                href={`/catalogo/?categoria=${encodeURIComponent(category)}`}
+                className={NAV_LINK}
+              >
                 {category}
               </Link>
             ))}
-            <Link href="/catalogo/?ofertas=1" className="yellow">
+            <Link href="/catalogo/?ofertas=1" className={`${NAV_LINK} text-geek-yellow`}>
               Ofertas
             </Link>
           </nav>
-          <span>
+          <span className="flex items-center gap-2 max-md:hidden">
             <Truck size={15} /> Seu próximo drop está aqui
           </span>
         </div>
         {menu && (
-          <nav className="mobile-links">
+          <nav className="hidden gap-[15px] bg-[#111116] px-5 py-[15px] text-sm max-md:flex max-md:flex-col">
             <Link href="/entrar/">Entrar</Link>
             <Link href="/cadastro/">Criar conta</Link>
             <Link href="/favoritos/">Favoritos</Link>
@@ -178,46 +233,60 @@ export function Shell({ children }: { children: ReactNode }) {
           </nav>
         )}
       </header>
-      <main>{children}</main>
-      <footer>
-        <div className="wrap footer-grid">
+      <main className="min-h-[70vh] pt-[119px] max-md:pt-[152px]">{children}</main>
+      <footer className="bg-[#070709] pt-[50px] text-[#b2b0b9]">
+        <div className="wrap grid grid-cols-[1.4fr_1fr_1fr_1.3fr] gap-[50px] max-tablet:gap-[25px] max-md:grid-cols-2 max-md:gap-x-5 max-md:gap-y-7">
           <div>
             <Link href="/">
               <Image
-                className="footer-logo"
+                className="h-[65px] object-contain max-md:h-[50px] max-md:w-[150px]"
                 src="/assets/geekstore-logo.png"
                 alt="GeekStore"
                 width={180}
                 height={75}
               />
             </Link>
-            <p>
+            <p className={FOOTER_TEXT}>
               Seu universo. Sua coleção.
               <br />
               Uma história nova em cada escolha.
             </p>
           </div>
           <div>
-            <h3>Explore</h3>
-            <Link href="/catalogo/">Todos os produtos</Link>
-            <Link href="/catalogo/?ofertas=1">Ofertas</Link>
-            <Link href="/favoritos/">Meus favoritos</Link>
+            <h3 className={FOOTER_TITLE}>Explore</h3>
+            <Link className={FOOTER_LINK} href="/catalogo/">
+              Todos os produtos
+            </Link>
+            <Link className={FOOTER_LINK} href="/catalogo/?ofertas=1">
+              Ofertas
+            </Link>
+            <Link className={FOOTER_LINK} href="/favoritos/">
+              Meus favoritos
+            </Link>
           </div>
           <div>
-            <h3>Sua conta</h3>
-            <Link href="/entrar/">Entrar</Link>
-            <Link href="/cadastro/">Cadastre-se</Link>
-            <Link href="/ajuda/">Atendimento e trocas</Link>
+            <h3 className={FOOTER_TITLE}>Sua conta</h3>
+            <Link className={FOOTER_LINK} href="/entrar/">
+              Entrar
+            </Link>
+            <Link className={FOOTER_LINK} href="/cadastro/">
+              Cadastre-se
+            </Link>
+            <Link className={FOOTER_LINK} href="/ajuda/">
+              Atendimento e trocas
+            </Link>
           </div>
           <div>
-            <h3>Sobre esta versão</h3>
-            <p>
+            <h3 className={FOOTER_TITLE}>Sobre esta versão</h3>
+            <p className={FOOTER_TEXT}>
               Loja demonstrativa. Produtos, preços e condições ilustrativos. Não recebe pagamentos.
             </p>
-            <Link href="/admin/">Prévia do painel de gestão</Link>
+            <Link className={FOOTER_LINK} href="/admin/">
+              Prévia do painel de gestão
+            </Link>
           </div>
         </div>
-        <div className="wrap footer-bottom">
+        <div className="wrap mt-[35px] flex justify-between border-t border-[#ffffff1c] py-[22px] text-xs max-md:gap-5 max-md:text-[10px]">
           © 2026 GeekStore <span>Feito para quem coleciona histórias.</span>
         </div>
       </footer>
@@ -228,12 +297,11 @@ export function Shell({ children }: { children: ReactNode }) {
 }
 
 export function ShippingProgress({ total }: { total: number }) {
-  const FREE_SHIPPING_THRESHOLD = 299;
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - total);
   return (
-    <div className="shipping-progress">
-      <p>
-        <Truck size={18} />
+    <div className="mt-2.5 mb-5 rounded-xl bg-surface-secondary p-3.5">
+      <p className="flex flex-wrap items-center gap-1 text-[13px]">
+        <Truck className="mr-1" size={18} />
         {remaining ? (
           <>
             Faltam <strong>{money(remaining)}</strong> para frete grátis*
@@ -242,10 +310,15 @@ export function ShippingProgress({ total }: { total: number }) {
           <strong>Frete grátis desbloqueado neste exemplo!</strong>
         )}
       </p>
-      <div>
-        <span style={{ width: `${Math.min(100, (total / FREE_SHIPPING_THRESHOLD) * 100)}%` }} />
+      <div className="mt-3 mb-[7px] h-[5px] overflow-hidden rounded-lg bg-border">
+        <span
+          className="block h-full bg-geek-yellow"
+          style={{ width: `${Math.min(100, (total / FREE_SHIPPING_THRESHOLD) * 100)}%` }}
+        />
       </div>
-      <small>*Condição demonstrativa, sujeita à configuração da loja.</small>
+      <small className="text-[11px] text-muted">
+        *Condição demonstrativa, sujeita à configuração da loja.
+      </small>
     </div>
   );
 }
@@ -257,16 +330,11 @@ export function CartDialog() {
     return sum + (product ? product.price * line.qty : 0);
   }, 0);
   return (
-    <Dialog
-      open={store.cartOpen}
-      onChange={store.setCartOpen}
-      title="Seu carrinho"
-      className="cart-dialog"
-    >
+    <Dialog open={store.cartOpen} onChange={store.setCartOpen} title="Seu carrinho">
       {store.lines.length ? (
         <>
           <ShippingProgress total={total} />
-          <div className="cart-lines">
+          <div className="grid max-h-[42vh] gap-[15px] overflow-x-hidden overflow-y-auto">
             {store.lines.map((line, i) => {
               const product = products.find((p) => p.id === line.id);
               if (!product) return null;
@@ -274,19 +342,33 @@ export function CartDialog() {
                 .filter((l, j) => l.id === line.id && i !== j)
                 .reduce((sum, l) => sum + l.qty, 0);
               return (
-                <div className="cart-line" key={`${line.id}-${line.size}`}>
+                <div
+                  className="grid grid-cols-[72px_1fr_30px] gap-3.5 border-b border-border pb-[15px]"
+                  key={`${line.id}-${line.size}`}
+                >
                   <Link href={`/produto/${product.slug}/`} onClick={() => store.setCartOpen(false)}>
-                    <Image src={product.image} alt={product.name} width={72} height={85} />
+                    <Image
+                      className="h-[85px] w-[72px] rounded-[9px] object-cover"
+                      src={product.image}
+                      alt={product.name}
+                      width={72}
+                      height={85}
+                    />
                   </Link>
-                  <div>
+                  <div className="min-w-0">
                     <Link
+                      className="text-sm font-extrabold wrap-anywhere"
                       href={`/produto/${product.slug}/`}
                       onClick={() => store.setCartOpen(false)}
                     >
                       {product.name}
                     </Link>
-                    {line.size && <small>Tamanho: {line.size}</small>}
-                    <strong>{money(product.price * line.qty)}</strong>
+                    {line.size && (
+                      <small className="my-[5px] block text-[13px]">Tamanho: {line.size}</small>
+                    )}
+                    <strong className="my-[5px] block text-[13px]">
+                      {money(product.price * line.qty)}
+                    </strong>
                     <Quantity
                       value={line.qty}
                       max={product.stock - reservedElsewhere}
@@ -295,6 +377,7 @@ export function CartDialog() {
                   </div>
                   <Button
                     isIconOnly
+                    className="min-w-[26px] bg-transparent p-0 text-muted"
                     aria-label={`Remover ${product.name}`}
                     onPress={() => store.quantity(i, 0)}
                   >
@@ -304,15 +387,19 @@ export function CartDialog() {
               );
             })}
           </div>
-          <div className="cart-total">
+          <div className="mt-6 flex justify-between text-xl font-extrabold">
             <span>Subtotal</span>
             <strong>{money(total)}</strong>
           </div>
           <p className="muted text-sm">Frete e descontos calculados na próxima etapa.</p>
-          <Link href="/checkout/" className="action full" onClick={() => store.setCartOpen(false)}>
+          <Link
+            href="/checkout/"
+            className="action full mt-5"
+            onClick={() => store.setCartOpen(false)}
+          >
             Continuar para checkout <ArrowRight size={18} />
           </Link>
-          <Button className="quiet full" onPress={() => store.setCartOpen(false)}>
+          <Button className="quiet full mt-2.5" onPress={() => store.setCartOpen(false)}>
             Continuar comprando
           </Button>
         </>
@@ -332,28 +419,16 @@ export function CartDialog() {
 
 export function Benefits() {
   return (
-    <div className="benefits wrap">
-      <span>
-        <Truck />
-        <div>
-          <strong>Entrega para seu CEP</strong>
-          <small>Consulte opções na compra</small>
-        </div>
-      </span>
-      <span>
-        <ShieldCheck />
-        <div>
-          <strong>Condições transparentes</strong>
-          <small>Preço e frete antes de finalizar</small>
-        </div>
-      </span>
-      <span>
-        <PackageCheck />
-        <div>
-          <strong>Sua coleção em boas mãos</strong>
-          <small>Conheça cada detalhe do produto</small>
-        </div>
-      </span>
+    <div className="wrap grid grid-cols-3 gap-[35px] py-[42px] max-md:grid-cols-1 max-md:gap-6 max-md:py-8">
+      {BENEFITS.map(({ icon: Icon, title, text }) => (
+        <span key={title} className="flex items-center gap-[15px]">
+          <Icon className="w-7 text-brand-orange" />
+          <div>
+            <strong className="block text-sm">{title}</strong>
+            <small className="text-xs text-muted">{text}</small>
+          </div>
+        </span>
+      ))}
     </div>
   );
 }
