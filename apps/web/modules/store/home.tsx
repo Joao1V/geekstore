@@ -68,7 +68,7 @@ export function Home() {
             </h2>
             <Link
               href="/catalogo/"
-              className="action black max-md:max-w-[220px] max-md:px-3.5 max-md:py-2.5 max-md:text-xs"
+              className="action action-black max-md:max-w-[220px] max-md:px-3.5 max-md:py-2.5 max-md:text-xs"
             >
               Escolher um presente <ArrowRight size={18} />
             </Link>

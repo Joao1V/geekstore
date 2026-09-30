@@ -4,11 +4,6 @@
 [hidden] {
   display: none !important;
 }
-.geek-dialog [data-slot="modal-header"] {
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-}
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 @theme {
   --font-sans: "Nunito Sans", system-ui, sans-serif;
@@ -99,10 +94,11 @@ button {
 button:disabled {
   cursor: not-allowed;
 }
-input,
-select {
-  font: inherit;
-  min-width: 0;
+@layer base {
+  input,
+  select {
+    min-width: 0;
+  }
 }
 input:focus-visible,
 select:focus-visible,
@@ -114,80 +110,6 @@ button:focus-visible {
 button svg,
 a svg {
   flex-shrink: 0;
-}
-.action.black {
-  background: #101012;
-  color: white;
-}
-.action.outline {
-  background: transparent;
-  border-color: var(--border);
-  color: var(--foreground);
-}
-.freight input,
-.coupon input {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--foreground);
-  padding: 9px 12px;
-  border-radius: 8px;
-  width: 100%;
-  font-size: var(--text-sm);
-}
-.freight button,
-.coupon button {
-  background: var(--surface-secondary);
-  color: var(--foreground);
-  font-size: var(--text-sm);
-  font-weight: 800;
-}
-.geek-dialog {
-  background: var(--surface);
-  color: var(--foreground);
-  border: 1px solid var(--border);
-  max-width: 580px;
-  width: 100%;
-  border-radius: 20px;
-}
-.geek-dialog [data-slot="modal-header"] {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-}
-.geek-dialog [data-slot="modal-heading"] {
-  font-family: "Bangers", sans-serif;
-  font-size: var(--text-3xl);
-  letter-spacing: 0.02em;
-}
-.geek-dialog [data-slot="modal-body"] {
-  padding-bottom: 20px;
-}
-.zoom-dialog {
-  max-width: 900px;
-}
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: var(--text-sm);
-  font-weight: 800;
-}
-.field-input {
-  width: 100%;
-  min-height: 46px;
-  background: var(--surface-secondary);
-  color: var(--foreground);
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  font-size: var(--text-base);
-  padding: 10px 12px;
-  font-weight: 500;
-}
-@media (max-width: 767px) {
-  .geek-dialog {
-    max-height: 90dvh;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -217,9 +139,6 @@ a svg {
 }
 @utility orange {
   color: var(--brand-orange);
-}
-@utility yellow {
-  color: #ffbd08;
 }
 @utility eyebrow {
   display: flex;
@@ -280,17 +199,17 @@ a svg {
   min-height: 49px;
   padding: 13px 22px;
   border-radius: 12px;
-  background: #ffbd08;
-  color: #111;
+  background: var(--action-bg, #ffbd08);
+  color: var(--action-fg, #111);
   font-size: var(--text-sm);
   font-weight: 900;
-  border: 2px solid transparent;
+  border: 2px solid var(--action-border, transparent);
   transition:
     transform 0.2s,
     background 0.2s;
   white-space: normal;
   &:hover {
-    background: #ffd45d;
+    background: var(--action-hover-bg, #ffd45d);
     transform: translateY(-2px);
   }
   &:disabled {
@@ -382,4 +301,33 @@ a svg {
   font-weight: 800;
   font-size: var(--text-sm);
   margin-bottom: 24px;
+}
+@utility action-black {
+  --action-bg: #101012;
+  --action-fg: white;
+  --action-hover-bg: #101012;
+}
+@utility action-outline {
+  --action-bg: transparent;
+  --action-fg: var(--foreground);
+  --action-border: var(--border);
+  --action-hover-bg: transparent;
+}
+@utility form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+@utility field-input {
+  width: 100%;
+  min-height: 46px;
+  background: var(--surface-secondary);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: var(--text-base);
+  padding: 10px 12px;
+  font-weight: 500;
 }

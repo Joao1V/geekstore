@@ -418,19 +418,25 @@ export function Checkout() {
               </div>
             );
           })}
-          {/* "coupon" é marcador: o globals.css ainda estiliza o input/botão do cupom (junto com os campos de formulário). */}
           <form
-            className="coupon mt-[23px] flex gap-1.5"
+            className="mt-[23px] flex gap-1.5 text-sm"
             onSubmit={handleCouponSubmit(submitCoupon)}
           >
             <Controller
               control={couponControl}
               name="coupon"
               render={({ field }) => (
-                <input aria-label="Cupom de desconto" placeholder="Cupom: GEEK10" {...field} />
+                <input
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-[9px] text-foreground"
+                  aria-label="Cupom de desconto"
+                  placeholder="Cupom: GEEK10"
+                  {...field}
+                />
               )}
             />
-            <Button type="submit">Aplicar</Button>
+            <Button type="submit" className="bg-surface-secondary font-extrabold text-foreground">
+              Aplicar
+            </Button>
           </form>
           {couponMessage && (
             <p role="status" className="muted text-sm">

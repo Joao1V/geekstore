@@ -41,7 +41,7 @@ export function Freight() {
   };
 
   return (
-    <div className="freight mt-5 border-t border-border pt-5">
+    <div className="mt-5 border-t border-border pt-5">
       <h3 className="flex items-center gap-2 text-sm font-extrabold">
         <Truck size={18} /> Frete e prazo
       </h3>
@@ -68,7 +68,12 @@ export function Freight() {
             />
           )}
         />
-        <Action type="submit">Calcular</Action>
+        <Action
+          type="submit"
+          className="[--action-bg:var(--surface-secondary)] [--action-fg:var(--foreground)]"
+        >
+          Calcular
+        </Action>
       </form>
       {result && (
         <p role="status" className="my-3 text-sm">
@@ -192,7 +197,7 @@ export function ProductDetail({ product: p }: { product: Product }) {
               Comprar agora <ArrowRight size={19} />
             </Action>
             <div className="mt-3 mb-5 flex gap-3">
-              <Action className="outline flex-1" onPress={() => add()}>
+              <Action className="action-outline flex-1" onPress={() => add()}>
                 <ShoppingCart size={18} /> Adicionar
               </Action>
               <Button
@@ -253,7 +258,7 @@ export function ProductDetail({ product: p }: { product: Product }) {
           Comprar agora
         </Action>
       </div>
-      <Dialog open={zoom} onChange={setZoom} title={p.name} className="zoom-dialog">
+      <Dialog open={zoom} onChange={setZoom} title={p.name} size="lg">
         {/* biome-ignore lint/performance/noImgElement: zoom preview has no fixed container to size a next/image fill against */}
         <img src={p.image} alt={p.name} className="max-h-[70vh] w-full object-contain" />
       </Dialog>
