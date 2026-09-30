@@ -51,6 +51,8 @@ Infra: Dokploy num VPS, Traefik, Cloudflare. Fila BullMQ + Redis. Busca Meilisea
 - URLs da loja seguem o padrão da Tray (`/categoria/subcategoria/slug`). Mudou URL, atualize o mapa de redirects 301.
 - Migrações Prisma são versionadas; nunca editar migração já aplicada.
 - Testes: unitários do domínio, integração da API com banco de teste, E2E do checkout em Playwright.
+- Estilo em `apps/web`: Tailwind, com as classes no próprio componente. O `app/globals.css` só tem base (reset, tema, `@theme`) e `@utility` para o que se repete em várias telas (`wrap`, `section`, `eyebrow`, `section-title`, `action`...). Nada de classe de componente nova no `globals.css`. Regra de elemento ou de classe fora de `@layer` vence utilitário do Tailwind: se precisar de regra global, ponha em `@layer base`.
+- Tamanho de fonte só pela escala do Tailwind (`text-xs`, `text-sm`...) ou pelo token `text-2xs` (micro texto, 11px), nunca `text-[Npx]`: tudo em `rem`, para escalar com a fonte do navegador. Cores do tema pelos tokens (`bg-surface`, `text-muted`, `border-border`, `bg-geek-yellow`); dark mode com `dark:` (ligado ao `data-theme`); breakpoints `max-md:` (até 767px) e `max-tablet:` (até 1050px).
 - Nomes de arquivo em `apps/web` são kebab-case, não PascalCase (diverge do exemplo genérico de `rules/react/coding-style.md`, mas é o padrão já estabelecido em todo o app — `admin-login.tsx`, `campaign-slider.tsx`, etc.). Um kit de componentes compartilhado que cresceria demais num arquivo só (ex.: `components/ui.tsx`) vira uma pasta com um arquivo por componente + `index.ts` de re-export — ver `components/ui/` e a skill `form-fields` pro caso da família `Field*`.
 
 ## Convenções de banco
