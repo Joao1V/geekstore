@@ -7,7 +7,7 @@ const ROOT =
   'mt-[5px] items-center overflow-hidden rounded-[9px] border border-border bg-surface text-foreground';
 const SIZES = {
   md: { root: `${ROOT} inline-flex h-[37px]`, button: 'h-[35px]', value: 'text-sm' },
-  compact: { root: `${ROOT} flex h-[30px] w-max`, button: 'h-7', value: 'text-[13px]' },
+  compact: { root: `${ROOT} flex h-[30px] w-max`, button: 'h-7', value: 'text-sm' },
 };
 
 export function Quantity({

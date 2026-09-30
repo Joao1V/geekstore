@@ -39,10 +39,10 @@ export function Account({ register = false }: { register?: boolean }) {
           <Link href="/" className="back-link max-md:mb-2.5">
             <ArrowLeft size={17} /> Voltar para a loja
           </Link>
-          <p className="eyebrow mt-8 max-md:mt-[5px] max-md:text-[9px]">
+          <p className="eyebrow mt-8 max-md:mt-[5px] max-md:text-2xs">
             Seu lado geek tem um lugar.
           </p>
-          <h2 className="font-display relative z-1 my-5 text-[76px] leading-[1.02] max-md:my-3.5 max-md:text-[43px] max-md:leading-[0.95]">
+          <h2 className="font-display relative z-1 my-5 text-7xl leading-[1.02] max-md:my-3.5 max-md:text-5xl max-md:leading-[0.95]">
             Entre.
             <br />O universo
             <br />é seu.
@@ -56,7 +56,7 @@ export function Account({ register = false }: { register?: boolean }) {
         </div>
         <div className="bg-surface p-[42px] max-md:px-5 max-md:py-[25px]">
           <p className="eyebrow orange">Conta GeekStore</p>
-          <h1 className="section-title text-[45px] max-md:text-[35px]">
+          <h1 className="section-title text-5xl max-md:text-4xl">
             {register ? 'Comece sua coleção' : 'Bom te ver de novo!'}
           </h1>
           <p className="muted text-sm">

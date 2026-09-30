@@ -31,8 +31,8 @@ const ICON_BTN =
   'place-items-center size-[39px] min-w-[39px] rounded-[10px] p-0 text-white hover:bg-[#ffffff14] max-md:size-[34px] max-md:min-w-[34px]';
 const NAV_LINK = 'hover:text-geek-yellow';
 const FOOTER_LINK = 'mb-2.5 block text-sm';
-const FOOTER_TEXT = 'my-3 text-[13px] leading-[1.8]';
-const FOOTER_TITLE = 'mb-[18px] text-[15px] font-extrabold text-white';
+const FOOTER_TEXT = 'my-3 text-sm leading-[1.8]';
+const FOOTER_TITLE = 'mb-[18px] text-base font-extrabold text-white';
 const FREE_SHIPPING_THRESHOLD = 299;
 
 const BENEFITS = [
@@ -183,7 +183,7 @@ export function Shell({ children }: { children: ReactNode }) {
               className={`${ICON_BTN} relative grid bg-[#08080a]`}
             >
               <ShoppingCart size={22} />
-              <span className="absolute -top-1.5 -right-[7px] h-[18px] min-w-[18px] rounded-full bg-geek-yellow px-1 text-[11px] font-black text-[#111]">
+              <span className="absolute -top-1.5 -right-[7px] h-[18px] min-w-[18px] rounded-full bg-geek-yellow px-1 text-2xs font-black text-[#111]">
                 {count}
               </span>
             </Button>
@@ -205,7 +205,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </div>
-        <div className="wrap flex h-10 items-center justify-between text-[13px] text-[#d8d7db]">
+        <div className="wrap flex h-10 items-center justify-between text-sm text-[#d8d7db]">
           <nav className="flex gap-[27px] font-bold max-md:w-full max-md:gap-[22px] max-md:overflow-x-auto max-md:text-xs max-md:whitespace-nowrap">
             {STORE_CATEGORIES.map((category) => (
               <Link
@@ -286,7 +286,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </Link>
           </div>
         </div>
-        <div className="wrap mt-[35px] flex justify-between border-t border-[#ffffff1c] py-[22px] text-xs max-md:gap-5 max-md:text-[10px]">
+        <div className="wrap mt-[35px] flex justify-between border-t border-[#ffffff1c] py-[22px] text-xs max-md:gap-5 max-md:text-2xs">
           © 2026 GeekStore <span>Feito para quem coleciona histórias.</span>
         </div>
       </footer>
@@ -300,7 +300,7 @@ export function ShippingProgress({ total }: { total: number }) {
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - total);
   return (
     <div className="mt-2.5 mb-5 rounded-xl bg-surface-secondary p-3.5">
-      <p className="flex flex-wrap items-center gap-1 text-[13px]">
+      <p className="flex flex-wrap items-center gap-1 text-sm">
         <Truck className="mr-1" size={18} />
         {remaining ? (
           <>
@@ -316,7 +316,7 @@ export function ShippingProgress({ total }: { total: number }) {
           style={{ width: `${Math.min(100, (total / FREE_SHIPPING_THRESHOLD) * 100)}%` }}
         />
       </div>
-      <small className="text-[11px] text-muted">
+      <small className="text-2xs text-muted">
         *Condição demonstrativa, sujeita à configuração da loja.
       </small>
     </div>
@@ -364,9 +364,9 @@ export function CartDialog() {
                       {product.name}
                     </Link>
                     {line.size && (
-                      <small className="my-[5px] block text-[13px]">Tamanho: {line.size}</small>
+                      <small className="my-[5px] block text-sm">Tamanho: {line.size}</small>
                     )}
-                    <strong className="my-[5px] block text-[13px]">
+                    <strong className="my-[5px] block text-sm">
                       {money(product.price * line.qty)}
                     </strong>
                     <Quantity

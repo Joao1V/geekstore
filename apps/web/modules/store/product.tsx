@@ -71,7 +71,7 @@ export function Freight() {
         <Action type="submit">Calcular</Action>
       </form>
       {result && (
-        <p role="status" className="my-3 text-[13px]">
+        <p role="status" className="my-3 text-sm">
           Simulação: entrega padrão de R$ 19,90, em 5–8 dias úteis. A transportadora ainda não está
           conectada.
         </p>
@@ -104,7 +104,7 @@ export function ProductDetail({ product: p }: { product: Product }) {
   return (
     <>
       <section className="wrap section max-md:pb-[65px]">
-        <nav className="mb-[26px] flex items-center gap-2.5 text-[13px] text-muted max-md:text-xs">
+        <nav className="mb-[26px] flex items-center gap-2.5 text-sm text-muted max-md:text-xs">
           <Link href="/">Início</Link>
           <ChevronRight size={14} />
           <Link href="/catalogo/">Produtos</Link>
@@ -142,7 +142,7 @@ export function ProductDetail({ product: p }: { product: Product }) {
           </div>
           <div>
             <p className="eyebrow orange">{p.universe}</p>
-            <h1 className="mt-2.5 mb-4 text-[32px] leading-[1.16] font-black tracking-[-0.035em] max-md:text-[29px]">
+            <h1 className="mt-2.5 mb-4 text-3xl leading-[1.16] font-black tracking-[-0.035em]">
               {p.name}
             </h1>
             <p className="muted text-sm">Produto demonstrativo • Sem avaliações ainda</p>
@@ -177,7 +177,7 @@ export function ProductDetail({ product: p }: { product: Product }) {
               </fieldset>
             )}
             <div className="my-[22px] flex items-end justify-between">
-              <div className="flex flex-col text-[13px] font-extrabold">
+              <div className="flex flex-col text-sm font-extrabold">
                 <span>Quantidade</span>
                 <Quantity value={qty} max={p.stock} onChange={setQty} />
               </div>
@@ -206,7 +206,7 @@ export function ProductDetail({ product: p }: { product: Product }) {
               </Button>
             </div>
             <Freight />
-            <Link href="/ajuda/" className="mt-[18px] flex items-center gap-2 text-[13px]">
+            <Link href="/ajuda/" className="mt-[18px] flex items-center gap-2 text-sm">
               <ShieldCheck size={17} /> Consulte atendimento, trocas e devoluções
             </Link>
             <p className="demo-note">
@@ -217,7 +217,7 @@ export function ProductDetail({ product: p }: { product: Product }) {
         <div className="mb-[15px] grid grid-cols-2 gap-[65px] py-[60px] max-md:grid-cols-1 max-md:gap-5 max-md:py-[35px]">
           <div>
             <p className="eyebrow muted leading-[1.8]">Conheça seu próximo achado</p>
-            <h2 className="section-title max-md:text-[32px]">Detalhes que importam</h2>
+            <h2 className="section-title max-md:text-3xl">Detalhes que importam</h2>
             <p className="leading-[1.8] text-muted">{p.description}</p>
           </div>
           <dl className="rounded-[14px] border border-border bg-surface p-[25px]">
@@ -247,7 +247,7 @@ export function ProductDetail({ product: p }: { product: Product }) {
       <div className="mobile-buy fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-border bg-surface px-4 py-2.5 [box-shadow:0_-5px_20px_#0001] max-md:flex">
         <Price value={pixPrice(p.price)} />
         <Action
-          className="max-md:min-h-[42px] max-md:px-4 max-md:py-2.5 max-md:text-[13px]"
+          className="max-md:min-h-[42px] max-md:px-4 max-md:py-2.5 max-md:text-sm"
           onPress={() => add(true)}
         >
           Comprar agora

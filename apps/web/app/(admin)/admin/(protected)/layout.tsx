@@ -25,9 +25,13 @@ function AdminTopbar() {
   };
 
   return (
-    <div className="admin-topbar wrap">
+    <div className="wrap mb-2.5 flex items-center justify-between border-b border-border py-[18px]">
       <span>{user?.name}</span>
-      <button type="button" onClick={handleLogout}>
+      <button
+        type="button"
+        className="flex items-center gap-2 rounded-[9px] border border-border bg-surface px-3.5 py-[9px] text-sm font-extrabold text-foreground"
+        onClick={handleLogout}
+      >
         <LogOut size={16} /> Sair
       </button>
     </div>

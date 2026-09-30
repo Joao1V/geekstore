@@ -77,14 +77,14 @@ export function CampaignSlider() {
                       <Flame size={16} />
                       {campaign.tag}
                     </p>
-                    <Heading className="font-display my-[22px] text-[clamp(48px,5vw,76px)] leading-[0.98] tracking-[0.025em] max-md:my-[17px] max-md:text-[45px]">
+                    <Heading className="font-display my-[22px] text-5xl xl:text-6xl 2xl:text-7xl leading-[0.98] tracking-[0.025em] max-md:my-[17px]">
                       {campaign.title.map((line, i) => (
                         <span key={line} className={i ? 'block text-geek-yellow' : 'block'}>
                           {line}
                         </span>
                       ))}
                     </Heading>
-                    <p className="mb-[25px] max-w-[380px] text-base font-semibold text-[#bdbbc1] max-md:max-w-[210px] max-md:text-[13px] max-md:leading-[1.6]">
+                    <p className="mb-[25px] max-w-[380px] text-base font-semibold text-[#bdbbc1] max-md:max-w-[210px] max-md:text-sm max-md:leading-[1.6]">
                       {campaign.text}
                     </p>
                     <Link
@@ -107,7 +107,7 @@ export function CampaignSlider() {
                       animate={{ y: activeIndex === index || reducedMotion ? 0 : 15 }}
                       transition={{ duration: reducedMotion ? 0 : 0.6 }}
                     />
-                    <span className="font-display absolute top-[55px] -right-1 z-2 rotate-[8deg] border-2 border-[#111] bg-geek-yellow px-3.5 py-2.5 text-2xl leading-none text-[#111] [box-shadow:4px_4px_#111] max-tablet:right-0 max-tablet:text-[21px] max-md:hidden">
+                    <span className="font-display absolute top-[55px] -right-1 z-2 rotate-[8deg] border-2 border-[#111] bg-geek-yellow px-3.5 py-2.5 text-2xl leading-none text-[#111] [box-shadow:4px_4px_#111] max-tablet:right-0 max-tablet:text-xl max-md:hidden">
                       Seu lado geek
                       <br />
                       merece espaço!

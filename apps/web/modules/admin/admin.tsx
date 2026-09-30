@@ -28,6 +28,11 @@ import { money, type Product, products } from '@/lib/catalog';
 type BannerFormValues = { campaign: string; title: string; link: string };
 type EditProductFormValues = { name: string; price: number; stock: number };
 
+const TAB_BASE = 'gap-2 border border-border text-sm max-md:gap-[5px] max-md:p-2.5 max-md:text-xs';
+const CELL = 'border-b border-border px-3 py-4 text-left';
+const EDIT_LABEL = 'flex flex-col gap-1.5 text-sm font-extrabold';
+const EDIT_INPUT = 'rounded-lg border border-border bg-surface-secondary p-2.5 text-foreground';
+
 const ADMIN_TABS = [
   { name: 'Produtos', icon: Package },
   { name: 'Banners', icon: ImageIcon },
@@ -49,13 +54,25 @@ export function Admin() {
       : undefined,
   });
 
+  const stats = [
+    { label: 'Produtos no exemplo', value: rows.length },
+    { label: 'Unidades no exemplo', value: rows.reduce((sum, p) => sum + p.stock, 0) },
+    { label: 'Pedidos reais', value: 'Não conectado' },
+  ];
+
   const columns: ColumnDef<Product>[] = [
     {
       accessorKey: 'name',
       header: 'Produto',
       cell: ({ row }) => (
-        <span className="table-product">
-          <Image src={row.original.image} alt="" width={46} height={46} />
+        <span className="flex min-w-[220px] items-center gap-[13px] font-extrabold">
+          <Image
+            className="size-[46px] rounded-lg object-cover"
+            src={row.original.image}
+            alt=""
+            width={46}
+            height={46}
+          />
           {row.original.name}
         </span>
       ),
@@ -109,11 +126,11 @@ export function Admin() {
         Prévia pública de interface, sem dados reais ou permissões administrativas. Edições duram
         apenas enquanto esta tela estiver aberta e não alteram a loja.
       </p>
-      <div className="admin-tabs">
+      <div className="my-7 flex gap-3 max-md:flex-wrap max-md:gap-[7px]">
         {ADMIN_TABS.map((t) => (
           <Button
             key={t.name}
-            className={tab === t.name ? 'active' : ''}
+            className={`${TAB_BASE} ${tab === t.name ? 'bg-geek-yellow text-[#111]' : 'bg-surface text-foreground'}`}
             onPress={() => setTab(t.name)}
           >
             <t.icon size={18} />
@@ -123,35 +140,36 @@ export function Admin() {
       </div>
       {tab === 'Produtos' ? (
         <>
-          <div className="admin-stats">
-            <div className="surface">
-              <small>Produtos no exemplo</small>
-              <strong>{rows.length}</strong>
-            </div>
-            <div className="surface">
-              <small>Unidades no exemplo</small>
-              <strong>{rows.reduce((sum, p) => sum + p.stock, 0)}</strong>
-            </div>
-            <div className="surface">
-              <small>Pedidos reais</small>
-              <strong>Não conectado</strong>
-            </div>
+          <div className="mb-[30px] grid grid-cols-3 gap-5 max-md:grid-cols-1 max-md:gap-3">
+            {stats.map(({ label, value }) => (
+              <div
+                key={label}
+                className="surface p-[25px] max-md:flex max-md:items-center max-md:justify-between max-md:p-[18px]"
+              >
+                <small className="block text-sm text-muted">{label}</small>
+                <strong className="mt-2.5 block text-3xl max-md:m-0 max-md:text-xl">{value}</strong>
+              </div>
+            ))}
           </div>
-          <div className="surface table-wrap">
+          <div className="surface overflow-x-auto p-[25px] max-md:p-[15px]">
             <input
-              className="admin-search"
+              className="mb-6 w-[min(100%,380px)] rounded-lg border border-border bg-surface-secondary px-4 py-3 text-foreground"
               aria-label="Buscar produtos no admin"
               placeholder="Buscar produto ou categoria…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <table>
+            <table className="w-full border-collapse text-sm">
               <thead>
                 {table.getHeaderGroups().map((group) => (
                   <tr key={group.id}>
                     {group.headers.map((header) => (
-                      <th key={header.id}>
-                        <button type="button" onClick={header.column.getToggleSortingHandler()}>
+                      <th key={header.id} className={CELL}>
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 text-xs font-extrabold text-muted uppercase"
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
                           {flexRender(header.column.columnDef.header, header.getContext())}
                           {header.column.getCanSort() && <ArrowUpDown size={13} />}
                         </button>
@@ -164,7 +182,7 @@ export function Admin() {
                 {table.getRowModel().rows.map((row) => (
                   <tr key={row.id}>
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id}>
+                      <td key={cell.id} className={CELL}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
@@ -176,8 +194,11 @@ export function Admin() {
           </div>
         </>
       ) : tab === 'Banners' ? (
-        <form className="surface admin-banner" onSubmit={handleBannerSubmit(submitBanner)}>
-          <h2>Planeje sua próxima campanha</h2>
+        <form
+          className="surface grid max-w-[680px] gap-5 p-[30px]"
+          onSubmit={handleBannerSubmit(submitBanner)}
+        >
+          <h2 className="text-xl font-extrabold">Planeje sua próxima campanha</h2>
           <p className="muted">Campos de referência para a futura gestão de banners.</p>
           <Controller
             control={bannerControl}
@@ -229,16 +250,18 @@ export function Admin() {
         title="Editar produto de exemplo"
       >
         {editing && (
-          <form className="edit-form" onSubmit={handleEditSubmit(submitEdit)}>
-            <label htmlFor="edit-product-name">
+          <form className="grid gap-[18px]" onSubmit={handleEditSubmit(submitEdit)}>
+            <label className={EDIT_LABEL} htmlFor="edit-product-name">
               Nome
               <Controller
                 control={editControl}
                 name="name"
-                render={({ field }) => <input id="edit-product-name" {...field} required />}
+                render={({ field }) => (
+                  <input id="edit-product-name" className={EDIT_INPUT} {...field} required />
+                )}
               />
             </label>
-            <label htmlFor="edit-product-price">
+            <label className={EDIT_LABEL} htmlFor="edit-product-price">
               Preço
               <Controller
                 control={editControl}
@@ -246,6 +269,7 @@ export function Admin() {
                 render={({ field }) => (
                   <input
                     id="edit-product-price"
+                    className={EDIT_INPUT}
                     name={field.name}
                     ref={field.ref}
                     value={field.value}
@@ -259,7 +283,7 @@ export function Admin() {
                 )}
               />
             </label>
-            <label htmlFor="edit-product-stock">
+            <label className={EDIT_LABEL} htmlFor="edit-product-stock">
               Estoque
               <Controller
                 control={editControl}
@@ -267,6 +291,7 @@ export function Admin() {
                 render={({ field }) => (
                   <input
                     id="edit-product-stock"
+                    className={EDIT_INPUT}
                     name={field.name}
                     ref={field.ref}
                     value={field.value}

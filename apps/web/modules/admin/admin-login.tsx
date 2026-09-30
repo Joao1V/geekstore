@@ -34,11 +34,11 @@ export function AdminLogin() {
   };
 
   return (
-    <section className="wrap section admin-login">
-      <div className="surface admin-login-card">
+    <section className="wrap flex justify-center pt-20 pb-[72px] max-md:pt-[30px] max-md:pb-[45px]">
+      <div className="surface w-full max-w-[420px] p-9">
         <p className="eyebrow orange">GeekStore Studio</p>
         <h1 className="section-title">Entrar no painel</h1>
-        <form onSubmit={handleSubmit(submit)}>
+        <form onSubmit={handleSubmit(submit)} className="mt-6 grid gap-5">
           <Controller
             control={control}
             name="email"

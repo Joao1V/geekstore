@@ -19,10 +19,10 @@ const UNIVERSES = [
 export function Home() {
   return (
     <>
-      <div className="flex items-center justify-center gap-6 bg-geek-yellow px-5 py-[9px] text-xs font-black text-[#161616] max-tablet:gap-[15px] max-md:flex-wrap max-md:gap-2.5 max-md:px-[5px] max-md:py-2 max-md:text-[10px]">
+      <div className="flex items-center justify-center gap-6 bg-geek-yellow px-5 py-[9px] text-xs font-black text-[#161616] max-tablet:gap-[15px] max-md:flex-wrap max-md:gap-2.5 max-md:px-[5px] max-md:py-2 max-md:text-2xs">
         5% no Pix* <span className="size-[3px] rounded-[10px] bg-[#111]" /> Até 6x sem juros*{' '}
         <span className="size-[3px] rounded-[10px] bg-[#111]" /> Frete grátis a partir de R$ 299*{' '}
-        <small className="text-[11px] font-medium max-md:hidden">*Condições demonstrativas</small>
+        <small className="text-2xs font-medium max-md:hidden">*Condições demonstrativas</small>
       </div>
       <CampaignSlider />
       <section className="wrap flex items-center gap-[25px] py-7 max-md:py-[22px]">
@@ -60,8 +60,8 @@ export function Home() {
       <section className="overflow-hidden bg-geek-yellow text-[#111]">
         <div className="wrap relative flex min-h-[320px] items-center justify-between max-md:min-h-[270px]">
           <div className="py-[35px] max-md:relative max-md:z-1 max-md:max-w-[70%]">
-            <p className="eyebrow max-md:text-[9px]">Tem presente que vira coleção.</p>
-            <h2 className="section-title mb-[25px] text-[48px] max-md:max-w-[260px] max-md:text-[33px]">
+            <p className="eyebrow max-md:text-2xs">Tem presente que vira coleção.</p>
+            <h2 className="section-title mb-[25px] text-5xl max-md:max-w-[260px] max-md:text-3xl">
               Encontre o próximo
               <br />
               “era isso que eu queria!”

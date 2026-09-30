@@ -1,8 +1,8 @@
 'use client';
 
 const SIZES = {
-  md: 'text-[29px] max-tablet:text-[26px] max-md:text-[24px]',
-  lg: 'text-[43px] max-md:text-[38px]',
+  md: 'text-3xl max-tablet:text-2xl',
+  lg: 'text-5xl max-md:text-4xl',
 };
 
 export function Price({ value, size = 'md' }: { value: number; size?: keyof typeof SIZES }) {

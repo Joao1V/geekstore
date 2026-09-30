@@ -48,7 +48,7 @@ const BRAZILIAN_STATES = [
   { value: 'TO', label: 'Tocantins' },
 ];
 
-const CHECKOUT_TITLE = 'mb-2.5 text-[21px] font-black';
+const CHECKOUT_TITLE = 'mb-2.5 text-xl font-black';
 const FORM_GRID = 'my-[25px] grid grid-cols-2 gap-5 max-md:grid-cols-1 max-md:gap-[15px]';
 const CHOICE_LIST = 'my-6 flex flex-col gap-3 border-0 p-0';
 const CHOICE_LABEL =
@@ -395,11 +395,11 @@ export function Checkout() {
                   height={67}
                 />
                 <div>
-                  <strong className="block text-[13px] leading-[1.35]">{product.name}</strong>
+                  <strong className="block text-sm leading-[1.35]">{product.name}</strong>
                   {line.size && (
                     <small className="block text-xs text-muted">Tamanho {line.size}</small>
                   )}
-                  <span className="text-[13px]">{money(product.price * line.qty)}</span>
+                  <span className="text-sm">{money(product.price * line.qty)}</span>
                   <Quantity
                     size="compact"
                     value={line.qty}
@@ -459,7 +459,7 @@ export function Checkout() {
               </div>
             )}
             <div
-              className={`${TOTAL_ROW} mt-3 border-t border-border pt-[18px] pb-[7px] text-[23px] font-black`}
+              className={`${TOTAL_ROW} mt-3 border-t border-border pt-[18px] pb-[7px] text-2xl font-black`}
             >
               <dt>Total</dt>
               <dd>{money(total)}</dd>

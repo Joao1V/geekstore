@@ -16,8 +16,8 @@ const CATEGORIES = ['Todos', 'Colecionáveis', 'Games', 'Vestuário', 'RPG'];
 const FREE_SHIPPING_MIN = 299;
 
 const CARD_BUY =
-  'mt-[15px] flex h-[42px] w-full items-center justify-center gap-2 rounded-[9px] bg-[#111] text-[13px] font-extrabold text-white hover:bg-geek-yellow hover:text-[#111] dark:bg-geek-yellow dark:text-[#111] max-md:h-[39px] max-md:gap-[5px] max-md:text-xs';
-const FILTER_LABEL = 'flex flex-col gap-[5px] text-sm max-md:text-[13px]';
+  'mt-[15px] flex h-[42px] w-full items-center justify-center gap-2 rounded-[9px] bg-[#111] text-sm font-extrabold text-white hover:bg-geek-yellow hover:text-[#111] dark:bg-geek-yellow dark:text-[#111] max-md:h-[39px] max-md:gap-[5px] max-md:text-xs';
+const FILTER_LABEL = 'flex flex-col gap-[5px] text-sm';
 const FILTER_LABEL_TEXT = 'text-xs font-extrabold text-muted';
 const FILTER_CONTROL = 'w-full rounded-[7px] bg-surface-secondary px-3 py-[9px] text-foreground';
 
@@ -40,7 +40,7 @@ export function ProductCard({ product: p }: { product: Product }) {
             sizes="(max-width: 767px) 50vw, 25vw"
           />
         </Link>
-        <span className="absolute top-3 left-3 rounded-[7px] bg-geek-yellow px-[9px] py-[5px] text-[11px] font-black text-[#111] max-md:top-2 max-md:left-[7px] max-md:max-w-[calc(100%-47px)] max-md:px-1.5 max-md:py-1 max-md:text-[9px]">
+        <span className="absolute top-3 left-3 rounded-[7px] bg-geek-yellow px-[9px] py-[5px] text-2xs font-black text-[#111] max-md:top-2 max-md:left-[7px] max-md:max-w-[calc(100%-47px)] max-md:px-1.5 max-md:py-1">
           {p.previousPrice ? `-${Math.round((1 - p.price / p.previousPrice) * 100)}%` : p.badge}
         </span>
         <Button
@@ -54,12 +54,10 @@ export function ProductCard({ product: p }: { product: Product }) {
         </Button>
       </div>
       <div className="px-[17px] pt-5 pb-[17px] max-tablet:px-3 max-tablet:py-[15px] max-md:px-2.5 max-md:py-3.5">
-        <p className="eyebrow muted text-[11px] max-md:text-[10px] max-md:tracking-[0.06em]">
-          {p.universe}
-        </p>
+        <p className="eyebrow muted text-2xs max-md:tracking-[0.06em]">{p.universe}</p>
         <Link
           href={`/produto/${p.slug}/`}
-          className="mt-[9px] mb-[13px] block min-h-12 text-[15px] leading-[1.4] font-extrabold max-md:min-h-[54px] max-md:text-[13px]"
+          className="mt-[9px] mb-[13px] block min-h-12 text-base leading-[1.4] font-extrabold max-md:min-h-[54px] max-md:text-sm"
         >
           {p.name}
         </Link>
@@ -70,11 +68,11 @@ export function ProductCard({ product: p }: { product: Product }) {
         <p className="pix">
           no Pix <span>5% de desconto*</span>
         </p>
-        <p className="mt-2 min-h-9 text-xs text-muted max-md:min-h-[33px] max-md:text-[11px]">
+        <p className="mt-2 min-h-9 text-xs text-muted max-md:min-h-[33px] max-md:text-2xs">
           ou {money(p.price)} em 6x de {money(p.price / 6)}
         </p>
         {p.price >= FREE_SHIPPING_MIN && (
-          <small className="mt-1 block text-xs text-[#258343] max-md:text-[10px]">
+          <small className="mt-1 block text-xs text-[#258343] max-md:text-2xs">
             Frete grátis neste exemplo*
           </small>
         )}
@@ -157,7 +155,7 @@ export function Catalog({ favoritesOnly = false }: { favoritesOnly?: boolean }) 
       </p>
       <h1 className="section-title">{favoritesOnly ? 'Seus favoritos' : 'Explore a coleção'}</h1>
       <div className="mt-[30px] grid grid-cols-[2fr_1fr_0.8fr_1fr] gap-[15px] rounded-[14px] border border-border bg-surface p-5 max-md:grid-cols-2 max-md:gap-3 max-md:p-[15px]">
-        <label className="flex items-center gap-2.5 text-sm text-foreground max-md:col-span-full max-md:text-[13px]">
+        <label className="flex items-center gap-2.5 text-sm text-foreground max-md:col-span-full">
           <Search size={18} />
           <input
             className={`${FILTER_CONTROL} h-[50px]`}

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 const HELP_TEXT = 'leading-[1.8] text-muted';
-const HELP_TITLE = 'mt-[22px] mb-2.5 text-[21px] font-black';
+const HELP_TITLE = 'mt-[22px] mb-2.5 text-xl font-black';
 
 export const metadata = { title: 'Atendimento e informações' };
 
