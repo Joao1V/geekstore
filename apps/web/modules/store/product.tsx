@@ -243,7 +243,7 @@ export function ProductDetail({ product: p }: { product: Product }) {
         </div>
         <ProductGrid items={products.filter((item) => item.id !== p.id)} />
       </section>
-      {/* "mobile-buy" fica como marcador: o globals.css sobe o alerta (.store-alert-region) quando ele existe. */}
+      {/* "mobile-buy" é marcador: o StoreAlert sobe quando ele existe (in-has-[.mobile-buy]). */}
       <div className="mobile-buy fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-border bg-surface px-4 py-2.5 [box-shadow:0_-5px_20px_#0001] max-md:flex">
         <Price value={pixPrice(p.price)} />
         <Action

@@ -34,25 +34,32 @@ export function Account({ register = false }: { register?: boolean }) {
 
   return (
     <section className="wrap section">
-      <div className="account-layout comic-card">
-        <div className="account-art">
-          <Link href="/" className="back-link">
+      <div className="mx-auto grid max-w-[1040px] grid-cols-[1fr_1.05fr] overflow-hidden rounded-[22px] border-2 border-[#111] [box-shadow:8px_8px_var(--ink-shadow)] max-md:grid-cols-1">
+        <div className="relative min-h-[670px] overflow-hidden bg-geek-yellow p-[38px] text-[#111] max-md:min-h-[210px] max-md:p-[25px]">
+          <Link href="/" className="back-link max-md:mb-2.5">
             <ArrowLeft size={17} /> Voltar para a loja
           </Link>
-          <p className="eyebrow">Seu lado geek tem um lugar.</p>
-          <h2>
+          <p className="eyebrow mt-8 max-md:mt-[5px] max-md:text-[9px]">
+            Seu lado geek tem um lugar.
+          </p>
+          <h2 className="font-display relative z-1 my-5 text-[76px] leading-[1.02] max-md:my-3.5 max-md:text-[43px] max-md:leading-[0.95]">
             Entre.
             <br />O universo
             <br />é seu.
           </h2>
-          <Image {...getMascot('welcome')} width={320} height={380} />
+          <Image
+            {...getMascot('welcome')}
+            width={320}
+            height={380}
+            className="absolute -right-[5px] -bottom-[15px] h-[380px] w-[320px] object-contain max-md:right-0 max-md:-bottom-4 max-md:h-[220px] max-md:w-[185px]"
+          />
         </div>
-        <div className="account-form">
+        <div className="bg-surface p-[42px] max-md:px-5 max-md:py-[25px]">
           <p className="eyebrow orange">Conta GeekStore</p>
-          <h1 className="section-title">
+          <h1 className="section-title text-[45px] max-md:text-[35px]">
             {register ? 'Comece sua coleção' : 'Bom te ver de novo!'}
           </h1>
-          <p className="muted">
+          <p className="muted text-sm">
             {register
               ? 'Uma conta para suas próximas histórias.'
               : 'Seus favoritos e novos achados esperam por você.'}
@@ -61,7 +68,7 @@ export function Account({ register = false }: { register?: boolean }) {
             Prévia de interface: autenticação ainda não conectada. Use apenas dados e senhas
             fictícios. Nada será enviado ou salvo.
           </p>
-          <form onSubmit={handleSubmit(submit)}>
+          <form onSubmit={handleSubmit(submit)} className="my-[26px] grid gap-5">
             {register && (
               <Controller
                 control={control}
@@ -130,13 +137,13 @@ export function Account({ register = false }: { register?: boolean }) {
               </p>
             )}
           </form>
-          <p className="muted">
+          <p className="muted text-sm">
             {register ? 'Já tem uma conta?' : 'Ainda não tem conta?'}{' '}
             <Link className="orange" href={register ? '/entrar/' : '/cadastro/'}>
               {register ? 'Entrar' : 'Cadastre-se'}
             </Link>
           </p>
-          <Link href="/catalogo/" className="back-link">
+          <Link href="/catalogo/" className="back-link mt-6">
             Continuar sem entrar <ArrowRight size={16} />
           </Link>
         </div>
