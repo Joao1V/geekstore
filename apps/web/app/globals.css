@@ -8,6 +8,25 @@
 @theme {
   --font-sans: "Nunito Sans", system-ui, sans-serif;
   --color-geek-yellow: #ffbd08;
+  --color-geek-yellow-hover: #ffd45d;
+  --color-ink: #111;
+  /* cromo escuro fixo (header, footer, hero), igual nos dois temas */
+  --color-night: #08080a;
+  --color-night-raised: #111116;
+  --color-night-dim: #57565b;
+  --color-night-fg: #d8d7db;
+  --color-night-muted: #bdbbc1;
+  --color-ember: #b64814;
+  --color-bronze: #4a2b09;
+  /* superfícies claras fixas */
+  --color-paper: #f9f9f5;
+  --color-placeholder: #e4e4e6;
+  /* status (prefixo status- para não colidir com success/warning/danger do HeroUI) */
+  --color-status-success: #23844d;
+  --color-status-success-bright: #63d895;
+  --color-status-warning: #c18412;
+  --color-status-info: #4886dd;
+  --color-status-error: #d33b3b;
   --font-display: "Bangers", Impact, sans-serif;
   /* micro texto (badges, rótulos, letras miúdas): o menor tamanho legível, em rem */
   --text-2xs: 0.6875rem;
@@ -26,10 +45,10 @@
   --surface-secondary: #ecebe6;
   --muted: #606068;
   --border: #deddd6;
-  --accent: #ffbd08;
-  --accent-foreground: #111;
-  --ink-shadow: #111;
-  --brand-yellow: #ffbd08;
+  --accent: var(--color-geek-yellow);
+  --accent-foreground: var(--color-ink);
+  --ink-shadow: var(--color-ink);
+  --brand-yellow: var(--color-geek-yellow);
   --brand-orange: #c8420f;
   --field-background: #f4f3ef;
   --field-foreground: #151518;
@@ -44,9 +63,9 @@
   --surface-secondary: #25252c;
   --muted: #b1b0b9;
   --border: #38383f;
-  --accent: #ffbd08;
-  --accent-foreground: #111;
-  --ink-shadow: #ffbd08;
+  --accent: var(--color-geek-yellow);
+  --accent-foreground: var(--color-ink);
+  --ink-shadow: var(--color-geek-yellow);
   --brand-orange: #ff9458;
   --field-background: #24242b;
   --field-foreground: #f8f7f2;
@@ -104,7 +123,7 @@ input:focus-visible,
 select:focus-visible,
 a:focus-visible,
 button:focus-visible {
-  outline: 3px solid #ffbd08;
+  outline: 3px solid var(--color-geek-yellow);
   outline-offset: 3px;
 }
 button svg,
@@ -199,8 +218,8 @@ a svg {
   min-height: 49px;
   padding: 13px 22px;
   border-radius: 12px;
-  background: var(--action-bg, #ffbd08);
-  color: var(--action-fg, #111);
+  background: var(--action-bg, var(--color-geek-yellow));
+  color: var(--action-fg, var(--color-ink));
   font-size: var(--text-sm);
   font-weight: 900;
   border: 2px solid var(--action-border, transparent);
@@ -209,7 +228,7 @@ a svg {
     background 0.2s;
   white-space: normal;
   &:hover {
-    background: var(--action-hover-bg, #ffd45d);
+    background: var(--action-hover-bg, var(--color-geek-yellow-hover));
     transform: translateY(-2px);
   }
   &:disabled {
@@ -281,8 +300,8 @@ a svg {
   border-radius: 18px;
 }
 @utility notice {
-  background: color-mix(in srgb, #ffbd08 12%, var(--surface));
-  border: 1px solid color-mix(in srgb, #ffbd08 40%, var(--border));
+  background: color-mix(in srgb, var(--color-geek-yellow) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--color-geek-yellow) 40%, var(--border));
   border-radius: 12px;
   padding: 14px 18px;
   font-size: var(--text-sm);
@@ -291,7 +310,7 @@ a svg {
 }
 @utility error {
   font-size: var(--text-sm);
-  color: #d33b3b;
+  color: var(--color-status-error);
   margin: 12px 0;
 }
 @utility back-link {
@@ -303,9 +322,9 @@ a svg {
   margin-bottom: 24px;
 }
 @utility action-black {
-  --action-bg: #101012;
+  --action-bg: var(--color-ink);
   --action-fg: white;
-  --action-hover-bg: #101012;
+  --action-hover-bg: var(--color-ink);
 }
 @utility action-outline {
   --action-bg: transparent;

@@ -28,7 +28,7 @@ import { StoreAlert } from './store-alert';
 const STORE_CATEGORIES = ['Colecionáveis', 'Games', 'Vestuário', 'RPG'];
 
 const ICON_BTN =
-  'place-items-center size-[39px] min-w-[39px] rounded-[10px] p-0 text-white hover:bg-[#ffffff14] max-md:size-[34px] max-md:min-w-[34px]';
+  'place-items-center size-[39px] min-w-[39px] rounded-[10px] p-0 text-white hover:bg-white/8 max-md:size-[34px] max-md:min-w-[34px]';
 const NAV_LINK = 'hover:text-geek-yellow';
 const FOOTER_LINK = 'mb-2.5 block text-sm';
 const FOOTER_TEXT = 'my-3 text-sm leading-[1.8]';
@@ -85,11 +85,11 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-50 border-b border-[#ffffff1f] bg-[#09090c] text-white transition-shadow duration-200 ${scrolled ? '[box-shadow:0_8px_24px_#00000059]' : ''}`}
+        className={`fixed inset-x-0 top-0 z-50 border-b border-white/12 bg-night text-white transition-shadow duration-200 ${scrolled ? '[box-shadow:0_8px_24px_#00000059]' : ''}`}
       >
         <div className="wrap flex h-[78px] items-center gap-6 max-tablet:gap-[15px] max-md:grid max-md:h-28 max-md:grid-cols-[1fr_auto] max-md:gap-2 max-md:py-2">
           <Link
-            className="w-[165px] shrink-0 rounded-xl bg-[#080808] px-3 py-[5px] max-tablet:w-[140px] max-md:w-[127px] max-md:px-2 max-md:py-0.5"
+            className="w-[165px] shrink-0 rounded-xl bg-night px-3 py-[5px] max-tablet:w-[140px] max-md:w-[127px] max-md:px-2 max-md:py-0.5"
             href="/"
             aria-label="GeekStore, início"
           >
@@ -105,7 +105,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <div className="relative min-w-[120px] flex-1 max-md:col-span-full max-md:row-start-2">
             <form
               onSubmit={handleSubmit(submit)}
-              className="flex h-[46px] items-center gap-2.5 rounded-[10px] bg-[#f9f9f5] py-1 pr-[5px] pl-[15px] text-sm leading-normal font-semibold text-[#111] max-md:h-[41px]"
+              className="flex h-[46px] items-center gap-2.5 rounded-[10px] bg-paper py-1 pr-[5px] pl-[15px] text-sm leading-normal font-semibold text-ink max-md:h-[41px]"
             >
               <Search size={20} />
               <Controller
@@ -129,7 +129,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 isIconOnly
                 type="submit"
                 aria-label="Pesquisar"
-                className="size-9 min-w-9 rounded-lg bg-geek-yellow text-[#111]"
+                className="size-9 min-w-9 rounded-lg bg-geek-yellow text-ink"
               >
                 <ArrowRight size={20} />
               </Button>
@@ -180,10 +180,10 @@ export function Shell({ children }: { children: ReactNode }) {
               isIconOnly
               aria-label={`Abrir carrinho, ${count} itens`}
               onPress={() => store.setCartOpen(true)}
-              className={`${ICON_BTN} relative grid bg-[#08080a]`}
+              className={`${ICON_BTN} relative grid bg-night`}
             >
               <ShoppingCart size={22} />
-              <span className="absolute -top-1.5 -right-[7px] h-[18px] min-w-[18px] rounded-full bg-geek-yellow px-1 text-2xs font-black text-[#111]">
+              <span className="absolute -top-1.5 -right-[7px] h-[18px] min-w-[18px] rounded-full bg-geek-yellow px-1 text-2xs font-black text-ink">
                 {count}
               </span>
             </Button>
@@ -205,7 +205,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </div>
-        <div className="wrap flex h-10 items-center justify-between text-sm text-[#d8d7db]">
+        <div className="wrap flex h-10 items-center justify-between text-sm text-night-fg">
           <nav className="flex gap-[27px] font-bold max-md:w-full max-md:gap-[22px] max-md:overflow-x-auto max-md:text-xs max-md:whitespace-nowrap">
             {STORE_CATEGORIES.map((category) => (
               <Link
@@ -225,7 +225,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </span>
         </div>
         {menu && (
-          <nav className="hidden gap-[15px] bg-[#111116] px-5 py-[15px] text-sm max-md:flex max-md:flex-col">
+          <nav className="hidden gap-[15px] bg-night-raised px-5 py-[15px] text-sm max-md:flex max-md:flex-col">
             <Link href="/entrar/">Entrar</Link>
             <Link href="/cadastro/">Criar conta</Link>
             <Link href="/favoritos/">Favoritos</Link>
@@ -234,7 +234,7 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
       </header>
       <main className="min-h-[70vh] pt-[119px] max-md:pt-[152px]">{children}</main>
-      <footer className="bg-[#070709] pt-[50px] text-[#b2b0b9]">
+      <footer className="bg-night pt-[50px] text-night-muted">
         <div className="wrap grid grid-cols-[1.4fr_1fr_1fr_1.3fr] gap-[50px] max-tablet:gap-[25px] max-md:grid-cols-2 max-md:gap-x-5 max-md:gap-y-7">
           <div>
             <Link href="/">
@@ -286,7 +286,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </Link>
           </div>
         </div>
-        <div className="wrap mt-[35px] flex justify-between border-t border-[#ffffff1c] py-[22px] text-xs max-md:gap-5 max-md:text-2xs">
+        <div className="wrap mt-[35px] flex justify-between border-t border-white/12 py-[22px] text-xs max-md:gap-5 max-md:text-2xs">
           © 2026 GeekStore <span>Feito para quem coleciona histórias.</span>
         </div>
       </footer>

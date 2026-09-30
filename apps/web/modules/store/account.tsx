@@ -34,8 +34,8 @@ export function Account({ register = false }: { register?: boolean }) {
 
   return (
     <section className="wrap section">
-      <div className="mx-auto grid max-w-[1040px] grid-cols-[1fr_1.05fr] overflow-hidden rounded-[22px] border-2 border-[#111] [box-shadow:8px_8px_var(--ink-shadow)] max-md:grid-cols-1">
-        <div className="relative min-h-[670px] overflow-hidden bg-geek-yellow p-[38px] text-[#111] max-md:min-h-[210px] max-md:p-[25px]">
+      <div className="mx-auto grid max-w-[1040px] grid-cols-[1fr_1.05fr] overflow-hidden rounded-[22px] border-2 border-ink [box-shadow:8px_8px_var(--ink-shadow)] max-md:grid-cols-1">
+        <div className="relative min-h-[670px] overflow-hidden bg-geek-yellow p-[38px] text-ink max-md:min-h-[210px] max-md:p-[25px]">
           <Link href="/" className="back-link max-md:mb-2.5">
             <ArrowLeft size={17} /> Voltar para a loja
           </Link>

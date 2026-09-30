@@ -119,7 +119,7 @@ export function ProductDetail({ product: p }: { product: Product }) {
         <div className="grid grid-cols-[1.1fr_1fr] gap-[65px] max-tablet:gap-[35px] max-md:grid-cols-1 max-md:gap-7">
           <div>
             <button
-              className="relative block aspect-square w-full overflow-hidden rounded-[20px] border-2 border-[#111] bg-[#eae9e8] [box-shadow:9px_9px_var(--ink-shadow)] max-md:max-h-[470px]"
+              className="relative block aspect-square w-full overflow-hidden rounded-[20px] border-2 border-ink bg-placeholder [box-shadow:9px_9px_var(--ink-shadow)] max-md:max-h-[470px]"
               type="button"
               onClick={() => setZoom(true)}
               aria-label="Ampliar imagem do produto"
@@ -131,7 +131,7 @@ export function ProductDetail({ product: p }: { product: Product }) {
                 fill
                 sizes="(max-width: 767px) 100vw, 50vw"
               />
-              <span className="absolute right-[15px] bottom-[15px] flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-extrabold text-[#111]">
+              <span className="absolute right-[15px] bottom-[15px] flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-extrabold text-ink">
                 <ZoomIn size={18} /> Ampliar
               </span>
             </button>
@@ -169,7 +169,7 @@ export function ProductDetail({ product: p }: { product: Product }) {
                 {p.sizes.map((v) => (
                   <Button
                     key={v}
-                    className={`${SIZE_BUTTON} ${size === v ? 'border-2 border-geek-yellow bg-[#ffbd0822]' : 'border border-border bg-surface'}`}
+                    className={`${SIZE_BUTTON} ${size === v ? 'border-2 border-geek-yellow bg-geek-yellow/13' : 'border border-border bg-surface'}`}
                     aria-pressed={size === v}
                     onPress={() => {
                       setSize(v);

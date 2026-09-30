@@ -19,9 +19,9 @@ const UNIVERSES = [
 export function Home() {
   return (
     <>
-      <div className="flex items-center justify-center gap-6 bg-geek-yellow px-5 py-[9px] text-xs font-black text-[#161616] max-tablet:gap-[15px] max-md:flex-wrap max-md:gap-2.5 max-md:px-[5px] max-md:py-2 max-md:text-2xs">
-        5% no Pix* <span className="size-[3px] rounded-[10px] bg-[#111]" /> Até 6x sem juros*{' '}
-        <span className="size-[3px] rounded-[10px] bg-[#111]" /> Frete grátis a partir de R$ 299*{' '}
+      <div className="flex items-center justify-center gap-6 bg-geek-yellow px-5 py-[9px] text-xs font-black text-ink max-tablet:gap-[15px] max-md:flex-wrap max-md:gap-2.5 max-md:px-[5px] max-md:py-2 max-md:text-2xs">
+        5% no Pix* <span className="size-[3px] rounded-[10px] bg-ink" /> Até 6x sem juros*{' '}
+        <span className="size-[3px] rounded-[10px] bg-ink" /> Frete grátis a partir de R$ 299*{' '}
         <small className="text-2xs font-medium max-md:hidden">*Condições demonstrativas</small>
       </div>
       <CampaignSlider />
@@ -34,7 +34,7 @@ export function Home() {
             <Link
               key={c.title}
               href={`/catalogo/?categoria=${encodeURIComponent(c.title)}`}
-              className="flex flex-1 items-center justify-between gap-2.5 rounded-xl border-2 border-foreground bg-surface px-[15px] py-[17px] text-sm font-black transition-transform duration-200 [box-shadow:3px_3px_var(--ink-shadow)] hover:-translate-y-[3px] hover:bg-geek-yellow hover:text-[#111] max-md:min-w-[145px] max-md:px-3 max-md:py-[13px] max-md:text-xs max-md:[&>svg:first-child]:w-5 max-md:[&>svg:last-child]:hidden"
+              className="flex flex-1 items-center justify-between gap-2.5 rounded-xl border-2 border-foreground bg-surface px-[15px] py-[17px] text-sm font-black transition-transform duration-200 [box-shadow:3px_3px_var(--ink-shadow)] hover:-translate-y-[3px] hover:bg-geek-yellow hover:text-ink max-md:min-w-[145px] max-md:px-3 max-md:py-[13px] max-md:text-xs max-md:[&>svg:first-child]:w-5 max-md:[&>svg:last-child]:hidden"
             >
               <c.icon size={24} />
               {c.title}
@@ -57,7 +57,7 @@ export function Home() {
           <ProductGrid />
         </Reveal>
       </section>
-      <section className="overflow-hidden bg-geek-yellow text-[#111]">
+      <section className="overflow-hidden bg-geek-yellow text-ink">
         <div className="wrap relative flex min-h-[320px] items-center justify-between max-md:min-h-[270px]">
           <div className="py-[35px] max-md:relative max-md:z-1 max-md:max-w-[70%]">
             <p className="eyebrow max-md:text-2xs">Tem presente que vira coleção.</p>

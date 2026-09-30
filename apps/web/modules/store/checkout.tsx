@@ -52,7 +52,7 @@ const CHECKOUT_TITLE = 'mb-2.5 text-xl font-black';
 const FORM_GRID = 'my-[25px] grid grid-cols-2 gap-5 max-md:grid-cols-1 max-md:gap-[15px]';
 const CHOICE_LIST = 'my-6 flex flex-col gap-3 border-0 p-0';
 const CHOICE_LABEL =
-  'flex cursor-pointer items-center gap-3 rounded-[10px] border border-border px-3.5 py-[17px] text-sm has-checked:border-geek-yellow has-checked:bg-[#ffbd080c]';
+  'flex cursor-pointer items-center gap-3 rounded-[10px] border border-border px-3.5 py-[17px] text-sm has-checked:border-geek-yellow has-checked:bg-geek-yellow/5';
 const CHOICE_HINT = 'mt-[3px] block text-xs text-muted';
 const TOTAL_ROW = 'flex justify-between gap-[15px]';
 
@@ -173,7 +173,7 @@ export function Checkout() {
                 className={`flex items-center gap-2 text-sm font-extrabold max-md:text-xs ${step === i ? 'text-foreground' : 'text-muted'}`}
               >
                 <span
-                  className={`grid size-7 place-items-center rounded-full border max-md:size-[25px] ${step === i ? 'border-geek-yellow bg-geek-yellow text-[#111]' : 'border-border'}`}
+                  className={`grid size-7 place-items-center rounded-full border max-md:size-[25px] ${step === i ? 'border-geek-yellow bg-geek-yellow text-ink' : 'border-border'}`}
                 >
                   {i < step ? <Check size={16} /> : i + 1}
                 </span>

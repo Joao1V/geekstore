@@ -27,7 +27,7 @@ const campaigns = [
   },
 ];
 
-const CONTROL_BUTTON = 'h-[26px] w-7 min-w-6 bg-transparent p-0 text-[#c6c4c9]';
+const CONTROL_BUTTON = 'h-[26px] w-7 min-w-6 bg-transparent p-0 text-night-fg';
 
 export function CampaignSlider() {
   const [slider, setSlider] = useState<SwiperInstance | null>(null);
@@ -35,7 +35,7 @@ export function CampaignSlider() {
   const reducedMotion = useReducedMotion();
   return (
     <section
-      className="relative overflow-hidden bg-[#080809] text-white"
+      className="relative overflow-hidden bg-night text-white"
       aria-label="Campanhas GeekStore"
       aria-roledescription="carrossel"
     >
@@ -59,10 +59,10 @@ export function CampaignSlider() {
           return (
             <SwiperSlide key={campaign.href} inert={activeIndex !== index}>
               <div
-                className={`relative overflow-hidden ${index === 1 ? 'bg-[radial-gradient(ellipse_at_80%_50%,#4a2b09,#080809_65%)]' : 'bg-[#080809]'}`}
+                className={`relative overflow-hidden ${index === 1 ? 'bg-[radial-gradient(ellipse_at_80%_50%,var(--color-bronze),var(--color-night)_65%)]' : 'bg-night'}`}
                 inert={activeIndex !== index}
               >
-                <div className="absolute inset-0 [background-image:radial-gradient(#ffbd0838_1px,transparent_1px),radial-gradient(ellipse_at_85%_70%,#b648143b,transparent_60%)] [background-size:18px_18px,100%_100%] [mask-image:linear-gradient(90deg,transparent,#000)]" />
+                <div className="absolute inset-0 [background-image:radial-gradient(color-mix(in_srgb,var(--color-geek-yellow)_22%,transparent)_1px,transparent_1px),radial-gradient(ellipse_at_85%_70%,color-mix(in_srgb,var(--color-ember)_23%,transparent),transparent_60%)] [background-size:18px_18px,100%_100%] [mask-image:linear-gradient(90deg,transparent,#000)]" />
                 <div className="wrap relative grid min-h-[435px] grid-cols-[1.1fr_0.9fr] max-md:min-h-[340px] max-md:grid-cols-[1.2fr_0.8fr]">
                   <motion.div
                     className="relative z-2 pt-12 pb-[74px] max-md:pt-[31px] max-md:pb-16"
@@ -84,7 +84,7 @@ export function CampaignSlider() {
                         </span>
                       ))}
                     </Heading>
-                    <p className="mb-[25px] max-w-[380px] text-base font-semibold text-[#bdbbc1] max-md:max-w-[210px] max-md:text-sm max-md:leading-[1.6]">
+                    <p className="mb-[25px] max-w-[380px] text-base font-semibold text-night-muted max-md:max-w-[210px] max-md:text-sm max-md:leading-[1.6]">
                       {campaign.text}
                     </p>
                     <Link
@@ -96,7 +96,7 @@ export function CampaignSlider() {
                     </Link>
                   </motion.div>
                   <div className="relative flex min-w-0 items-end justify-center">
-                    <div className="absolute top-[55px] size-[330px] rounded-full border border-[#ffbd0844] max-md:-left-[25px] max-md:top-[60px] max-md:size-[180px]" />
+                    <div className="absolute top-[55px] size-[330px] rounded-full border border-geek-yellow/27 max-md:-left-[25px] max-md:top-[60px] max-md:size-[180px]" />
                     <motion.img
                       {...getMascot('hero')}
                       width={550}
@@ -107,7 +107,7 @@ export function CampaignSlider() {
                       animate={{ y: activeIndex === index || reducedMotion ? 0 : 15 }}
                       transition={{ duration: reducedMotion ? 0 : 0.6 }}
                     />
-                    <span className="font-display absolute top-[55px] -right-1 z-2 rotate-[8deg] border-2 border-[#111] bg-geek-yellow px-3.5 py-2.5 text-2xl leading-none text-[#111] [box-shadow:4px_4px_#111] max-tablet:right-0 max-tablet:text-xl max-md:hidden">
+                    <span className="font-display absolute top-[55px] -right-1 z-2 rotate-[8deg] border-2 border-ink bg-geek-yellow px-3.5 py-2.5 text-2xl leading-none text-ink [box-shadow:4px_4px_var(--color-ink)] max-tablet:right-0 max-tablet:text-xl max-md:hidden">
                       Seu lado geek
                       <br />
                       merece espaço!
@@ -135,7 +135,7 @@ export function CampaignSlider() {
               type="button"
               aria-label={`Banner ${index + 1}`}
               aria-pressed={activeIndex === index}
-              className="size-[7px] min-w-[7px] rounded-full bg-[#57565b] aria-pressed:w-[26px] aria-pressed:bg-geek-yellow"
+              className="size-[7px] min-w-[7px] rounded-full bg-night-dim aria-pressed:w-[26px] aria-pressed:bg-geek-yellow"
               onClick={() => slider?.slideTo(index)}
             />
           ))}
@@ -147,7 +147,7 @@ export function CampaignSlider() {
           >
             <ArrowRight size={18} />
           </Button>
-          <span className="ml-2.5 text-xs text-[#bdbbc1]" aria-live="polite">
+          <span className="ml-2.5 text-xs text-night-muted" aria-live="polite">
             {activeIndex + 1} / {campaigns.length}
           </span>
         </div>

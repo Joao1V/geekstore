@@ -8,9 +8,12 @@ import type { ToastNotice } from './state/cart-store';
 const TOAST_DURATION_MS = 5000;
 
 const KIND_STYLES = {
-  success: { border: 'border-l-[#23844d]', icon: 'text-[#23844d] dark:text-[#63d895]' },
-  warning: { border: 'border-l-[#c18412]', icon: 'text-[#c18412]' },
-  info: { border: 'border-l-[#4886dd]', icon: 'text-[#4886dd]' },
+  success: {
+    border: 'border-l-status-success',
+    icon: 'text-status-success dark:text-status-success-bright',
+  },
+  warning: { border: 'border-l-status-warning', icon: 'text-status-warning' },
+  info: { border: 'border-l-status-info', icon: 'text-status-info' },
 };
 
 export function StoreAlert({

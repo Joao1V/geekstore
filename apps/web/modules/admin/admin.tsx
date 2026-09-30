@@ -130,7 +130,7 @@ export function Admin() {
         {ADMIN_TABS.map((t) => (
           <Button
             key={t.name}
-            className={`${TAB_BASE} ${tab === t.name ? 'bg-geek-yellow text-[#111]' : 'bg-surface text-foreground'}`}
+            className={`${TAB_BASE} ${tab === t.name ? 'bg-geek-yellow text-ink' : 'bg-surface text-foreground'}`}
             onPress={() => setTab(t.name)}
           >
             <t.icon size={18} />

@@ -16,7 +16,7 @@ const CATEGORIES = ['Todos', 'Colecionáveis', 'Games', 'Vestuário', 'RPG'];
 const FREE_SHIPPING_MIN = 299;
 
 const CARD_BUY =
-  'mt-[15px] flex h-[42px] w-full items-center justify-center gap-2 rounded-[9px] bg-[#111] text-sm font-extrabold text-white hover:bg-geek-yellow hover:text-[#111] dark:bg-geek-yellow dark:text-[#111] max-md:h-[39px] max-md:gap-[5px] max-md:text-xs';
+  'mt-[15px] flex h-[42px] w-full items-center justify-center gap-2 rounded-[9px] bg-ink text-sm font-extrabold text-white hover:bg-geek-yellow hover:text-ink dark:bg-geek-yellow dark:text-ink max-md:h-[39px] max-md:gap-[5px] max-md:text-xs';
 const FILTER_LABEL = 'flex flex-col gap-[5px] text-sm';
 const FILTER_LABEL_TEXT = 'text-xs font-extrabold text-muted';
 const FILTER_CONTROL = 'w-full rounded-[7px] bg-surface-secondary px-3 py-[9px] text-foreground';
@@ -25,8 +25,8 @@ export function ProductCard({ product: p }: { product: Product }) {
   const store = useCartStore();
   const isFavorite = store.favorites.includes(p.id);
   return (
-    <article className="group overflow-hidden rounded-[17px] border-2 border-[#111] bg-surface transition-[translate,box-shadow] duration-200 [box-shadow:6px_6px_0_var(--ink-shadow)] hover:-translate-x-0.5 hover:-translate-y-[3px] hover:[box-shadow:8px_9px_0_var(--ink-shadow)] max-md:rounded-[13px] max-md:[box-shadow:4px_4px_var(--ink-shadow)]">
-      <div className="relative aspect-square overflow-hidden bg-[#e4e4e6]">
+    <article className="group overflow-hidden rounded-[17px] border-2 border-ink bg-surface transition-[translate,box-shadow] duration-200 [box-shadow:6px_6px_0_var(--ink-shadow)] hover:-translate-x-0.5 hover:-translate-y-[3px] hover:[box-shadow:8px_9px_0_var(--ink-shadow)] max-md:rounded-[13px] max-md:[box-shadow:4px_4px_var(--ink-shadow)]">
+      <div className="relative aspect-square overflow-hidden bg-placeholder">
         <Link
           className="relative block h-full"
           href={`/produto/${p.slug}/`}
@@ -40,12 +40,12 @@ export function ProductCard({ product: p }: { product: Product }) {
             sizes="(max-width: 767px) 50vw, 25vw"
           />
         </Link>
-        <span className="absolute top-3 left-3 rounded-[7px] bg-geek-yellow px-[9px] py-[5px] text-2xs font-black text-[#111] max-md:top-2 max-md:left-[7px] max-md:max-w-[calc(100%-47px)] max-md:px-1.5 max-md:py-1">
+        <span className="absolute top-3 left-3 rounded-[7px] bg-geek-yellow px-[9px] py-[5px] text-2xs font-black text-ink max-md:top-2 max-md:left-[7px] max-md:max-w-[calc(100%-47px)] max-md:px-1.5 max-md:py-1">
           {p.previousPrice ? `-${Math.round((1 - p.price / p.previousPrice) * 100)}%` : p.badge}
         </span>
         <Button
           isIconOnly
-          className={`absolute top-[11px] right-[11px] size-[33px] min-w-[33px] rounded-full p-0 text-[#111] max-md:top-[7px] max-md:right-[7px] max-md:size-[27px] max-md:min-w-[27px] max-md:[&_svg]:w-[15px] ${isFavorite ? 'bg-geek-yellow [&_svg]:fill-[#111]' : 'bg-white'}`}
+          className={`absolute top-[11px] right-[11px] size-[33px] min-w-[33px] rounded-full p-0 text-ink max-md:top-[7px] max-md:right-[7px] max-md:size-[27px] max-md:min-w-[27px] max-md:[&_svg]:w-[15px] ${isFavorite ? 'bg-geek-yellow [&_svg]:fill-ink' : 'bg-white'}`}
           aria-label={`${isFavorite ? 'Remover dos' : 'Adicionar aos'} favoritos: ${p.name}`}
           aria-pressed={isFavorite}
           onPress={() => store.favorite(p.id)}
@@ -72,7 +72,7 @@ export function ProductCard({ product: p }: { product: Product }) {
           ou {money(p.price)} em 6x de {money(p.price / 6)}
         </p>
         {p.price >= FREE_SHIPPING_MIN && (
-          <small className="mt-1 block text-xs text-[#258343] max-md:text-2xs">
+          <small className="mt-1 block text-xs text-status-success max-md:text-2xs">
             Frete grátis neste exemplo*
           </small>
         )}
