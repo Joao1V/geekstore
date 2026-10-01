@@ -40,6 +40,16 @@ ARG DATABASE_URL="postgresql://build:build@localhost:5432/build"
 ENV DATABASE_URL=$DATABASE_URL
 RUN pnpm turbo run build --filter=api
 
+# ── Alvo `migrator`: aplica migrações e roda seeds, fora da imagem de produção ──
+# A imagem `runner` não tem a CLI do Prisma (foi podada para emagrecer). Este alvo é a imagem
+# completa de build e roda `prisma migrate deploy` e sai. Não é o alvo padrão (o último estágio,
+# `runner`, é): construa com `--target migrator`. No Dokploy: um segundo Application do mesmo repo
+# com "Docker Build Stage = migrator", que roda dentro da rede interna e fala com o banco sem
+# expor porta nenhuma. DATABASE_URL vem do ambiente. Para criar o admin inicial, troque o comando
+# por `pnpm --filter @geekstore/db seed` (SEED_ADMIN_EMAIL e SEED_ADMIN_PASSWORD no ambiente).
+FROM builder AS migrator
+CMD ["pnpm", "--filter", "@geekstore/db", "exec", "prisma", "migrate", "deploy"]
+
 # ── Etapa 4: dependências só de produção ──
 # node_modules separado do da etapa de build: sem typescript/tsup/vitest/prisma-cli/etc.
 # (essas só existem pra compilar, não pra rodar) — é isso que deixa o runtime bem menor.
