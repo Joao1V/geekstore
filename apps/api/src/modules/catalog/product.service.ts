@@ -13,6 +13,7 @@ import { BadRequestError, ConflictError, NotFoundError } from '../../core/_error
 import { writeAuditLog } from '../../core/audit';
 import { buildMeta, parseSort, skipTake } from '../../core/http/pagination';
 import { toProduct, toProductDetail } from './catalog.mappers';
+import { searchProductIds } from './product-search';
 
 const detailInclude = {
   skus: { orderBy: { code: 'asc' } },
@@ -21,19 +22,10 @@ const detailInclude = {
 } satisfies Prisma.ProductInclude;
 
 function buildWhere(query: ProductListQuery): Prisma.ProductWhereInput {
-  const { q, status, category_id } = query;
+  const { status, category_id } = query;
   return {
     ...(status ? { status } : {}),
     ...(category_id ? { category_id } : {}),
-    ...(q
-      ? {
-          OR: [
-            { name: { contains: q } },
-            { slug: { contains: q } },
-            { skus: { some: { code: { contains: q } } } },
-          ],
-        }
-      : {}),
   };
 }
 
@@ -42,18 +34,34 @@ export async function listProducts(query: ProductListQuery): Promise<Paginated<P
     field: 'created_at',
     direction: 'desc',
   });
-  const where = buildWhere(query);
+  const window = skipTake(query.page, query.page_size);
 
+  if (query.q) return listProductsBySearch({ ...query, q: query.q }, { field, direction }, window);
+
+  const where = buildWhere(query);
   const [rows, total] = await Promise.all([
     prisma.product.findMany({
       where,
       orderBy: [{ [field]: direction }, { product_id: 'asc' }],
-      ...skipTake(query.page, query.page_size),
+      ...window,
     }),
     prisma.product.count({ where }),
   ]);
 
   return { data: rows.map(toProduct), meta: buildMeta(query.page, query.page_size, total) };
+}
+
+/** Com texto de busca a ordem e a janela vêm do SQL (`unaccent`); as linhas seguem a ordem dos ids. */
+async function listProductsBySearch(
+  query: ProductListQuery & { q: string },
+  sort: Parameters<typeof searchProductIds>[1],
+  window: Parameters<typeof searchProductIds>[2]
+): Promise<Paginated<Product>> {
+  const { ids, total } = await searchProductIds(query, sort, window);
+  const rows = await prisma.product.findMany({ where: { product_id: { in: ids } } });
+  const byId = new Map(rows.map((row) => [row.product_id, row]));
+  const ordered = ids.flatMap((id) => byId.get(id) ?? []);
+  return { data: ordered.map(toProduct), meta: buildMeta(query.page, query.page_size, total) };
 }
 
 export async function getProductDetail(productId: string): Promise<ProductDetail> {

@@ -2,6 +2,7 @@ import type { Prisma } from '@geekstore/db';
 import { v7 as uuidv7 } from 'uuid';
 
 import { ConflictError } from '../../core/_errors';
+import { asInt, asUuid, utcNow } from '../../core/db/sql';
 
 /**
  * Primitivas atômicas do saldo (RNF-09). Todas recebem o cliente da transação do chamador: saldo,
@@ -18,8 +19,9 @@ type Slot = { skuId: string; locationId: string };
 export async function addOnHand(tx: LedgerTx, slot: Slot, quantity: number): Promise<void> {
   await tx.$executeRaw`
     INSERT INTO stock_level (stock_level_id, sku_id, location_id, on_hand, reserved, updated_at)
-    VALUES (${uuidv7()}, ${slot.skuId}, ${slot.locationId}, ${quantity}, 0, NOW(3))
-    ON DUPLICATE KEY UPDATE on_hand = on_hand + ${quantity}, updated_at = NOW(3)`;
+    VALUES (${asUuid(uuidv7())}, ${asUuid(slot.skuId)}, ${asUuid(slot.locationId)}, ${asInt(quantity)}, 0, ${utcNow})
+    ON CONFLICT (sku_id, location_id)
+    DO UPDATE SET on_hand = stock_level.on_hand + ${asInt(quantity)}, updated_at = ${utcNow}`;
 }
 
 /**
@@ -30,9 +32,9 @@ export async function addOnHand(tx: LedgerTx, slot: Slot, quantity: number): Pro
 export async function subtractOnHand(tx: LedgerTx, slot: Slot, quantity: number): Promise<void> {
   const affected = await tx.$executeRaw`
     UPDATE stock_level
-    SET on_hand = on_hand - ${quantity}, updated_at = NOW(3)
-    WHERE sku_id = ${slot.skuId} AND location_id = ${slot.locationId}
-      AND on_hand - ${quantity} >= reserved`;
+    SET on_hand = on_hand - ${asInt(quantity)}, updated_at = ${utcNow}
+    WHERE sku_id = ${asUuid(slot.skuId)} AND location_id = ${asUuid(slot.locationId)}
+      AND on_hand - ${asInt(quantity)} >= reserved`;
 
   if (affected === 0) {
     throw new ConflictError('Saldo disponível insuficiente para esta saída.');
@@ -45,13 +47,13 @@ export type LockedLevel = { stock_level_id: string; on_hand: number; reserved: n
 export async function lockLevel(tx: LedgerTx, slot: Slot): Promise<LockedLevel> {
   await tx.$executeRaw`
     INSERT INTO stock_level (stock_level_id, sku_id, location_id, on_hand, reserved, updated_at)
-    VALUES (${uuidv7()}, ${slot.skuId}, ${slot.locationId}, 0, 0, NOW(3))
-    ON DUPLICATE KEY UPDATE stock_level_id = stock_level_id`;
+    VALUES (${asUuid(uuidv7())}, ${asUuid(slot.skuId)}, ${asUuid(slot.locationId)}, 0, 0, ${utcNow})
+    ON CONFLICT (sku_id, location_id) DO NOTHING`;
 
   const rows = await tx.$queryRaw<LockedLevel[]>`
     SELECT stock_level_id, on_hand, reserved
     FROM stock_level
-    WHERE sku_id = ${slot.skuId} AND location_id = ${slot.locationId}
+    WHERE sku_id = ${asUuid(slot.skuId)} AND location_id = ${asUuid(slot.locationId)}
     FOR UPDATE`;
 
   const row = rows[0];
@@ -66,8 +68,9 @@ export async function lockLevel(tx: LedgerTx, slot: Slot): Promise<LockedLevel> 
 export async function setOnHand(tx: LedgerTx, slot: Slot, target: number): Promise<void> {
   const affected = await tx.$executeRaw`
     UPDATE stock_level
-    SET on_hand = ${target}, updated_at = NOW(3)
-    WHERE sku_id = ${slot.skuId} AND location_id = ${slot.locationId} AND ${target} >= reserved`;
+    SET on_hand = ${asInt(target)}, updated_at = ${utcNow}
+    WHERE sku_id = ${asUuid(slot.skuId)} AND location_id = ${asUuid(slot.locationId)}
+      AND ${asInt(target)} >= reserved`;
 
   if (affected === 0) {
     throw new ConflictError('O saldo físico não pode ficar abaixo da quantidade reservada.');

@@ -70,12 +70,13 @@ describe('stock.service (integration — requires a live DATABASE_URL)', () => {
     });
     // disponível = 1: sair 2 deve falhar mesmo havendo 5 físicos
     await expect(move('outbound', 2)).rejects.toBeInstanceOf(ConflictError);
+    // O erro tem de ser do CHECK (e não, por exemplo, de tipo): o nome da constraint vem na mensagem.
     await expect(
-      prisma.$executeRaw`UPDATE stock_level SET on_hand = -1 WHERE sku_id = ${fx.skuId}`
-    ).rejects.toThrow();
+      prisma.$executeRaw`UPDATE stock_level SET on_hand = -1 WHERE sku_id = ${fx.skuId}::uuid`
+    ).rejects.toThrow(/stock_level_non_negative_chk/);
     await expect(
-      prisma.$executeRaw`UPDATE stock_level SET on_hand = 3 WHERE sku_id = ${fx.skuId}`
-    ).rejects.toThrow(); // reserved (4) > on_hand (3)
+      prisma.$executeRaw`UPDATE stock_level SET on_hand = 3 WHERE sku_id = ${fx.skuId}::uuid`
+    ).rejects.toThrow(/stock_level_non_negative_chk/); // reserved (4) > on_hand (3)
 
     await prisma.stockLevel.update({
       where: { sku_id_location_id: { sku_id: fx.skuId, location_id: fx.locationId } },

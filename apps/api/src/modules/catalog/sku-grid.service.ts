@@ -6,6 +6,7 @@ import {
   skuGridSortFields,
 } from '@geekstore/shared';
 
+import { asUuid, containsInsensitive, utcNow } from '../../core/db/sql';
 import { buildMeta, parseSort, skipTake } from '../../core/http/pagination';
 
 type SortField = (typeof skuGridSortFields)[number];
@@ -30,16 +31,13 @@ type RawGridRow = {
   reserved: number | bigint | string;
 };
 
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
-}
-
 function buildWhere(query: SkuGridQuery): Prisma.Sql {
   const conditions: Prisma.Sql[] = [];
-  if (query.product_id) conditions.push(Prisma.sql`s.product_id = ${query.product_id}`);
+  if (query.product_id) conditions.push(Prisma.sql`s.product_id = ${asUuid(query.product_id)}`);
   if (query.q) {
-    const pattern = `%${escapeLike(query.q)}%`;
-    conditions.push(Prisma.sql`(s.code LIKE ${pattern} OR p.name LIKE ${pattern})`);
+    conditions.push(
+      Prisma.sql`(${containsInsensitive(Prisma.sql`s.code`, query.q)} OR ${containsInsensitive(Prisma.sql`p.name`, query.q)})`
+    );
   }
   return conditions.length > 0
     ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
@@ -89,7 +87,7 @@ export async function listSkuGrid(query: SkuGridQuery): Promise<Paginated<SkuGri
                FROM price pr
                JOIN channel c ON c.channel_id = pr.channel_id
                WHERE pr.sku_id = s.sku_id AND c.code = 'site'
-                 AND pr.starts_at <= NOW(3) AND (pr.ends_at IS NULL OR pr.ends_at > NOW(3))
+                 AND pr.starts_at <= ${utcNow} AND (pr.ends_at IS NULL OR pr.ends_at > ${utcNow})
                ORDER BY pr.starts_at DESC
                LIMIT 1
              ) AS price_cents,
@@ -105,7 +103,7 @@ export async function listSkuGrid(query: SkuGridQuery): Promise<Paginated<SkuGri
         GROUP BY sl.sku_id
       ) st ON st.sku_id = s.sku_id
       ${where}
-      ORDER BY ${SORT_EXPRESSIONS[field]} ${order}, s.code ASC
+      ORDER BY ${SORT_EXPRESSIONS[field]} ${order} NULLS LAST, s.code ASC
       LIMIT ${take} OFFSET ${skip}`,
     prisma.$queryRaw<{ total: number | bigint }[]>`
       SELECT COUNT(*) AS total

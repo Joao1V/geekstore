@@ -104,14 +104,14 @@ export async function createUser(actorId: string, body: AdminUserBody): Promise<
   });
 }
 
-/** Trava (`FOR UPDATE`) todos os owners: duas remoções simultâneas não zeram os donos. */
+/** Trava (`FOR UPDATE OF u`, só as linhas de usuário; `user` é palavra reservada, vai entre aspas) todos os owners: duas remoções simultâneas não zeram os donos. */
 async function lockOwners(tx: Prisma.TransactionClient): Promise<string[]> {
   const rows = await tx.$queryRaw<{ user_id: string }[]>`
     SELECT u.user_id
-    FROM user u
+    FROM "user" u
     JOIN role r ON r.role_id = u.role_id
     WHERE r.code = 'owner'
-    FOR UPDATE`;
+    FOR UPDATE OF u`;
   return rows.map((row) => row.user_id);
 }
 
