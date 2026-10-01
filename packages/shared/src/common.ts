@@ -57,3 +57,6 @@ export function paginatedResponse<T extends z.ZodType>(itemSchema: T) {
   return z.object({ data: z.array(itemSchema), meta: paginationMetaSchema });
 }
 export type Paginated<T> = { data: T[]; meta: PaginationMeta };
+
+/** Timestamp serializado em JSON (ISO 8601, UTC). O service converte `Date` com `toISOString()`. */
+export const isoDateTimeSchema = z.string().datetime();
