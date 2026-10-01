@@ -9,7 +9,7 @@
 FROM node:24-bookworm-slim AS base
 RUN corepack enable
 # Prisma precisa de OpenSSL pra detectar o engine certo em tempo de build/runtime,
-# mesmo usando o driver adapter (@prisma/adapter-mariadb) em vez do engine nativo.
+# mesmo usando o driver adapter (@prisma/adapter-pg) em vez do engine nativo.
 RUN apt-get update -y && apt-get install -y --no-install-recommends openssl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -36,7 +36,7 @@ COPY --from=pruner /app/out/full/ .
 # `prisma generate` (build de @geekstore/db) só precisa da variável presente pra
 # não falhar ao carregar o prisma.config.ts — não conecta de verdade nesta etapa.
 # O DATABASE_URL de produção é injetado em runtime pelo Dokploy, nunca fica na imagem.
-ARG DATABASE_URL="mysql://build:build@localhost:3306/build"
+ARG DATABASE_URL="postgresql://build:build@localhost:5432/build"
 ENV DATABASE_URL=$DATABASE_URL
 RUN pnpm turbo run build --filter=api
 
@@ -53,6 +53,8 @@ RUN pnpm install --prod --frozen-lockfile
 # não deixa desligar isso via config nesta etapa (só re-resolvendo o lockfile todo, o que é
 # uma mudança maior que não faz sentido só por isso), então limpa depois do install: nada
 # disso é importado em runtime quando não se usa a CLI/Studio do Prisma.
+# `valibot` e `lodash` NÃO entram na lista: parecem só do Studio, mas o painel de filas
+# (@bull-board/api e seu redis-info) os importa na inicialização e a API não sobe sem eles.
 RUN find node_modules/.pnpm -maxdepth 1 -type d \( \
       -name "prisma@*" -o \
       -name "@prisma+studio-core@*" -o \
@@ -63,13 +65,11 @@ RUN find node_modules/.pnpm -maxdepth 1 -type d \( \
       -name "elkjs@*" -o \
       -name "remeda@*" -o \
       -name "fast-check@*" -o \
-      -name "lodash@*" -o \
       -name "typescript@*" -o \
       -name "@typescript+*" -o \
       -name "@types+*" -o \
       -name "@radix-ui+*" -o \
-      -name "react-dom@*" -o \
-      -name "valibot@*" \
+      -name "react-dom@*" \
     \) -exec rm -rf {} + \
     && rm -rf node_modules/prisma node_modules/typescript node_modules/@types \
     && rm -f node_modules/.bin/prisma node_modules/.bin/tsc node_modules/.bin/tsserver

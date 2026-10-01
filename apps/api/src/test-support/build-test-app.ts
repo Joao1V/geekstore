@@ -11,7 +11,7 @@ import { usersRoutes } from '../modules/users/users.routes';
 
 /**
  * App mínimo para testes HTTP de RBAC: os mesmos módulos e o mesmo error handler do `buildApp`,
- * sem Redis/fila (o CI de integração só tem MySQL).
+ * sem Redis/fila (o CI de integração só tem PostgreSQL).
  */
 export async function buildTestApp() {
   const app = Fastify();

@@ -8,7 +8,7 @@ on:
 env:
   # prisma generate (packages/db) só lê o schema, não precisa de um banco real —
   # mas o prisma.config.ts exige DATABASE_URL definido pra não falhar ao carregar.
-  DATABASE_URL: mysql://geekstore:geekstore@localhost:3306/geekstore
+  DATABASE_URL: postgresql://geekstore:geekstore@localhost:5432/geekstore
   # Só o teste de integração importa auth.service.ts, que exige essas vars via envConfig
   # (env.ts valida o schema inteiro) — valores fixos de CI, nunca usados fora daqui.
   JWT_ACCESS_SECRET: ci-only-jwt-secret-not-used-anywhere-else-000000
@@ -19,20 +19,21 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      mysql:
-        image: mysql:8.4
+      # Sem initdb customizado (locale ICU) de propósito: é o caso mais estrito, o mesmo de um
+      # PostgreSQL criado pelo Dokploy. As migrações não podem depender de collation especial.
+      postgres:
+        image: postgres:18
         options: >-
-          --health-cmd="mysqladmin ping -h localhost"
+          --health-cmd="pg_isready -U geekstore -d geekstore"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=10
         env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: geekstore
-          MYSQL_USER: geekstore
-          MYSQL_PASSWORD: geekstore
+          POSTGRES_USER: geekstore
+          POSTGRES_PASSWORD: geekstore
+          POSTGRES_DB: geekstore
         ports:
-          - 3306:3306
+          - 5432:5432
 
     steps:
       - uses: actions/checkout@v4
