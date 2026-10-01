@@ -13,15 +13,17 @@
     "seed:catalog": "tsx prisma/seed-catalog.ts"
   },
   "dependencies": {
-    "@prisma/adapter-mariadb": "7.10.0",
+    "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
     "@prisma/client-runtime-utils": "7.10.0",
     "argon2": "^0.41.1",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@geekstore/config": "workspace:*",
     "@types/node": "^24.0.0",
+    "@types/pg": "^8.23.1",
     "prisma": "7.10.0",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"

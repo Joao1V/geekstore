@@ -1,18 +1,26 @@
 # Uso local de desenvolvimento apenas — infra real (VPS/Dokploy) é gerenciada à parte.
 services:
-  mysql:
-    image: mysql:8.4
-    container_name: geekstore-mysql
+  # PostgreSQL 18 (última estável; a 19 ainda é beta). Porta 5434: 5432 e 5433 são de outros projetos.
+  # Banco com collation ICU pt-BR (ordenação correta de nomes com acento). Desde a 18 a imagem guarda
+  # os dados em /var/lib/postgresql/18/docker, por isso o volume monta /var/lib/postgresql.
+  postgres:
+    image: postgres:18
+    container_name: geekstore-postgres
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: geekstore
-      MYSQL_USER: geekstore
-      MYSQL_PASSWORD: geekstore
+      POSTGRES_USER: geekstore
+      POSTGRES_PASSWORD: geekstore
+      POSTGRES_DB: geekstore
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale-provider=icu --icu-locale=pt-BR'
     ports:
-      - '3306:3306'
+      - '5434:5432'
     volumes:
-      - geekstore_mysql_data:/var/lib/mysql
+      - geekstore_pg_data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U geekstore -d geekstore']
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -43,6 +51,6 @@ services:
       - geekstore_minio_data:/bitnami/minio/data
 
 volumes:
-  geekstore_mysql_data:
+  geekstore_pg_data:
   geekstore_redis_data:
   geekstore_minio_data:
