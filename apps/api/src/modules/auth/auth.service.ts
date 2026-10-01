@@ -1,5 +1,5 @@
 import { prisma } from '@geekstore/db';
-import type { AuthUser } from '@geekstore/shared';
+import { type AuthUser, roleCodeSchema, rolePermissions } from '@geekstore/shared';
 
 import { UnauthorizedError } from '../../core/_errors';
 import { envConfig } from '../../core/config';
@@ -13,8 +13,17 @@ type IssuedRefreshToken = {
   expiresAt: Date;
 };
 
-function toAuthUser(user: { user_id: string; email: string; name: string }): AuthUser {
-  return { user_id: user.user_id, email: user.email, name: user.name };
+type UserWithRole = { user_id: string; email: string; name: string; role: { code: string } };
+
+function toAuthUser(user: UserWithRole): AuthUser {
+  const role = roleCodeSchema.parse(user.role.code);
+  return {
+    user_id: user.user_id,
+    email: user.email,
+    name: user.name,
+    role,
+    permissions: [...rolePermissions[role]],
+  };
 }
 
 function newRefreshTokenExpiry(): Date {
@@ -37,7 +46,7 @@ async function issueRefreshToken(userId: string): Promise<IssuedRefreshToken> {
 }
 
 export async function verifyCredentials(email: string, password: string): Promise<AuthUser> {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { email }, include: { role: true } });
   if (!user || !(await verifyPassword(user.password_hash, password))) {
     throw new UnauthorizedError('Credenciais inválidas.');
   }
@@ -55,7 +64,7 @@ export async function rotateRefreshToken(
   const tokenHash = hashOpaqueToken(rawToken);
   const existing = await prisma.refreshToken.findUnique({
     where: { token_hash: tokenHash },
-    include: { user: true },
+    include: { user: { include: { role: true } } },
   });
 
   if (!existing) {

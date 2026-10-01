@@ -1,0 +1,119 @@
+import { Prisma, prisma } from '@geekstore/db';
+import {
+  type Paginated,
+  type SkuGridQuery,
+  type SkuGridRow,
+  skuGridSortFields,
+} from '@geekstore/shared';
+
+import { buildMeta, parseSort, skipTake } from '../../core/http/pagination';
+
+type SortField = (typeof skuGridSortFields)[number];
+
+// Expressões de ordenação fixas (o cliente só escolhe a chave): nada do `sort` vai para o SQL.
+const SORT_EXPRESSIONS: Record<SortField, Prisma.Sql> = {
+  code: Prisma.sql`s.code`,
+  product_name: Prisma.sql`p.name`,
+  price_cents: Prisma.sql`price_cents`,
+  available: Prisma.sql`(COALESCE(st.on_hand, 0) - COALESCE(st.reserved, 0))`,
+};
+
+type RawGridRow = {
+  sku_id: string;
+  product_id: string;
+  product_name: string;
+  code: string;
+  attributes: unknown;
+  status: SkuGridRow['status'];
+  price_cents: number | bigint | null;
+  on_hand: number | bigint | string;
+  reserved: number | bigint | string;
+};
+
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
+function buildWhere(query: SkuGridQuery): Prisma.Sql {
+  const conditions: Prisma.Sql[] = [];
+  if (query.product_id) conditions.push(Prisma.sql`s.product_id = ${query.product_id}`);
+  if (query.q) {
+    const pattern = `%${escapeLike(query.q)}%`;
+    conditions.push(Prisma.sql`(s.code LIKE ${pattern} OR p.name LIKE ${pattern})`);
+  }
+  return conditions.length > 0
+    ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+    : Prisma.empty;
+}
+
+function parseAttributes(value: unknown): SkuGridRow['attributes'] {
+  const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+  return (parsed ?? {}) as SkuGridRow['attributes'];
+}
+
+function toGridRow(row: RawGridRow): SkuGridRow {
+  const onHand = Number(row.on_hand);
+  const reserved = Number(row.reserved);
+  return {
+    sku_id: row.sku_id,
+    product_id: row.product_id,
+    product_name: row.product_name,
+    code: row.code,
+    attributes: parseAttributes(row.attributes),
+    status: row.status,
+    price_cents: row.price_cents === null ? null : Number(row.price_cents),
+    on_hand: onHand,
+    reserved,
+    available: onHand - reserved,
+  };
+}
+
+/**
+ * Grade do admin (RF-ADM-03): SKU + produto + preço vigente do canal `site` + saldo agregado dos
+ * locais vendáveis (quarentena fora). Uma única consulta com joins/subconsultas, sem N+1.
+ */
+export async function listSkuGrid(query: SkuGridQuery): Promise<Paginated<SkuGridRow>> {
+  const { field, direction } = parseSort(query.sort, skuGridSortFields, {
+    field: 'code',
+    direction: 'asc',
+  });
+  const where = buildWhere(query);
+  const { skip, take } = skipTake(query.page, query.page_size);
+  const order = direction === 'desc' ? Prisma.sql`DESC` : Prisma.sql`ASC`;
+
+  const [rows, countRows] = await Promise.all([
+    prisma.$queryRaw<RawGridRow[]>`
+      SELECT s.sku_id, s.product_id, p.name AS product_name, s.code, s.attributes, s.status,
+             (
+               SELECT pr.price_cents
+               FROM price pr
+               JOIN channel c ON c.channel_id = pr.channel_id
+               WHERE pr.sku_id = s.sku_id AND c.code = 'site'
+                 AND pr.starts_at <= NOW(3) AND (pr.ends_at IS NULL OR pr.ends_at > NOW(3))
+               ORDER BY pr.starts_at DESC
+               LIMIT 1
+             ) AS price_cents,
+             COALESCE(st.on_hand, 0) AS on_hand,
+             COALESCE(st.reserved, 0) AS reserved
+      FROM sku s
+      JOIN product p ON p.product_id = s.product_id
+      LEFT JOIN (
+        SELECT sl.sku_id, SUM(sl.on_hand) AS on_hand, SUM(sl.reserved) AS reserved
+        FROM stock_level sl
+        JOIN location l ON l.location_id = sl.location_id
+        WHERE l.type <> 'quarantine'
+        GROUP BY sl.sku_id
+      ) st ON st.sku_id = s.sku_id
+      ${where}
+      ORDER BY ${SORT_EXPRESSIONS[field]} ${order}, s.code ASC
+      LIMIT ${take} OFFSET ${skip}`,
+    prisma.$queryRaw<{ total: number | bigint }[]>`
+      SELECT COUNT(*) AS total
+      FROM sku s
+      JOIN product p ON p.product_id = s.product_id
+      ${where}`,
+  ]);
+
+  const total = Number(countRows[0]?.total ?? 0);
+  return { data: rows.map(toGridRow), meta: buildMeta(query.page, query.page_size, total) };
+}

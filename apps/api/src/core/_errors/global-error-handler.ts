@@ -8,6 +8,7 @@ import {
 
 import { AppError } from './app-error';
 import { ExternalApiError } from './external-api-error';
+import { mapPrismaError } from './map-prisma-error';
 
 const RATE_LIMITED_STATUS = 429;
 
@@ -42,7 +43,9 @@ function buildErrorBody(
   return details !== undefined ? { ...body, details } : body;
 }
 
-export const errorHandler: FastifyErrorHandler = (error, request: FastifyRequest, reply) => {
+export const errorHandler: FastifyErrorHandler = (rawError, request: FastifyRequest, reply) => {
+  const error = mapPrismaError(rawError) ?? rawError;
+
   if (hasZodFastifySchemaValidationErrors(error)) {
     return reply
       .status(400)

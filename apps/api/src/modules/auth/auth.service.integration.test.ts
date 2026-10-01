@@ -16,8 +16,14 @@ describe('auth.service (integration — requires a live DATABASE_URL)', () => {
   let userId: string;
 
   beforeAll(async () => {
+    const role = await prisma.role.findUniqueOrThrow({ where: { code: 'manager' } });
     const user = await prisma.user.create({
-      data: { email, password_hash: await hashPassword(password), name: 'Teste Auth' },
+      data: {
+        email,
+        password_hash: await hashPassword(password),
+        name: 'Teste Auth',
+        role_id: role.role_id,
+      },
     });
     userId = user.user_id;
   });
@@ -40,6 +46,9 @@ describe('auth.service (integration — requires a live DATABASE_URL)', () => {
     const user = await verifyCredentials(email, password);
     expect(user.email).toBe(email);
     expect(user.user_id).toBe(userId);
+    expect(user.role).toBe('manager');
+    expect(user.permissions).toContain('catalog:write');
+    expect(user.permissions).not.toContain('users:write');
   });
 
   it('rotates the refresh token and rejects reuse of the old one', async () => {
@@ -48,6 +57,7 @@ describe('auth.service (integration — requires a live DATABASE_URL)', () => {
 
     expect(rotated.token).not.toBe(first.token);
     expect(rotated.user.user_id).toBe(userId);
+    expect(rotated.user.role).toBe('manager');
 
     // Reusar o token antigo (já rotacionado) falha...
     await expect(rotateRefreshToken(first.token)).rejects.toThrow();

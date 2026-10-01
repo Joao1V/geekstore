@@ -27,6 +27,15 @@ const envSchema = z.object({
     .pipe(z.number().int().positive()),
   COOKIE_SECRET: z.string().min(32, 'COOKIE_SECRET deve ter pelo menos 32 caracteres'),
   REDIS_URL: z.string().default('redis://localhost:6381'),
+  // Bucket S3-compatível (R2 em produção, MinIO em dev). Opcionais: sem elas o upload de imagem
+  // responde erro claro, mas o resto da API sobe normalmente.
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_REGION: z.string().default('auto'),
+  S3_BUCKET: z.string().min(1).optional(),
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  // URL pública (CDN) de onde as imagens são servidas; vai em `Media.url`.
+  S3_PUBLIC_BASE_URL: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -75,5 +84,23 @@ export const envConfig = {
   get redis() {
     const { REDIS_URL } = getEnv();
     return { URL: REDIS_URL };
+  },
+  get s3() {
+    const {
+      S3_ENDPOINT,
+      S3_REGION,
+      S3_BUCKET,
+      S3_ACCESS_KEY_ID,
+      S3_SECRET_ACCESS_KEY,
+      S3_PUBLIC_BASE_URL,
+    } = getEnv();
+    return {
+      ENDPOINT: S3_ENDPOINT,
+      REGION: S3_REGION,
+      BUCKET: S3_BUCKET,
+      ACCESS_KEY_ID: S3_ACCESS_KEY_ID,
+      SECRET_ACCESS_KEY: S3_SECRET_ACCESS_KEY,
+      PUBLIC_BASE_URL: S3_PUBLIC_BASE_URL,
+    };
   },
 };

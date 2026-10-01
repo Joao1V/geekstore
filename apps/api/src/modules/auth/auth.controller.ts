@@ -40,7 +40,7 @@ export async function loginController(
   const { email, password } = request.body;
   const user = await verifyCredentials(email, password);
   const { token: refreshToken, expiresAt } = await createSession(user.user_id);
-  const accessToken = await request.server.jwt.sign({ sub: user.user_id });
+  const accessToken = await request.server.jwt.sign({ sub: user.user_id, role: user.role });
 
   reply.setCookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions(expiresAt));
 
@@ -54,7 +54,7 @@ export async function refreshController(
 ): Promise<void> {
   const rawToken = readRefreshCookie(request);
   const { token: refreshToken, expiresAt, user } = await rotateRefreshToken(rawToken);
-  const accessToken = await request.server.jwt.sign({ sub: user.user_id });
+  const accessToken = await request.server.jwt.sign({ sub: user.user_id, role: user.role });
 
   reply.setCookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions(expiresAt));
 

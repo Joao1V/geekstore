@@ -4,6 +4,7 @@ export * from './conflict-error';
 export * from './external-api-error';
 export * from './forbidden-error';
 export * from './global-error-handler';
+export * from './map-prisma-error';
 export * from './not-found-error';
 export * from './unauthorized-error';
 export * from './validation-error';

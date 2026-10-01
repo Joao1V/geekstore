@@ -6,7 +6,9 @@ import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import IORedis from 'ioredis';
 
+import { errorHandler } from '../_errors';
 import { envConfig } from '../config';
+import { requirePermission } from '../hooks';
 
 const DEFAULT_JOB_ATTEMPTS = 5;
 const BACKOFF_DELAY_MS = 5_000;
@@ -32,7 +34,20 @@ export const queuePlugin = fp(async (fastify: FastifyInstance) => {
   serverAdapter.setBasePath('/admin/queues');
   const board = createBullBoard({ queues: [], serverAdapter });
 
-  await fastify.register(serverAdapter.registerPlugin(), { prefix: '/admin/queues' });
+  // Painel operacional: só perfis com `queues:read` (Bearer). O escopo encapsulado garante que o
+  // hook vale para o painel inteiro (UI e API do bull-board) e para nenhuma outra rota. O
+  // bull-board instala o próprio error handler (devolve 500), então o erro do hook é formatado
+  // aqui com o handler da API para sair 401/403 no contrato padrão.
+  await fastify.register(async (scope) => {
+    scope.addHook('onRequest', async (request, reply) => {
+      try {
+        for (const hook of requirePermission('queues:read')) await hook(request);
+      } catch (error) {
+        return errorHandler.call(scope, error as Error, request, reply);
+      }
+    });
+    await scope.register(serverAdapter.registerPlugin(), { prefix: '/admin/queues' });
+  });
 
   fastify.decorate('redisConnection', connection);
   fastify.decorate('createQueue', (name: string, options?: QueueOptions) => {
