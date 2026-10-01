@@ -8,11 +8,11 @@ datasource db {
 }
 
 model User {
-  user_id       String   @id @default(uuid(7)) @db.Char(36)
+  user_id       String   @id @default(uuid(7)) @db.Uuid
   email         String   @unique @db.VarChar(255)
   password_hash String   @db.VarChar(255)
   name          String   @db.VarChar(255)
-  role_id       String   @db.Char(36)
+  role_id       String   @db.Uuid
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
@@ -25,8 +25,8 @@ model User {
 }
 
 model RefreshToken {
-  refresh_token_id String    @id @default(uuid(7)) @db.Char(36)
-  user_id          String    @db.Char(36)
+  refresh_token_id String    @id @default(uuid(7)) @db.Uuid
+  user_id          String    @db.Uuid
   token_hash       String    @unique @db.Char(64)
   expires_at       DateTime
   revoked_at       DateTime?
@@ -41,7 +41,7 @@ model RefreshToken {
 // Perfis do admin (RF-PLA-03). O mapa perfil -> permissões vive em código
 // (`packages/shared/src/rbac.ts`); aqui só a identidade do perfil.
 model Role {
-  role_id    String   @id @default(uuid(7)) @db.Char(36)
+  role_id    String   @id @default(uuid(7)) @db.Uuid
   code       String   @unique @db.VarChar(32)
   name       String   @db.VarChar(64)
   created_at DateTime @default(now())
@@ -59,10 +59,10 @@ enum AuditAction {
 
 // Escrito na mesma transação da mudança (RF-PLA-04).
 model AuditLog {
-  audit_log_id String      @id @default(uuid(7)) @db.Char(36)
-  user_id      String?     @db.Char(36)
+  audit_log_id String      @id @default(uuid(7)) @db.Uuid
+  user_id      String?     @db.Uuid
   entity       String      @db.VarChar(64)
-  entity_id    String      @db.Char(36)
+  entity_id    String      @db.Uuid
   action       AuditAction
   before       Json?
   after        Json?
@@ -89,8 +89,8 @@ enum SkuStatus {
 
 // Árvore de até 3 níveis (RF-CAT-05); a profundidade é validada no service.
 model Category {
-  category_id     String   @id @default(uuid(7)) @db.Char(36)
-  parent_id       String?  @db.Char(36)
+  category_id     String   @id @default(uuid(7)) @db.Uuid
+  parent_id       String?  @db.Uuid
   name            String   @db.VarChar(255)
   slug            String   @unique @db.VarChar(255)
   featured        Boolean  @default(false)
@@ -110,8 +110,8 @@ model Category {
 }
 
 model Product {
-  product_id      String        @id @default(uuid(7)) @db.Char(36)
-  category_id     String        @db.Char(36)
+  product_id      String        @id @default(uuid(7)) @db.Uuid
+  category_id     String        @db.Uuid
   name            String        @db.VarChar(255)
   slug            String        @unique @db.VarChar(255)
   description     String?       @db.Text
@@ -135,20 +135,25 @@ model Product {
 
 // Unidade vendável (RF-CAT-02). Preço, estoque, anúncio e item de pedido apontam para cá.
 model Sku {
-  sku_id     String    @id @default(uuid(7)) @db.Char(36)
-  product_id String    @db.Char(36)
-  code       String    @unique @db.VarChar(64) // imutável: o service rejeita alteração
-  ean        String?   @db.VarChar(14)
-  attributes Json // ex.: { "cor": "azul", "edicao": "chase" }
-  weight_g   Int?
-  length_mm  Int?
-  width_mm   Int?
-  height_mm  Int?
-  ncm        String?   @db.VarChar(8)
-  cost_cents Int?
-  status     SkuStatus @default(active)
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  sku_id      String    @id @default(uuid(7)) @db.Uuid
+  product_id  String    @db.Uuid
+  code        String    @unique @db.VarChar(64) // imutável: o service rejeita alteração
+  ean         String?   @db.VarChar(14)
+  attributes  Json // ex.: { "cor": "azul", "edicao": "chase" }
+  weight_g    Int?
+  length_mm   Int?
+  width_mm    Int?
+  height_mm   Int?
+  ncm         String?   @db.VarChar(8)
+  cost_cents  Int?
+  status      SkuStatus @default(active)
+  // Código do item no sistema de origem (ERP): chave da importação, que a torna repetível, e elo
+  // de conferência com a base antiga. Anulável: SKUs criados no admin não têm legado.
+  legacy_code String?   @unique @db.VarChar(32)
+  // Linha original do ERP (campos sem coluna própria), para auditoria da migração.
+  legacy_data Json?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
 
   product      Product            @relation(fields: [product_id], references: [product_id])
   media        Media[]
@@ -169,7 +174,7 @@ enum CollectionKind {
 
 // Franquia/universo (Star Wars, Marvel) e curadoria manual ("Novos Drops") — mesma entidade.
 model Collection {
-  collection_id String         @id @default(uuid(7)) @db.Char(36)
+  collection_id String         @id @default(uuid(7)) @db.Uuid
   name          String         @db.VarChar(255)
   slug          String         @unique @db.VarChar(255)
   kind          CollectionKind @default(franchise)
@@ -185,9 +190,9 @@ model Collection {
 }
 
 model CollectionProduct {
-  collection_product_id String   @id @default(uuid(7)) @db.Char(36)
-  collection_id         String   @db.Char(36)
-  product_id            String   @db.Char(36)
+  collection_product_id String   @id @default(uuid(7)) @db.Uuid
+  collection_id         String   @db.Uuid
+  product_id            String   @db.Uuid
   position              Int      @default(0)
   created_at            DateTime @default(now())
 
@@ -201,9 +206,9 @@ model CollectionProduct {
 
 // Imagem no bucket, servida via CDN (D10). `sku_id` preenchido = imagem específica da variação.
 model Media {
-  media_id   String   @id @default(uuid(7)) @db.Char(36)
-  product_id String   @db.Char(36)
-  sku_id     String?  @db.Char(36)
+  media_id   String   @id @default(uuid(7)) @db.Uuid
+  product_id String   @db.Uuid
+  sku_id     String?  @db.Uuid
   url        String   @db.VarChar(500)
   alt        String   @db.VarChar(255)
   position   Int      @default(0)
@@ -224,7 +229,7 @@ enum LocationType {
 }
 
 model Location {
-  location_id String       @id @default(uuid(7)) @db.Char(36)
+  location_id String       @id @default(uuid(7)) @db.Uuid
   name        String       @db.VarChar(120)
   type        LocationType @default(warehouse)
   created_at  DateTime     @default(now())
@@ -239,9 +244,9 @@ model Location {
 // Saldo por SKU e local. `on_hand` = físico; `reserved` = comprometido; disponível = on_hand - reserved.
 // CHECK (on_hand >= 0 AND reserved >= 0 AND reserved <= on_hand) vive no SQL da migração (RNF-09).
 model StockLevel {
-  stock_level_id String   @id @default(uuid(7)) @db.Char(36)
-  sku_id         String   @db.Char(36)
-  location_id    String   @db.Char(36)
+  stock_level_id String   @id @default(uuid(7)) @db.Uuid
+  sku_id         String   @db.Uuid
+  location_id    String   @db.Uuid
   on_hand        Int      @default(0)
   reserved       Int      @default(0)
   updated_at     DateTime @updatedAt
@@ -266,15 +271,15 @@ enum StockMovementType {
 // Livro-razão: só recebe inserções. `quantity` é o delta com sinal aplicado à coluna afetada
 // (`on_hand` em inbound/outbound/adjustment/return; `reserved` em reservation/release).
 model StockMovement {
-  stock_movement_id String            @id @default(uuid(7)) @db.Char(36)
-  sku_id            String            @db.Char(36)
-  location_id       String            @db.Char(36)
+  stock_movement_id String            @id @default(uuid(7)) @db.Uuid
+  sku_id            String            @db.Uuid
+  location_id       String            @db.Uuid
   type              StockMovementType
   quantity          Int
   reason            String?           @db.VarChar(255)
   reference_type    String?           @db.VarChar(32)
-  reference_id      String?           @db.Char(36)
-  user_id           String?           @db.Char(36)
+  reference_id      String?           @db.Uuid
+  user_id           String?           @db.Uuid
   created_at        DateTime          @default(now())
 
   sku      Sku      @relation(fields: [sku_id], references: [sku_id])
@@ -295,12 +300,12 @@ enum StockReservationStatus {
 
 // Só o desenho na F1; o checkout que cria a reserva é da F3 (RF-EST-03).
 model StockReservation {
-  stock_reservation_id String                 @id @default(uuid(7)) @db.Char(36)
-  sku_id               String                 @db.Char(36)
-  location_id          String                 @db.Char(36)
+  stock_reservation_id String                 @id @default(uuid(7)) @db.Uuid
+  sku_id               String                 @db.Uuid
+  location_id          String                 @db.Uuid
   quantity             Int
-  checkout_id          String?                @db.Char(36)
-  order_id             String?                @db.Char(36)
+  checkout_id          String?                @db.Uuid
+  order_id             String?                @db.Uuid
   status               StockReservationStatus @default(active)
   expires_at           DateTime
   idempotency_key      String                 @unique @db.VarChar(128)
@@ -317,7 +322,7 @@ model StockReservation {
 
 // Canais: site, ml, shopee. Credenciais cifradas entram na F5.
 model Channel {
-  channel_id            String   @id @default(uuid(7)) @db.Char(36)
+  channel_id            String   @id @default(uuid(7)) @db.Uuid
   code                  String   @unique @db.VarChar(32)
   name                  String   @db.VarChar(64)
   is_active             Boolean  @default(true)
@@ -331,9 +336,9 @@ model Channel {
 
 // Preço por SKU, canal e vigência. O vigente é o de maior `starts_at` <= agora e sem `ends_at` vencido.
 model Price {
-  price_id         String    @id @default(uuid(7)) @db.Char(36)
-  sku_id           String    @db.Char(36)
-  channel_id       String    @db.Char(36)
+  price_id         String    @id @default(uuid(7)) @db.Uuid
+  sku_id           String    @db.Uuid
+  channel_id       String    @db.Uuid
   price_cents      Int
   compare_at_cents Int? // valor "de" (RF-PRE-02, F3)
   starts_at        DateTime  @default(now())
