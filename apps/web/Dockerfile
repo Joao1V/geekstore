@@ -33,8 +33,14 @@ COPY --from=pruner /app/out/full/ .
 ARG APP_MODE=full
 ARG BASE_PATH=""
 ARG NEXT_PUBLIC_API_URL=""
+# URL da API na rede interna (ex.: http://geekstore-api:3333). O `rewrite` de /api/* do next.config.ts
+# é resolvido NO BUILD e gravado no routes-manifest: sem este build-arg o browser chamaria /api/* no
+# próprio domínio do web e receberia 404. No Dokploy, defina como Build Arg e também como variável
+# de ambiente (o servidor do Next a lê em runtime para o prefetch em RSC).
+ARG API_INTERNAL_URL=""
 ENV BASE_PATH=$BASE_PATH
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV API_INTERNAL_URL=$API_INTERNAL_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN if [ "$APP_MODE" = "store" ]; then \

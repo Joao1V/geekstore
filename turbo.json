@@ -5,7 +5,7 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**", "generated/**"],
-      "env": ["DATABASE_URL"]
+      "env": ["DATABASE_URL", "API_INTERNAL_URL", "BASE_PATH"]
     },
     "dev": {
       "dependsOn": ["^build"],
