@@ -19,4 +19,4 @@ const adapter = new PrismaMariaDb({
 });
 
 export const prisma = new PrismaClient({ adapter });
-export { PrismaClient } from '../generated/client/index.js';
+export { Prisma, PrismaClient } from '../generated/client/index.js';

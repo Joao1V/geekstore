@@ -8,8 +8,9 @@
   "scripts": {
     "build": "prisma generate && tsc",
     "generate": "prisma generate",
-    "typecheck": "tsc --noEmit",
-    "seed": "tsx prisma/seed.ts"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.seed.json",
+    "seed": "tsx prisma/seed.ts",
+    "seed:catalog": "tsx prisma/seed-catalog.ts"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "7.10.0",

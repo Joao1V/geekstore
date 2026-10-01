@@ -1,0 +1,32 @@
+import type { SeedCategory } from './types';
+
+// Espelha a árvore da loja atual (paridade de URL com a Tray). Ordem: o pai vem antes dos filhos.
+export const categories: SeedCategory[] = [
+  { slug: 'jogos', name: 'Jogos', parent: null, featured: true },
+  { slug: 'jogos-de-tabuleiro', name: 'Jogos de Tabuleiro', parent: 'jogos', featured: true },
+  { slug: 'jogosdecartas', name: 'Jogos de Cartas', parent: 'jogos', featured: true },
+  { slug: 'dados', name: 'Dados e RPG', parent: 'jogos' },
+  { slug: 'card-games', name: 'Card Games', parent: null, featured: true },
+  { slug: 'magic-the-gathering', name: 'Magic: The Gathering', parent: 'card-games' },
+  { slug: 'yu-gi-oh', name: 'Yu-Gi-Oh!', parent: 'card-games' },
+  { slug: 'dragon-ball-super', name: 'Dragon Ball Super Card Game', parent: 'card-games' },
+  { slug: 'acessorios-card-game', name: 'Acessórios para Card Games', parent: 'card-games' },
+  { slug: 'lego', name: 'LEGO', parent: null, featured: true },
+  { slug: 'lego-one-piece', name: 'LEGO One Piece', parent: 'lego' },
+  { slug: 'lego-classic', name: 'LEGO Classic', parent: 'lego' },
+  { slug: 'lego-technic', name: 'LEGO Technic', parent: 'lego' },
+  { slug: 'lego-icons', name: 'LEGO Icons', parent: 'lego' },
+  { slug: 'colecionaveis', name: 'Colecionáveis', parent: null, featured: true },
+  { slug: 'funko-pop', name: 'Funko Pop', parent: 'colecionaveis' },
+  { slug: 'fandom-box', name: 'Fandom Box', parent: 'colecionaveis' },
+  { slug: 'mangas-hq-s', name: 'Mangás & HQs', parent: null, featured: true },
+  { slug: 'mangas', name: 'Mangás', parent: 'mangas-hq-s' },
+  { slug: 'vestuario', name: 'Vestuário', parent: null },
+  { slug: 'camisetas', name: 'Camisetas', parent: 'vestuario' },
+  { slug: 'pantufas', name: 'Pantufas', parent: 'vestuario' },
+  { slug: 'utensilios-de-bebida', name: 'Utensílios de Bebida', parent: null },
+  { slug: 'canecas', name: 'Canecas', parent: 'utensilios-de-bebida' },
+  { slug: 'copos', name: 'Copos', parent: 'utensilios-de-bebida' },
+  { slug: 'garrafas', name: 'Garrafas', parent: 'utensilios-de-bebida' },
+  { slug: 'acessorios', name: 'Acessórios', parent: null },
+];
