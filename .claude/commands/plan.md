@@ -144,7 +144,7 @@ Assistant:
 ## Implementation Phases
 
 ### Phase 1: Database Schema (packages/db)
-- Add `stock_alert_subscription` table: `stock_alert_subscription_id` (UUID v7 CHAR(36)),
+- Add `stock_alert_subscription` table: `stock_alert_subscription_id` (UUID v7, `@db.Uuid`),
   `sku_id`, `email`, `notified_at` (nullable), `created_at`
 - Unique index on (`sku_id`, `email`); index on `sku_id`
 - Versioned Prisma migration (never edit an applied one)

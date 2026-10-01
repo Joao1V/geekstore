@@ -128,11 +128,12 @@ export async function getProductOrThrow(id: string) {
 }
 ```
 
+**Já existe:** o mapeamento de erros do Prisma (`core/_errors/map-prisma-error.ts`, ligado ao
+`errorHandler`): `P2002` (unique) e FK viram 409, `P2025` vira 404. Serviço novo não precisa tratar
+isso; lance `ConflictError`/`NotFoundError` só para regra de negócio.
+
 **Não adicionado ainda de propósito (YAGNI — adicionar quando a dependência existir de verdade,
 não antes):**
-- Mapeamento de erro do Prisma (`Prisma.PrismaClientKnownRequestError` etc.) — só faz sentido
-  quando algum módulo realmente importar `@geekstore/db`. Quando isso acontecer, adicionar um `mapPrismaError` em
-  `global-error-handler.ts` (erros do driver MySQL/MariaDB: `P2002` unique, `P2025` not found etc.).
 - Captura em Sentry/BetterStack — GeekStore ainda não decidiu ferramenta de observabilidade. Não importar `@sentry/node` especulativamente.
 - Handling de 429 (rate limit) — só faz sentido depois que `@fastify/rate-limit` for registrado.
 

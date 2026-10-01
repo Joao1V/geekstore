@@ -40,7 +40,7 @@ apps/api/src/modules/auth/auth.service.ts (business logic)
 apps/api/src/modules/auth/auth.routes.ts (HTTP layer)
 
 ## Dependencies
-- MySQL 8 (primary data store, Prisma)
+- PostgreSQL 18 (primary data store, Prisma)
 - Redis (BullMQ queues, rate limiting)
 - Vindi (payments, from F3)
 ```

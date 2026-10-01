@@ -8,10 +8,10 @@ Requisitos, módulos, modelo de dados e plano por fases: @docs/SPEC.md. Consulte
 
 Monorepo pnpm + Turborepo:
 
-- `apps/api`: Fastify, TypeScript, Prisma, MySQL 8, JWT. Única dona das regras de negócio.
+- `apps/api`: Fastify, TypeScript, Prisma, PostgreSQL 18, JWT. Única dona das regras de negócio.
 - `apps/web`: Next (App Router), HeroUI, Zustand, React Query. Loja e admin no mesmo app, separados por `APP_MODE`.
 - `packages/shared`: schemas Zod e tipos usados pela API e pelo web.
-- `packages/db`: schema Prisma e client (MySQL). Só a `apps/api` importa daqui.
+- `packages/db`: schema Prisma e client (PostgreSQL). Só a `apps/api` importa daqui.
 - `packages/config`: tsconfig. Lint e format com Biome (`biome.json` na raiz).
 
 A base Next existente (tema da Geek Store) é o ponto de partida do `apps/web`. Adequá-la ao padrão e às skills do projeto faz parte da F0.
@@ -57,13 +57,14 @@ Infra: Dokploy num VPS, Traefik, Cloudflare. Fila BullMQ + Redis. Busca Meilisea
 
 ## Convenções de banco
 
-- Chave primária de cada tabela: `{table_name}_id`, nunca `id` genérico (ex.: `sku_id`, `order_id`). Tipo UUID v7 em `CHAR(36)` (`@db.Char(36)`), nunca int sequencial. Nome da tabela em snake_case singular via `@@map`. Detalhes em `.claude/skills/db-conventions/SKILL.md`.
+- Chave primária de cada tabela: `{table_name}_id`, nunca `id` genérico (ex.: `sku_id`, `order_id`). Tipo UUID v7 nativo (`@db.Uuid`), nunca int sequencial. Nome da tabela em snake_case singular via `@@map`. SQL cru (`$queryRaw`/`$executeRaw`) tem regras próprias do PostgreSQL: `::uuid` nos ids, `"user"` entre aspas, busca com `unaccent`. Detalhes em `.claude/skills/db-conventions/SKILL.md`.
+- Itens vindos de outro sistema (ERP) guardam o código de origem em `legacy_code` (único) e o restante da linha em `legacy_data`; a importação é sempre pela `legacy_code`, para ser repetível.
 
 ## Como trabalhar
 
 - Referência da API: antes de assumir o formato de um payload, leia `docs/api/README.md` (por recurso, com as regras de negócio). É gerada da spec da `apps/api` (`/documentation/json`) pelo comando `/openapi-docs`; não edite à mão. Se o front precisa de algo que não está lá, é pedido ao backend.
 - Antes de implementar um módulo, leia a seção dele no @docs/SPEC.md e o critério de saída da fase.
 - Fase atual: F1. Atualize esta linha quando mudar de fase.
-- Comandos (raiz): `pnpm dev`, `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm lint:fix`, `pnpm format`. Por app: `pnpm --filter @geekstore/db generate` (Prisma client). Testes: preencher quando o primeiro existir.
-- Banco local: `docker compose up -d` (MySQL 8.4, porta 3306). Copie `packages/db/.env.example` para `packages/db/.env`.
+- Comandos (raiz): `pnpm dev`, `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm lint:fix`, `pnpm format`. Por app: `pnpm --filter @geekstore/db generate` (Prisma client). Testes: `pnpm test` (unitários); integração com banco real em `apps/api`: `pnpm test:integration` (precisa do PostgreSQL no ar e das migrações aplicadas: `pnpm --filter @geekstore/db exec prisma migrate deploy`).
+- Banco local: `docker compose up -d` (PostgreSQL 18, porta 5434; as portas 5432/5433 costumam estar ocupadas por outros projetos). Copie `packages/db/.env.example` para `packages/db/.env`.
 - Não crie documentação além da pedida.
