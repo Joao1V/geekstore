@@ -84,6 +84,32 @@ warning; only visible by inspecting the rendered HTML). Verified with an isolate
 `renderToStaticMarkup` smoke test (not committed) rather than a full page — see "Validating a
 new `Field*` component" below for why.
 
+## `FieldAutocomplete` — seleção única digitável
+
+`apps/web/components/ui/field-autocomplete.tsx`. Mesmo contrato do `FieldSelect` (`field`,
+`fieldState`, `options`), mas escreve-se no próprio campo e a lista filtra conforme o texto — o
+comportamento do Autocomplete do HeroUI v2. No v3 isso é o **`ComboBox`** (`ComboBox.InputGroup` +
+`Input` + `ComboBox.Trigger`), não o `Autocomplete` do v3, que põe um campo de busca DENTRO do
+popover. Use no lugar do `FieldSelect` quando a lista for longa ou o usuário precisar procurar
+(categorias, clientes, SKUs). O valor do formulário é `string | null`; apagar o texto limpa a
+seleção (`null`), o que serve para filtros ("Todas").
+
+Diferenças do `Select` que importam: o `ComboBox` usa `selectedKey`/`onSelectionChange` (não
+`value`/`onChange`), o placeholder vai no `Input`, e a caixa visual é o próprio `Input` (o
+`InputGroup` só posiciona a seta). Por isso o `field-input` vai no `Input` com `pe-8!`, que reserva
+o espaço da seta.
+
+`FieldSelect` e `FieldAutocomplete` compartilham `field-options.tsx` (`FieldSelectOption` e
+`renderFieldOptions`): `group` agrupa a opção sob um cabeçalho. O filtro e o texto mostrado no campo
+depois de escolher vêm de `textValue` (padrão: o `label`), então ponha em `textValue` o contexto que
+deve ser pesquisável, como o caminho "Jogos › Jogos de Tabuleiro", e deixe o `label` curto para a
+lista. Não use o `label` para isso: o texto do campo passaria a ser o `label`.
+
+Para uma lista que se repete pelo admin, embrulhe o `FieldAutocomplete` num componente de domínio
+que busca os dados sozinho, em vez de repetir o mapeamento de opções em cada tela — referência:
+`modules/admin/categories/category-autocomplete.tsx` (`CategoryAutocomplete`, usado no filtro e no
+formulário de produto e no "categoria pai"). O `<Controller>` continua no JSX do formulário.
+
 ## Reference implementations (reread these, don't reinvent)
 
 - **`apps/web/modules/admin/admin-login.tsx`** — the canonical case: a form with a real Zod
