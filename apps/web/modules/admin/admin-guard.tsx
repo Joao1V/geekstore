@@ -28,6 +28,11 @@ export function AdminGuard({ children }: { children: ReactNode }) {
     });
   }, [refreshSession, setSession, setStatus, router]);
 
+  // Sessão encerrada em outro ponto (ex.: refresh falhou num 401): volta para o login.
+  useEffect(() => {
+    if (status === 'unauthenticated') router.replace('/admin/entrar/');
+  }, [status, router]);
+
   if (status === 'authenticated') return <>{children}</>;
   return <p className="wrap section">Verificando sessão…</p>;
 }

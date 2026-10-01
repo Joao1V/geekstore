@@ -29,6 +29,8 @@ export function FieldInput<
   minLength,
   maxLength,
   inputMode,
+  placeholder,
+  disabled = false,
 }: {
   field: ControllerRenderProps<TFieldValues, TName>;
   fieldState: ControllerFieldState;
@@ -41,6 +43,8 @@ export function FieldInput<
   minLength?: number;
   maxLength?: number;
   inputMode?: 'text' | 'numeric' | 'tel' | 'email' | 'decimal';
+  placeholder?: string;
+  disabled?: boolean;
 }) {
   return (
     <HeroTextField
@@ -48,6 +52,7 @@ export function FieldInput<
       type={type}
       isRequired={required}
       isInvalid={fieldState.invalid}
+      isDisabled={disabled}
       className="form-field"
     >
       <Label>{label}</Label>
@@ -61,6 +66,7 @@ export function FieldInput<
         minLength={minLength}
         maxLength={maxLength}
         inputMode={inputMode}
+        placeholder={placeholder}
         className="field-input"
       />
       {description && !fieldState.error && <Description>{description}</Description>}

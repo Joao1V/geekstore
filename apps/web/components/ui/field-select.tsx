@@ -8,7 +8,9 @@ import type {
   FieldValues,
 } from 'react-hook-form';
 
-export type FieldSelectOption = { value: string; label: string };
+import { type FieldSelectOption, renderFieldOptions } from './field-options';
+
+export type { FieldSelectOption } from './field-options';
 
 /**
  * Campo de seleção — a parte apresentacional, mesmo contrato do FieldInput (o chamador envolve
@@ -50,15 +52,10 @@ export function FieldSelect<
       <Label>{label}</Label>
       <Select.Trigger ref={field.ref} className="field-input">
         <Select.Value />
+        <Select.Indicator />
       </Select.Trigger>
-      <Select.Popover>
-        <ListBox items={options}>
-          {(option) => (
-            <ListBox.Item id={option.value} textValue={option.label}>
-              {option.label}
-            </ListBox.Item>
-          )}
-        </ListBox>
+      <Select.Popover className="rounded-md">
+        <ListBox>{renderFieldOptions(options)}</ListBox>
       </Select.Popover>
       {description && !fieldState.error && <Description>{description}</Description>}
       <FieldError>{fieldState.error?.message}</FieldError>

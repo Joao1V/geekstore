@@ -58,12 +58,6 @@ function apiBaseUrl(): string {
   return internalUrl;
 }
 
-// O rewrite do Next (trailingSlash: true) só casa `/api/x/`; sem a barra o browser paga um 308.
-// No servidor a chamada vai direto ao Fastify, que não aceita a barra final.
-function withProxyTrailingSlash(path: string): string {
-  return typeof window !== 'undefined' && !path.endsWith('/') ? `${path}/` : path;
-}
-
 function buildUrl(path: string, params?: ApiParams): string {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(params ?? {})) {
@@ -72,7 +66,7 @@ function buildUrl(path: string, params?: ApiParams): string {
     }
   }
   const queryString = query.toString();
-  return `${apiBaseUrl()}${withProxyTrailingSlash(path)}${queryString ? `?${queryString}` : ''}`;
+  return `${apiBaseUrl()}${path}${queryString ? `?${queryString}` : ''}`;
 }
 
 async function readBody(response: Response): Promise<unknown> {
