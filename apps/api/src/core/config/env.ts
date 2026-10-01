@@ -9,6 +9,14 @@ const envSchema = z.object({
     .transform((val) => Number.parseInt(val, 10))
     .pipe(z.number().int().positive()),
   HOST: z.string().default('0.0.0.0'),
+  // Lida pelo pacote @geekstore/db (que não valida): a API falha cedo aqui. Recusa `mysql://` de
+  // propósito, para um ambiente ainda não migrado não subir com o banco errado.
+  DATABASE_URL: z
+    .string()
+    .regex(
+      /^postgres(ql)?:\/\//,
+      'DATABASE_URL deve ser uma URL postgresql://usuario:senha@host:5432/banco'
+    ),
   CORS_ORIGINS: z.string().default(''),
   // Quantos proxies confiáveis existem na frente da API (Next rewrite, Traefik, Cloudflare...).
   // 0 = ninguém: request.ip é o IP da conexão. Errar para mais permite forjar X-Forwarded-For
