@@ -23,6 +23,26 @@ services:
     volumes:
       - geekstore_redis_data:/data
 
+  # Bucket S3-compatível de dev (imagens do catálogo). API em 9100, console em 9101.
+  # A imagem oficial minio/minio saiu do Docker Hub; bitnamilegacy/minio é o MinIO com criação de
+  # bucket por variável. O bucket nasce com leitura pública (equivale à CDN na frente do bucket).
+  minio:
+    image: bitnamilegacy/minio:latest
+    container_name: geekstore-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: geekstore
+      MINIO_ROOT_PASSWORD: geekstore-minio-dev
+      MINIO_DEFAULT_BUCKETS: geekstore-media:public
+      # O navegador faz PUT direto no bucket (URL pré-assinada) a partir de outra origem.
+      MINIO_API_CORS_ALLOW_ORIGIN: '*'
+    ports:
+      - '9100:9000'
+      - '9101:9001'
+    volumes:
+      - geekstore_minio_data:/bitnami/minio/data
+
 volumes:
   geekstore_mysql_data:
   geekstore_redis_data:
+  geekstore_minio_data:

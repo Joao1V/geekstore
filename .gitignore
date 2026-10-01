@@ -31,3 +31,6 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Arquivos de entrada para leitura (exportações do cliente etc.), nunca versionados
+.temp/
