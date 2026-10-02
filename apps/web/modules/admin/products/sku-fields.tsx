@@ -1,48 +1,55 @@
 'use client';
 
-import { Plus, Trash2 } from 'lucide-react';
-import { type Control, Controller, useFieldArray } from 'react-hook-form';
+import type { Attribute, CategoryAttribute } from '@geekstore/shared';
+import { Trash2 } from 'lucide-react';
+import { type Control, Controller } from 'react-hook-form';
 
-import { Action, FieldInput, FieldNumber, FieldSelect } from '@/components/ui';
+import { FieldInput, FieldNumber, FieldSelect } from '@/components/ui';
 import { SKU_STATUS_OPTIONS } from './labels';
-import type { ProductFormValues } from './product-form-schema';
+import { NO_VALUE, type ProductFormValues } from './product-form-schema';
 
 const BRL = { style: 'currency', currency: 'BRL' } as const;
 
-function AttributeRows({ control, index }: { control: Control<ProductFormValues>; index: number }) {
-  const { fields, append, remove } = useFieldArray({ control, name: `skus.${index}.attributes` });
+function AttributeFields({
+  control,
+  index,
+  rules,
+  definitions,
+}: {
+  control: Control<ProductFormValues>;
+  index: number;
+  rules: CategoryAttribute[];
+  definitions: Attribute[];
+}) {
   return (
     <div className="grid gap-3">
-      <p className="text-sm font-extrabold">Atributos (tamanho, cor, edição…)</p>
-      {fields.map((attribute, attributeIndex) => (
-        <div key={attribute.id} className="grid grid-cols-[1fr_1fr_auto] items-start gap-3">
-          <Controller
-            control={control}
-            name={`skus.${index}.attributes.${attributeIndex}.key`}
-            render={({ field, fieldState }) => (
-              <FieldInput field={field} fieldState={fieldState} label="Atributo" required={false} />
-            )}
-          />
-          <Controller
-            control={control}
-            name={`skus.${index}.attributes.${attributeIndex}.value`}
-            render={({ field, fieldState }) => (
-              <FieldInput field={field} fieldState={fieldState} label="Valor" required={false} />
-            )}
-          />
-          <button
-            type="button"
-            aria-label="Remover atributo"
-            className="mt-7 flex size-10 items-center justify-center rounded-lg border border-border"
-            onClick={() => remove(attributeIndex)}
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-      ))}
-      <Action className="action-outline w-max" onPress={() => append({ key: '', value: '' })}>
-        <Plus size={16} /> Adicionar atributo
-      </Action>
+      <p className="text-sm font-extrabold">Variação</p>
+      <div className="grid grid-cols-3 gap-4 max-md:grid-cols-1">
+        {rules.map((rule) => {
+          const values =
+            definitions.find((d) => d.attribute_id === rule.attribute_id)?.values ?? [];
+          const options = [
+            ...(rule.is_required ? [] : [{ value: NO_VALUE, label: 'Nenhum' }]),
+            ...values.map((value) => ({ value: value.code, label: value.label })),
+          ];
+          return (
+            <Controller
+              key={rule.attribute_id}
+              control={control}
+              name={`skus.${index}.attributes.${rule.code}`}
+              render={({ field, fieldState }) => (
+                <FieldSelect
+                  field={{ ...field, value: field.value || (rule.is_required ? '' : NO_VALUE) }}
+                  fieldState={fieldState}
+                  label={rule.name}
+                  required={rule.is_required}
+                  options={options}
+                />
+              )}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -53,9 +60,13 @@ export function SkuFields({
   isExisting,
   canRemove,
   onRemove,
+  rules,
+  definitions,
 }: {
   control: Control<ProductFormValues>;
   index: number;
+  rules: CategoryAttribute[];
+  definitions: Attribute[];
   isExisting: boolean;
   canRemove: boolean;
   onRemove: () => void;
@@ -199,7 +210,9 @@ export function SkuFields({
           )}
         />
       </div>
-      <AttributeRows control={control} index={index} />
+      {rules.length > 0 && (
+        <AttributeFields control={control} index={index} rules={rules} definitions={definitions} />
+      )}
     </fieldset>
   );
 }

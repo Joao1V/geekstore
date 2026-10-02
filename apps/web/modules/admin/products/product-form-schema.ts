@@ -12,6 +12,9 @@ import { z } from 'zod';
 
 import { emptyToNull } from '../lib/format';
 
+// Opção "nenhum" de um atributo opcional (o Select não aceita valor vazio).
+export const NO_VALUE = '__none';
+
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const dimension = z
@@ -20,38 +23,21 @@ const dimension = z
   .positive('Deve ser maior que zero')
   .nullable();
 
-const skuFormSchema = z
-  .object({
-    // null = SKU novo; o `code` de um SKU existente é imutável.
-    sku_id: z.string().nullable(),
-    code: z.string().trim().min(1, 'Informe o código do SKU').max(64, 'No máximo 64 caracteres'),
-    ean: z.string().regex(/^(\d{8,14})?$/, 'EAN/GTIN com 8 a 14 dígitos'),
-    ncm: z.string().regex(/^(\d{8})?$/, 'NCM com 8 dígitos'),
-    weight_g: dimension,
-    length_mm: dimension,
-    width_mm: dimension,
-    height_mm: dimension,
-    cost: z.number().min(0, 'Não pode ser negativo').nullable(),
-    status: skuStatusSchema,
-    attributes: z.array(z.object({ key: z.string(), value: z.string() })),
-  })
-  .superRefine((sku, ctx) => {
-    const keys = sku.attributes
-      .map((attribute) => attribute.key.trim().toLowerCase())
-      .filter(Boolean);
-    if (new Set(keys).size !== keys.length) {
-      ctx.addIssue({ code: 'custom', path: ['attributes'], message: 'Atributo repetido' });
-    }
-    sku.attributes.forEach((attribute, index) => {
-      if (attribute.key.trim() && !attribute.value.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['attributes', index, 'value'],
-          message: 'Informe o valor',
-        });
-      }
-    });
-  });
+const skuFormSchema = z.object({
+  // null = SKU novo; o `code` de um SKU existente é imutável.
+  sku_id: z.string().nullable(),
+  code: z.string().trim().min(1, 'Informe o código do SKU').max(64, 'No máximo 64 caracteres'),
+  ean: z.string().regex(/^(\d{8,14})?$/, 'EAN/GTIN com 8 a 14 dígitos'),
+  ncm: z.string().regex(/^(\d{8})?$/, 'NCM com 8 dígitos'),
+  weight_g: dimension,
+  length_mm: dimension,
+  width_mm: dimension,
+  height_mm: dimension,
+  cost: z.number().min(0, 'Não pode ser negativo').nullable(),
+  status: skuStatusSchema,
+  // código do atributo -> código do valor ({ cor: 'preto' }); vazio = sem valor.
+  attributes: z.record(z.string(), z.string()),
+});
 
 export const productFormSchema = z
   .object({
@@ -97,7 +83,7 @@ export function emptySku(): SkuFormValues {
     height_mm: null,
     cost: null,
     status: 'active',
-    attributes: [],
+    attributes: {},
   };
 }
 
@@ -137,7 +123,7 @@ export function productFormDefaults(product?: ProductDetail): ProductFormValues 
       height_mm: sku.height_mm,
       cost: sku.cost_cents === null ? null : sku.cost_cents / 100,
       status: sku.status,
-      attributes: Object.entries(sku.attributes).map(([key, value]) => ({ key, value })),
+      attributes: sku.attributes,
     })),
   };
 }
@@ -147,9 +133,7 @@ function toSkuUpdateBody(sku: SkuFormValues): SkuUpdateBody {
     ean: emptyToNull(sku.ean),
     ncm: emptyToNull(sku.ncm),
     attributes: Object.fromEntries(
-      sku.attributes
-        .filter((attribute) => attribute.key.trim())
-        .map((attribute) => [attribute.key.trim(), attribute.value.trim()])
+      Object.entries(sku.attributes).filter(([, value]) => value && value !== NO_VALUE)
     ),
     weight_g: sku.weight_g,
     length_mm: sku.length_mm,

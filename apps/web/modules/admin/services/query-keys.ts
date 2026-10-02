@@ -7,6 +7,9 @@ export const adminKeys = {
     ['admin', 'collections', 'products', collectionId] as const,
   products: ['admin', 'products'] as const,
   productList: (params: object) => ['admin', 'products', 'list', params] as const,
+  attributes: ['admin', 'attributes'] as const,
+  categoryAttributes: (categoryId: string) =>
+    ['admin', 'categories', categoryId, 'attributes'] as const,
   productSummary: ['admin', 'products', 'summary'] as const,
   productDetail: (productId: string) => ['admin', 'products', 'detail', productId] as const,
   skuGrid: ['admin', 'sku-grid'] as const,

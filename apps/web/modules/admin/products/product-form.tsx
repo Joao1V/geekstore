@@ -7,7 +7,7 @@ import { Archive, Plus, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { Controller, useFieldArray, useForm } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 
 import { Action, FieldInput, FieldSelect, FieldTextarea } from '@/components/ui';
 import { CategoryAutocomplete } from '../categories/category-autocomplete';
@@ -19,7 +19,11 @@ import {
   useCreateProduct,
   useUpdateProduct,
 } from '../services/catalog/mutations';
-import { collectionsQueryOptions } from '../services/catalog/queries';
+import {
+  attributesQueryOptions,
+  categoryAttributesQueryOptions,
+  collectionsQueryOptions,
+} from '../services/catalog/queries';
 import { Badge } from '../ui/badge';
 import { ConfirmDialog } from '../ui/confirm-dialog';
 import { PRODUCT_STATUS_OPTIONS } from './labels';
@@ -93,6 +97,9 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
     values: defaults,
   });
   const skus = useFieldArray({ control, name: 'skus' });
+  const categoryId = useWatch({ control, name: 'category_id' });
+  const { data: categoryRules } = useQuery(categoryAttributesQueryOptions(categoryId));
+  const { data: definitions } = useQuery(attributesQueryOptions());
 
   const submit = async (values: ProductFormValues) => {
     setFormError('');
@@ -257,8 +264,8 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
             </Action>
           </div>
           <p className="muted text-sm">
-            Produto simples tem 1 SKU; com variação, 1 SKU por combinação de atributos. Preço e
-            estoque são editados na grade de estoque.
+            Produto simples tem 1 SKU; com variação (cor, tamanho…), 1 SKU por combinação. Os campos
+            de variação dependem da categoria. Preço e estoque são editados na grade de estoque.
           </p>
           {skus.fields.map((sku, index) => (
             <SkuFields
@@ -268,6 +275,8 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
               isExisting={Boolean(sku.sku_id)}
               canRemove={!sku.sku_id && skus.fields.length > 1}
               onRemove={() => skus.remove(index)}
+              rules={categoryRules ?? []}
+              definitions={definitions ?? []}
             />
           ))}
           {errors.skus?.message && (

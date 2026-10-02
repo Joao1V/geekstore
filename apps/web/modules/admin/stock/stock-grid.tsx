@@ -8,10 +8,11 @@ import { Fragment, useCallback, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { Action, FieldInput } from '@/components/ui';
+import { describeAttributes } from '../lib/attribute-labels';
 import { getErrorMessage } from '../lib/errors';
 import { useCan } from '../lib/use-can';
 import { nextSort, useUrlState } from '../lib/use-url-state';
-import { skuGridQueryOptions } from '../services/catalog/queries';
+import { attributesQueryOptions, skuGridQueryOptions } from '../services/catalog/queries';
 import { useBulkPriceUpdate } from '../services/pricing/mutations';
 import { useBulkStockUpdate } from '../services/stock/mutations';
 import { locationsQueryOptions } from '../services/stock/queries';
@@ -103,6 +104,7 @@ export function StockGrid() {
     skuGridQueryOptions({ page, page_size: PAGE_SIZE, sort, q: q || undefined })
   );
   const { data: locations = [] } = useQuery(locationsQueryOptions());
+  const { data: definitions } = useQuery(attributesQueryOptions());
   const bulkPrice = useBulkPriceUpdate();
   const bulkStock = useBulkStockUpdate();
 
@@ -185,9 +187,7 @@ export function StockGrid() {
           />
         ),
         cell: ({ row }) => {
-          const attributes = Object.entries(row.original.attributes)
-            .map(([key, value]) => `${key}: ${value}`)
-            .join(' · ');
+          const attributes = describeAttributes(row.original.attributes, definitions);
           return (
             <Td className="min-w-[200px]">
               <div className="flex items-center gap-3">
@@ -333,6 +333,7 @@ export function StockGrid() {
     ],
     [
       edits,
+      definitions,
       sort,
       setParams,
       canPriceWrite,

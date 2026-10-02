@@ -1,5 +1,7 @@
 import type {
+  Attribute,
   Category,
+  CategoryAttribute,
   Collection,
   Product,
   ProductDetail,
@@ -20,6 +22,22 @@ export const categoriesQueryOptions = () =>
   queryOptions({
     queryKey: adminKeys.categories,
     queryFn: () => adminApi.get<Category[]>('/api/catalog/categories'),
+  });
+
+export const attributesQueryOptions = () =>
+  queryOptions({
+    queryKey: adminKeys.attributes,
+    queryFn: () => adminApi.get<Attribute[]>('/api/catalog/attributes'),
+    staleTime: 5 * 60_000,
+  });
+
+/** Atributos que a categoria pede (com os herdados da mãe). Sem categoria, a consulta fica parada. */
+export const categoryAttributesQueryOptions = (categoryId: string) =>
+  queryOptions({
+    queryKey: adminKeys.categoryAttributes(categoryId),
+    queryFn: () =>
+      adminApi.get<CategoryAttribute[]>(`/api/catalog/categories/${categoryId}/attributes`),
+    enabled: Boolean(categoryId),
   });
 
 export const productListQueryOptions = (params: ListParams<ProductListQuery>) =>
