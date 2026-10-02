@@ -1,9 +1,33 @@
 import type { RowDraft } from './plan-item';
 import { COLOR_CODES } from './sku-code';
 
-// Só vestuário tem tamanho no nome de forma confiável (PP, GG, 33/35...). Outros grupos ficam
-// como produto simples até o cliente aprovar estender.
-const VARIANT_GROUPS = new Set(['Vestuário']);
+// Vestuário tem tamanho e numeração no nome (PP, GG, 33/35...). Nos demais grupos só se agrupa
+// quando a palavra que muda é de um tipo conhecido (cor, sabor, medida, tamanho por extenso):
+// "Spy X Family Vol 07" e "Vol 11" são produtos diferentes, não variações.
+const CLOTHING_GROUP = 'Vestuário';
+const FLAVOR_GROUP = 'Alimentos e Bebidas';
+const FLAVORS = new Set([
+  'MORANGO',
+  'UVA',
+  'LARANJA',
+  'CHOCOLATE',
+  'PESSEGO',
+  'LIMAO',
+  'BAUNILHA',
+  'MACA',
+  'MARACUJA',
+  'MANGA',
+  'LEITE',
+  'ORIGINAL',
+  'CHURRASCO',
+  'ABACAXI',
+  'COCO',
+  'CEREJA',
+  'MENTA',
+  'CARAMELO',
+]);
+const NAMED_SIZES = new Set(['A4', 'A5', 'PEQUENO', 'MEDIO', 'GRANDE']);
+const MEASURE = /^\d+(?:[.,]\d+)?(?:G|KG|ML|L|MG)$/i;
 const SIZES = new Set([
   'PP',
   'P',
@@ -29,7 +53,13 @@ const COLORS = Object.keys(COLOR_CODES).sort((a, b) => b.split(' ').length - a.s
 export type ParsedVariant = {
   baseName: string;
   /** `tamanho` (P, GG, idade) e `numeracao` (33/35) são atributos separados. */
-  attributes: { cor?: string; tamanho?: string; numeracao?: string };
+  attributes: {
+    cor?: string;
+    tamanho?: string;
+    numeracao?: string;
+    sabor?: string;
+    medida?: string;
+  };
 };
 
 function isSize(token: string, isKids: boolean): boolean {
@@ -69,10 +99,41 @@ function takeColor(tokens: string[]): { rest: string[]; color?: string } {
   return { rest: tokens };
 }
 
+const titleCase = (word: string): string =>
+  word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+
+/** Fora do vestuário: cor, sabor, medida ("325ML") e tamanho por extenso ("Grande"). */
+function parseGeneric(tokens: string[], groupName: string): ParsedVariant | null {
+  const found: ParsedVariant['attributes'] = {};
+  let rest = tokens;
+
+  const measure = rest.find((token) => MEASURE.test(token));
+  if (measure) {
+    found.medida = measure.toUpperCase();
+    rest = rest.filter((token) => token !== measure);
+  }
+  const named = rest.find((token) => NAMED_SIZES.has(token.toUpperCase()));
+  if (named) {
+    found.tamanho = titleCase(named);
+    rest = rest.filter((token) => token !== named);
+  }
+  const flavor =
+    groupName === FLAVOR_GROUP ? rest.find((token) => FLAVORS.has(token.toUpperCase())) : undefined;
+  if (flavor) {
+    found.sabor = titleCase(flavor);
+    rest = rest.filter((token) => token !== flavor);
+  }
+  const { rest: withoutColor, color } = takeColor(rest);
+  if (color) found.cor = color;
+
+  const baseName = withoutColor.join(' ').trim();
+  return Object.keys(found).length > 0 && baseName ? { baseName, attributes: found } : null;
+}
+
 /** "Camiseta Naruto Kunai Preto GG" -> base "Camiseta Naruto Kunai", cor Preto, tamanho GG. */
 export function parseVariant(name: string, groupName: string): ParsedVariant | null {
-  if (!VARIANT_GROUPS.has(groupName)) return null;
   const tokens = name.replace(/#\d+/g, '').split(/\s+/).filter(Boolean);
+  if (groupName !== CLOTHING_GROUP) return parseGeneric(tokens, groupName);
   const isKids = tokens.some((token) => token.toUpperCase() === 'INF');
   const sizeTokens = tokens.filter((token) => isSize(token, isKids));
   if (sizeTokens.length === 0) return null;
@@ -105,7 +166,7 @@ export type ProductGroup = {
 };
 
 const attributesKey = (attributes: Record<string, string>) =>
-  [attributes.cor, attributes.tamanho, attributes.numeracao]
+  [attributes.cor, attributes.tamanho, attributes.numeracao, attributes.sabor, attributes.medida]
     .map((v) => v ?? '')
     .join('|')
     .toUpperCase();
@@ -135,6 +196,9 @@ export function groupVariants(drafts: RowDraft[]): ProductGroup[] {
     const distinct = new Set(family.members.map((m) => attributesKey(m.attributes)));
     if (family.members.length < 2) {
       singles.push(single(family.members[0]!.draft, false));
+    } else if (!key.startsWith(`${CLOTHING_GROUP}|`) && !sameKinds(family.members)) {
+      // Fora do vestuário, um com cor e outro sem não é variação clara: fica como produtos simples.
+      singles.push(...family.members.map((m) => single(m.draft, false)));
     } else if (distinct.size < family.members.length) {
       singles.push(...family.members.map((m) => single(m.draft, true)));
     } else {
@@ -160,4 +224,10 @@ function single(draft: RowDraft, ambiguous: boolean): ProductGroup {
     members: [{ draft, attributes: {} }],
     ambiguous,
   };
+}
+
+const kindsOf = (attributes: Record<string, string>) => Object.keys(attributes).sort().join(',');
+
+function sameKinds(members: ProductGroup['members']): boolean {
+  return new Set(members.map((m) => kindsOf(m.attributes))).size === 1;
 }

@@ -131,3 +131,42 @@ describe('chunkByProduct', () => {
     expect(chunkByProduct([], 500)).toEqual([]);
   });
 });
+
+describe('buildPlan: variations outside clothing', () => {
+  const item = (codigo: number, nome: string, grupo = 'BRINQUEDOS #') =>
+    shirt(codigo, nome, { grupo, subgrupo: 'GERAL #' });
+
+  it('groups colour variants of a toy into one product', () => {
+    const { items } = plan([item(60, 'DADO RPG PRETO'), item(61, 'DADO RPG VERMELHO')]);
+    expect(new Set(items.map((i) => i.productKey)).size).toBe(1);
+    expect(items.map((i) => i.attributes)).toEqual([{ cor: 'Preto' }, { cor: 'Vermelho' }]);
+    expect(items.map((i) => i.skuCode)).toEqual(['DAD-RPG-PRE', 'DAD-RPG-VML']);
+  });
+
+  it('groups flavour and weight/volume variants of a food', () => {
+    const { items } = plan([
+      item(70, 'REFRIGERANTE GEEK UVA 2L', 'ALIMENTOS E BEBIDAS #'),
+      item(71, 'REFRIGERANTE GEEK MORANGO 2L', 'ALIMENTOS E BEBIDAS #'),
+    ]);
+    expect(items.map((i) => i.attributes)).toEqual([
+      { sabor: 'Uva', medida: '2L' },
+      { sabor: 'Morango', medida: '2L' },
+    ]);
+    expect(items[0]?.name).toBe('Refrigerante Geek');
+  });
+
+  it('does NOT group different products that only look alike (manga volumes, characters)', () => {
+    const { items } = plan([
+      item(80, 'MANGA SPY X FAMILY VOL 07', 'LITERATURA #'),
+      item(81, 'MANGA SPY X FAMILY VOL 11', 'LITERATURA #'),
+      item(82, 'CANECA RICK E MORTY IMORTAL 325ML', 'COLECIONÁVEL #'),
+      item(83, 'CANECA RICK E MORTY PROPOSITO 325ML', 'COLECIONÁVEL #'),
+    ]);
+    expect(new Set(items.map((i) => i.productKey)).size).toBe(4);
+  });
+
+  it('keeps items apart when only some of them carry a colour', () => {
+    const { items } = plan([item(90, 'PORTA LAPIS ROSA'), item(91, 'PORTA LAPIS ROSA GRANDE')]);
+    expect(new Set(items.map((i) => i.productKey)).size).toBe(2);
+  });
+});

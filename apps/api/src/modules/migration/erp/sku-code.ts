@@ -67,6 +67,10 @@ export const COLOR_CODES: Record<string, string> = {
   PRATA: 'PRA',
   MARINHO: 'MRN',
   LILAS: 'LIL',
+  TRANSPARENTE: 'TRA',
+  TRANSLUCIDO: 'TRL',
+  MARFIM: 'MAF',
+  GRAFITE: 'GRF',
 };
 
 const sizePart = (size: string): string => size.toUpperCase().replace(/[^A-Z0-9]+/g, '-');
@@ -74,7 +78,13 @@ const sizePart = (size: string): string => size.toUpperCase().replace(/[^A-Z0-9]
 /** "NAR-KUN" + Preto + GG -> "NAR-KUN-PRE-GG". */
 export function variantCode(
   prefix: string,
-  attributes: { cor?: string; tamanho?: string; numeracao?: string }
+  attributes: {
+    cor?: string;
+    tamanho?: string;
+    numeracao?: string;
+    sabor?: string;
+    medida?: string;
+  }
 ): string {
   const color = attributes.cor ? COLOR_CODES[attributes.cor.toUpperCase()] : undefined;
   return [
@@ -82,6 +92,8 @@ export function variantCode(
     color,
     attributes.tamanho ? sizePart(attributes.tamanho) : undefined,
     attributes.numeracao ? sizePart(attributes.numeracao) : undefined,
+    attributes.sabor ? plain(attributes.sabor).slice(0, LETTERS) : undefined,
+    attributes.medida ? sizePart(attributes.medida) : undefined,
   ]
     .filter(Boolean)
     .join('-');
