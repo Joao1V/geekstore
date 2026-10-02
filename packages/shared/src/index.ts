@@ -9,4 +9,5 @@ export * from './money';
 export * from './pricing';
 export * from './rbac';
 export * from './stock';
+export * from './storefront';
 export * from './users';

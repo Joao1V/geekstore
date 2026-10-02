@@ -7,6 +7,7 @@ import { auditRoutes } from '../modules/audit/audit.routes';
 import { catalogRoutes } from '../modules/catalog/catalog.routes';
 import { pricingRoutes } from '../modules/pricing/pricing.routes';
 import { stockRoutes } from '../modules/stock/stock.routes';
+import { storefrontRoutes } from '../modules/storefront/storefront.routes';
 import { usersRoutes } from '../modules/users/users.routes';
 
 /**
@@ -25,6 +26,7 @@ export async function buildTestApp() {
   await app.register(stockRoutes, { prefix: '/api/stock' });
   await app.register(pricingRoutes, { prefix: '/api/pricing' });
   await app.register(usersRoutes, { prefix: '/api/users' });
+  await app.register(storefrontRoutes, { prefix: '/api/store' });
   await app.register(auditRoutes, { prefix: '/api/audit-logs' });
   await app.ready();
   return app;
