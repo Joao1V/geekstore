@@ -1,6 +1,9 @@
 import {
+  attributeBodySchema,
+  attributeCreateBodySchema,
   attributeListResponseSchema,
   attributeParamsSchema,
+  attributeResponseSchema,
   attributeValueBodySchema,
   attributeValueResponseSchema,
   categoryAttributeListResponseSchema,
@@ -42,6 +45,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { requirePermission } from '../../core/hooks';
 import {
   archiveProductController,
+  createAttributeController,
   createAttributeValueController,
   createCategoryController,
   createCollectionController,
@@ -63,6 +67,7 @@ import {
   productSummaryController,
   replaceCollectionProductsController,
   setCategoryAttributesController,
+  updateAttributeController,
   updateCategoryController,
   updateCollectionController,
   updateMediaController,
@@ -143,6 +148,34 @@ export async function catalogRoutes(fastify: FastifyInstance): Promise<void> {
       },
     },
     listAttributesController
+  );
+  app.post(
+    '/attributes',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary: 'Cria um atributo com seus valores',
+        body: attributeCreateBodySchema,
+        response: { 201: attributeResponseSchema },
+      },
+    },
+    createAttributeController
+  );
+  app.put(
+    '/attributes/:attribute_id',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary:
+          'Salva o atributo inteiro: nome, situação e valores na ordem (valor removido só se nenhum SKU o usa)',
+        params: attributeParamsSchema,
+        body: attributeBodySchema,
+        response: { 200: attributeResponseSchema },
+      },
+    },
+    updateAttributeController
   );
   app.post(
     '/attributes/:attribute_id/values',

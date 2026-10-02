@@ -1,6 +1,8 @@
 import { prisma, suffixFor } from '@geekstore/db';
 import type {
   Attribute,
+  AttributeBody,
+  AttributeCreateBody,
   AttributeValue,
   AttributeValueBody,
   CategoryAttribute,
@@ -44,6 +46,152 @@ export async function listAttributes(): Promise<Attribute[]> {
     is_active,
     values,
   }));
+}
+
+type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+async function loadAttribute(db: Tx, id: string): Promise<Attribute> {
+  const row = await db.attribute.findUniqueOrThrow({
+    where: { attribute_id: id },
+    include: { values: { orderBy: [{ position: 'asc' }, { label: 'asc' }], select: valueSelect } },
+  });
+  const { attribute_id, code, name, position, is_active, values } = row;
+  return { attribute_id, code, name, position, is_active, values };
+}
+
+function assertUniqueValues(values: AttributeBody['values']): void {
+  const suffixes = new Set<string>();
+  const codes = new Set<string>();
+  for (const value of values) {
+    const suffix = value.sku_suffix.toUpperCase();
+    const code = slugCode(value.label);
+    if (suffixes.has(suffix)) throw new ConflictError(`Código "${suffix}" repetido na lista.`);
+    if (codes.has(code)) throw new ConflictError(`Valor "${value.label}" repetido na lista.`);
+    suffixes.add(suffix);
+    codes.add(code);
+  }
+}
+
+async function deleteRemovedValues(tx: Tx, attributeId: string, values: AttributeBody['values']) {
+  const keptIds = new Set(
+    values.flatMap((v) => (v.attribute_value_id ? [v.attribute_value_id] : []))
+  );
+  const existing = await tx.attributeValue.findMany({ where: { attribute_id: attributeId } });
+  const unknown = [...keptIds].filter((id) => !existing.some((e) => e.attribute_value_id === id));
+  if (unknown.length > 0) throw new NotFoundError('Valor não encontrado neste atributo.');
+
+  const removed = existing.filter((value) => !keptIds.has(value.attribute_value_id));
+  if (removed.length === 0) return;
+  const removedIds = removed.map((value) => value.attribute_value_id);
+  const inUse = await tx.skuAttributeValue.groupBy({
+    by: ['attribute_value_id'],
+    where: { attribute_value_id: { in: removedIds } },
+    _count: true,
+  });
+  const used = inUse[0];
+  if (used) {
+    const label = removed.find((r) => r.attribute_value_id === used.attribute_value_id)?.label;
+    throw new ConflictError(
+      `"${label}" está em uso por ${used._count} SKU(s). Desative em vez de excluir.`
+    );
+  }
+  await tx.attributeValue.deleteMany({ where: { attribute_value_id: { in: removedIds } } });
+}
+
+/**
+ * Grava a lista de valores na ordem recebida: atualiza os existentes, cria os novos e exclui os
+ * removidos (se nenhum SKU os usa). Os existentes passam antes por um sufixo temporário, para
+ * trocar o código de dois valores entre si não bater no índice único.
+ */
+async function syncValues(tx: Tx, attributeId: string, values: AttributeBody['values']) {
+  assertUniqueValues(values);
+  await deleteRemovedValues(tx, attributeId, values);
+
+  for (const [index, value] of values.entries()) {
+    if (!value.attribute_value_id) continue;
+    await tx.attributeValue.update({
+      where: { attribute_value_id: value.attribute_value_id },
+      data: { sku_suffix: `~${index}` },
+    });
+  }
+  for (const [position, value] of values.entries()) {
+    const data = {
+      label: value.label,
+      sku_suffix: value.sku_suffix.toUpperCase(),
+      color_hex: value.color_hex,
+      is_active: value.is_active,
+      position,
+    };
+    if (value.attribute_value_id) {
+      await tx.attributeValue.update({
+        where: { attribute_value_id: value.attribute_value_id },
+        data,
+      });
+    } else {
+      await tx.attributeValue.create({
+        data: { ...data, attribute_id: attributeId, code: slugCode(value.label) },
+      });
+    }
+  }
+}
+
+export async function createAttribute(
+  actorId: string,
+  body: AttributeCreateBody
+): Promise<Attribute> {
+  return prisma.$transaction(async (tx) => {
+    const code = (body.code ?? slugCode(body.name)).replace(/-/g, '_');
+    if (await tx.attribute.findUnique({ where: { code } })) {
+      throw new ConflictError(`Já existe um atributo "${code}".`);
+    }
+    const last = await tx.attribute.aggregate({ _max: { position: true } });
+    const created = await tx.attribute.create({
+      data: {
+        code,
+        name: body.name,
+        is_active: body.is_active,
+        position: (last._max.position ?? -1) + 1,
+      },
+    });
+    await syncValues(tx, created.attribute_id, body.values);
+    const after = await loadAttribute(tx, created.attribute_id);
+    await writeAuditLog(tx, {
+      userId: actorId,
+      entity: 'attribute',
+      entityId: created.attribute_id,
+      action: 'create',
+      after,
+    });
+    return after;
+  });
+}
+
+export async function updateAttribute(
+  actorId: string,
+  attributeId: string,
+  body: AttributeBody
+): Promise<Attribute> {
+  return prisma.$transaction(async (tx) => {
+    if (!(await tx.attribute.findUnique({ where: { attribute_id: attributeId } }))) {
+      throw new NotFoundError('Atributo não encontrado.');
+    }
+    const before = await loadAttribute(tx, attributeId);
+    await tx.attribute.update({
+      where: { attribute_id: attributeId },
+      data: { name: body.name, is_active: body.is_active },
+    });
+    await syncValues(tx, attributeId, body.values);
+    const after = await loadAttribute(tx, attributeId);
+    await writeAuditLog(tx, {
+      userId: actorId,
+      entity: 'attribute',
+      entityId: attributeId,
+      action: 'update',
+      before,
+      after,
+    });
+    return after;
+  });
 }
 
 export async function createAttributeValue(

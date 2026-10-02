@@ -1,6 +1,9 @@
 'use client';
 
 import type {
+  Attribute,
+  AttributeBody,
+  AttributeCreateBody,
   Category,
   CategoryBody,
   CategoryUpdateBody,
@@ -202,5 +205,24 @@ export function useDeleteMedia() {
   return useMutation({
     mutationFn: (mediaId: string) => adminApi.delete<void>(`${CATALOG}/media/${mediaId}`),
     onSettled: () => queryClient.invalidateQueries({ queryKey: adminKeys.products }),
+  });
+}
+
+// ── Atributos de variação ──────────────────────────────────────────────────────
+export function useCreateAttribute() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: AttributeCreateBody) =>
+      adminApi.post<Attribute>(`${CATALOG}/attributes`, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.attributes }),
+  });
+}
+
+export function useUpdateAttribute() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ attribute_id, body }: { attribute_id: string; body: AttributeBody }) =>
+      adminApi.put<Attribute>(`${CATALOG}/attributes/${attribute_id}`, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.attributes }),
   });
 }

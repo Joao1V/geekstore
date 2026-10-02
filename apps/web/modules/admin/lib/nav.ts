@@ -6,6 +6,7 @@ import {
   type LucideIcon,
   Package,
   ScrollText,
+  SlidersHorizontal,
   Users,
   Warehouse,
 } from 'lucide-react';
@@ -39,6 +40,13 @@ export const ADMIN_NAV: AdminNavItem[] = [
     label: 'Coleções',
     description: 'Franquias e curadorias',
     icon: Layers,
+    permission: 'catalog:read',
+  },
+  {
+    href: '/admin/atributos/',
+    label: 'Atributos',
+    description: 'Cor, tamanho, edição… e o código de SKU de cada valor',
+    icon: SlidersHorizontal,
     permission: 'catalog:read',
   },
   {

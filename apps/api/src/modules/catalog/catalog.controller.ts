@@ -1,4 +1,6 @@
 import type {
+  AttributeBody,
+  AttributeCreateBody,
   AttributeParams,
   AttributeValueBody,
   CategoryAttributesBody,
@@ -21,10 +23,12 @@ import type {
 import type { FastifyReply, FastifyRequest, RouteGenericInterface } from 'fastify';
 
 import {
+  createAttribute,
   createAttributeValue,
   getCategoryAttributes,
   listAttributes,
   setCategoryAttributes,
+  updateAttribute,
 } from './attribute.service';
 import { createCategory, deleteCategory, listCategories, updateCategory } from './category.service';
 import {
@@ -232,5 +236,20 @@ export async function setCategoryAttributesController(
 ) {
   return {
     data: await setCategoryAttributes(request.user.sub, request.params.category_id, request.body),
+  };
+}
+
+export async function createAttributeController(
+  request: Req<{ Body: AttributeCreateBody }>,
+  reply: FastifyReply
+) {
+  return reply.code(201).send({ data: await createAttribute(request.user.sub, request.body) });
+}
+
+export async function updateAttributeController(
+  request: Req<{ Params: AttributeParams; Body: AttributeBody }>
+) {
+  return {
+    data: await updateAttribute(request.user.sub, request.params.attribute_id, request.body),
   };
 }

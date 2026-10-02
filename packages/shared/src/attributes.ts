@@ -31,6 +31,43 @@ export const attributeSchema = z.object({
 export type Attribute = z.infer<typeof attributeSchema>;
 export const attributeListResponseSchema = dataResponse(z.array(attributeSchema));
 
+const hexSchema = z
+  .string()
+  .regex(/^#[0-9A-Fa-f]{6}$/, 'cor em hexadecimal, ex.: #1F5FBF')
+  .nullable();
+
+/** Um valor na tela de edição do atributo: sem `attribute_value_id` = valor novo. */
+export const attributeValueInputSchema = z.object({
+  attribute_value_id: z.string().uuid().optional(),
+  label: z.string().trim().min(1, 'Informe o nome').max(80),
+  sku_suffix: z
+    .string()
+    .trim()
+    .min(1, 'Informe o código')
+    .max(12)
+    .regex(/^[A-Za-z0-9][A-Za-z0-9-]*$/, 'Só letras, números e hífen'),
+  color_hex: hexSchema.default(null),
+  is_active: z.boolean().default(true),
+});
+export type AttributeValueInput = z.infer<typeof attributeValueInputSchema>;
+
+/**
+ * Atributo inteiro de uma vez (nome, situação e a lista de valores NA ORDEM de exibição). Valores
+ * que sumiram da lista são excluídos se nenhum SKU os usa; senão a operação é recusada.
+ */
+export const attributeBodySchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  is_active: z.boolean().default(true),
+  values: z.array(attributeValueInputSchema).max(200),
+});
+export type AttributeBody = z.infer<typeof attributeBodySchema>;
+
+export const attributeCreateBodySchema = attributeBodySchema.extend({
+  code: codeSchema.optional(),
+});
+export type AttributeCreateBody = z.infer<typeof attributeCreateBodySchema>;
+export const attributeResponseSchema = dataResponse(attributeSchema);
+
 export const attributeParamsSchema = z.object({ attribute_id: z.string().uuid() });
 export type AttributeParams = z.infer<typeof attributeParamsSchema>;
 
