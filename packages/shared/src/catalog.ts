@@ -226,16 +226,45 @@ export const productParamsSchema = z.object({ product_id: z.string().uuid() });
 export type ProductParams = z.infer<typeof productParamsSchema>;
 
 export const productSortFields = ['name', 'created_at', 'updated_at'] as const;
+/** Atalhos da listagem: produtos que pedem atenção (sem foto, ou sem nenhum saldo disponível). */
+export const productIssueSchema = z.enum(['no_photo', 'out_of_stock']);
+export type ProductIssue = z.infer<typeof productIssueSchema>;
+
 export const productListQuerySchema = paginationQuerySchema.extend({
   q: z.string().min(1).optional(),
   status: productStatusSchema.optional(),
   category_id: z.string().uuid().optional(),
+  issue: productIssueSchema.optional(),
 });
 export type ProductListQuery = z.infer<typeof productListQuerySchema>;
 
-/** Item da listagem: o produto mais a primeira foto, para a lista não buscar mídia linha a linha. */
-export const productListItemSchema = productSchema.extend({ thumbnail_url: z.string().nullable() });
+/**
+ * Item da listagem: o produto com o que se confere num relance (primeira foto, códigos de SKU,
+ * preço vigente do site e saldo disponível), já agregado, para a tela não buscar nada linha a linha.
+ */
+export const productListItemSchema = productSchema.extend({
+  thumbnail_url: z.string().nullable(),
+  sku_count: z.number().int(),
+  /** Até 3 códigos, em ordem alfabética; `sku_count` diz quantos existem no total. */
+  sku_codes: z.array(z.string()),
+  price_min_cents: z.number().int().nullable(),
+  price_max_cents: z.number().int().nullable(),
+  /** Disponível = físico - reservado, somando os SKUs e os locais vendáveis (quarentena fora). */
+  available: z.number().int(),
+});
 export type ProductListItem = z.infer<typeof productListItemSchema>;
+
+/** Totais para os atalhos da listagem. */
+export const productSummarySchema = z.object({
+  total: z.number().int(),
+  active: z.number().int(),
+  draft: z.number().int(),
+  archived: z.number().int(),
+  no_photo: z.number().int(),
+  out_of_stock: z.number().int(),
+});
+export type ProductSummary = z.infer<typeof productSummarySchema>;
+export const productSummaryResponseSchema = dataResponse(productSummarySchema);
 
 export const productListResponseSchema = paginatedResponse(productListItemSchema);
 export const productDetailResponseSchema = dataResponse(productDetailSchema);

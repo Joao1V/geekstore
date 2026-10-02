@@ -13,7 +13,8 @@ import { BadRequestError, ConflictError, NotFoundError } from '../../core/_error
 import { writeAuditLog } from '../../core/audit';
 import { buildMeta, parseSort, skipTake } from '../../core/http/pagination';
 import { toProductDetail, toProductListItem } from './catalog.mappers';
-import { searchProductIds } from './product-search';
+import { findProductIds, needsSqlQuery } from './product-list-query';
+import { EMPTY_STATS, loadListStats } from './product-list-stats';
 
 const detailInclude = {
   skus: { orderBy: { code: 'asc' } },
@@ -26,6 +27,10 @@ const thumbnailInclude = {
   media: { orderBy: [{ position: 'asc' }, { created_at: 'asc' }], take: 1, select: { url: true } },
 } satisfies Prisma.ProductInclude;
 
+type ListRow = Prisma.ProductGetPayload<{ include: typeof thumbnailInclude }>;
+type ListSort = Parameters<typeof findProductIds>[1];
+type ListWindow = Parameters<typeof findProductIds>[2];
+
 function buildWhere(query: ProductListQuery): Prisma.ProductWhereInput {
   const { status, category_id } = query;
   return {
@@ -34,44 +39,46 @@ function buildWhere(query: ProductListQuery): Prisma.ProductWhereInput {
   };
 }
 
-export async function listProducts(query: ProductListQuery): Promise<Paginated<ProductListItem>> {
-  const { field, direction } = parseSort(query.sort, productSortFields, {
-    field: 'created_at',
-    direction: 'desc',
-  });
-  const window = skipTake(query.page, query.page_size);
-
-  if (query.q) return listProductsBySearch({ ...query, q: query.q }, { field, direction }, window);
-
+async function listWithPrisma(query: ProductListQuery, sort: ListSort, window: ListWindow) {
   const where = buildWhere(query);
   const [rows, total] = await Promise.all([
     prisma.product.findMany({
       where,
-      orderBy: [{ [field]: direction }, { product_id: 'asc' }],
+      orderBy: [{ [sort.field]: sort.direction }, { product_id: 'asc' }],
       include: thumbnailInclude,
       ...window,
     }),
     prisma.product.count({ where }),
   ]);
-
-  return { data: rows.map(toProductListItem), meta: buildMeta(query.page, query.page_size, total) };
+  return { rows, total };
 }
 
-/** Com texto de busca a ordem e a janela vêm do SQL (`unaccent`); as linhas seguem a ordem dos ids. */
-async function listProductsBySearch(
-  query: ProductListQuery & { q: string },
-  sort: Parameters<typeof searchProductIds>[1],
-  window: Parameters<typeof searchProductIds>[2]
-): Promise<Paginated<ProductListItem>> {
-  const { ids, total } = await searchProductIds(query, sort, window);
-  const rows = await prisma.product.findMany({
+/** Com busca ou atalho a ordem e a janela vêm do SQL; as linhas seguem a ordem dos ids. */
+async function listWithSql(query: ProductListQuery, sort: ListSort, window: ListWindow) {
+  const { ids, total } = await findProductIds(query, sort, window);
+  const found = await prisma.product.findMany({
     where: { product_id: { in: ids } },
     include: thumbnailInclude,
   });
-  const byId = new Map(rows.map((row) => [row.product_id, row]));
-  const ordered = ids.flatMap((id) => byId.get(id) ?? []);
+  const byId = new Map(found.map((row) => [row.product_id, row]));
+  return { rows: ids.flatMap((id) => byId.get(id) ?? []) as ListRow[], total };
+}
+
+export async function listProducts(query: ProductListQuery): Promise<Paginated<ProductListItem>> {
+  const { field, direction } = parseSort(query.sort, productSortFields, {
+    field: 'created_at',
+    direction: 'desc',
+  });
+  const sort = { field, direction };
+  const window = skipTake(query.page, query.page_size);
+
+  const { rows, total } = needsSqlQuery(query)
+    ? await listWithSql(query, sort, window)
+    : await listWithPrisma(query, sort, window);
+  const stats = await loadListStats(rows.map((row) => row.product_id));
+
   return {
-    data: ordered.map(toProductListItem),
+    data: rows.map((row) => toProductListItem(row, stats.get(row.product_id) ?? EMPTY_STATS)),
     meta: buildMeta(query.page, query.page_size, total),
   };
 }

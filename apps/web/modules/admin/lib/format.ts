@@ -9,6 +9,13 @@ export function formatDateTime(iso: string): string {
   return dateTimeFormatter.format(new Date(iso));
 }
 
+const integerFormatter = new Intl.NumberFormat('pt-BR');
+
+/** 26095 -> "26.095". */
+export function formatInteger(value: number): string {
+  return integerFormatter.format(value);
+}
+
 export function slugify(text: string): string {
   return text
     .normalize('NFD')

@@ -35,6 +35,7 @@ import {
   listProducts,
   updateProduct,
 } from './product.service';
+import { getProductSummary } from './product-summary';
 import type { SkuUpdateRequest } from './schemas/sku-update';
 import { createSku, updateSku } from './sku.service';
 import { listSkuGrid } from './sku-grid.service';
@@ -71,6 +72,10 @@ export async function deleteCategoryController(
 // ── Produtos ───────────────────────────────────────────────────────────────────
 export async function listProductsController(request: Req<{ Querystring: ProductListQuery }>) {
   return listProducts(request.query);
+}
+
+export async function productSummaryController() {
+  return { data: await getProductSummary() };
 }
 
 export async function createProductController(

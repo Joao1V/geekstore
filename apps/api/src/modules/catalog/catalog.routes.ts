@@ -22,6 +22,7 @@ import {
   productListQuerySchema,
   productListResponseSchema,
   productParamsSchema,
+  productSummaryResponseSchema,
   productUpdateBodySchema,
   skuBodySchema,
   skuGridQuerySchema,
@@ -50,6 +51,7 @@ import {
   listCollectionsController,
   listProductsController,
   listSkuGridController,
+  productSummaryController,
   replaceCollectionProductsController,
   updateCategoryController,
   updateCollectionController,
@@ -132,6 +134,18 @@ export async function catalogRoutes(fastify: FastifyInstance): Promise<void> {
       },
     },
     listProductsController
+  );
+  app.get(
+    '/products/summary',
+    {
+      ...read,
+      schema: {
+        tags,
+        summary: 'Totais para os atalhos da listagem de produtos',
+        response: { 200: productSummaryResponseSchema },
+      },
+    },
+    productSummaryController
   );
   app.post(
     '/products',

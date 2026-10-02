@@ -5,6 +5,7 @@ import type {
   ProductDetail,
   ProductListItem,
   ProductListQuery,
+  ProductSummary,
   SkuGridQuery,
   SkuGridRow,
 } from '@geekstore/shared';
@@ -25,6 +26,13 @@ export const productListQueryOptions = (params: ListParams<ProductListQuery>) =>
   queryOptions({
     queryKey: adminKeys.productList(params),
     queryFn: () => adminApi.paginate<ProductListItem>('/api/catalog/products', params),
+  });
+
+export const productSummaryQueryOptions = () =>
+  queryOptions({
+    queryKey: adminKeys.productSummary,
+    queryFn: () => adminApi.get<ProductSummary>('/api/catalog/products/summary'),
+    staleTime: 30_000,
   });
 
 export const productDetailQueryOptions = (productId: string) =>

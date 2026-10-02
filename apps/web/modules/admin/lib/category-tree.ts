@@ -77,3 +77,19 @@ export function groupedCategoryOptions(
     return [...own, ...optionsBelow(root.children, [], group, isAllowed)];
   });
 }
+
+export type CategoryLabel = { name: string; parent: string | null };
+
+/** `category_id -> { nome, nome do pai }`: a lista mostra "Brinquedos › Jogos de Tabuleiro". */
+export function categoryLabels(categories: Category[]): Map<string, CategoryLabel> {
+  const nameById = new Map(categories.map((category) => [category.category_id, category.name]));
+  return new Map(
+    categories.map((category) => [
+      category.category_id,
+      {
+        name: category.name,
+        parent: category.parent_id ? (nameById.get(category.parent_id) ?? null) : null,
+      },
+    ])
+  );
+}

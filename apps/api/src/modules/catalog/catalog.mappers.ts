@@ -7,6 +7,7 @@ import type {
   ProductListItem,
   Sku,
 } from '@geekstore/shared';
+import type { ProductListStats } from './product-list-stats';
 
 type CategoryRow = Category & Record<string, unknown>;
 type SkuRow = Omit<Sku, 'attributes'> & { attributes: unknown };
@@ -86,9 +87,20 @@ export function toProduct(row: ProductRow): Product {
   };
 }
 
-/** Produto da listagem: leva a URL da primeira foto (a query já traz só a primeira, por posição). */
-export function toProductListItem(row: ProductRow & { media: { url: string }[] }): ProductListItem {
-  return { ...toProduct(row), thumbnail_url: row.media[0]?.url ?? null };
+/** Produto da listagem: a primeira foto (a query já traz só ela, por posição) e os números agregados. */
+export function toProductListItem(
+  row: ProductRow & { media: { url: string }[] },
+  stats: ProductListStats
+): ProductListItem {
+  return {
+    ...toProduct(row),
+    thumbnail_url: row.media[0]?.url ?? null,
+    sku_count: stats.skuCount,
+    sku_codes: stats.skuCodes,
+    price_min_cents: stats.priceMinCents,
+    price_max_cents: stats.priceMaxCents,
+    available: stats.available,
+  };
 }
 
 export function toProductDetail(
