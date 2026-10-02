@@ -46,7 +46,7 @@ export async function createCatalogFixture(): Promise<CatalogFixture> {
       slug: `it-produto-${suffix}`,
       category_id: category.category_id,
       status: 'active',
-      skus: { create: [{ code: skuCode, attributes: {} }] },
+      skus: { create: [{ code: skuCode }] },
     },
     include: { skus: true },
   });
@@ -81,6 +81,13 @@ export async function cleanupCatalog(ids: { userId: string; categoryId: string }
   await prisma.media.deleteMany({ where: { product_id: { in: productIds } } });
   await prisma.sku.deleteMany({ where: { sku_id: { in: skuIds } } });
   await prisma.product.deleteMany({ where: { product_id: { in: productIds } } });
+  const children = await prisma.category.findMany({
+    where: { parent_id: ids.categoryId },
+    select: { category_id: true },
+  });
+  await prisma.categoryAttribute.deleteMany({
+    where: { category_id: { in: [ids.categoryId, ...children.map((c) => c.category_id)] } },
+  });
   await prisma.category.deleteMany({ where: { parent_id: ids.categoryId } });
   await prisma.category.deleteMany({ where: { category_id: ids.categoryId } });
   await prisma.auditLog.deleteMany({

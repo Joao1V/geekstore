@@ -32,7 +32,7 @@ describe('product list numbers and shortcuts (integration — requires a live DA
     });
     for (const sku of skus) {
       const created = await prisma.sku.create({
-        data: { product_id: product.product_id, code: sku.code, attributes: {} },
+        data: { product_id: product.product_id, code: sku.code },
       });
       if (sku.price !== undefined) {
         await prisma.price.create({

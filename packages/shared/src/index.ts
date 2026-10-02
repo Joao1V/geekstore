@@ -1,3 +1,4 @@
+export * from './attributes';
 export * from './audit';
 export * from './auth';
 export * from './catalog';

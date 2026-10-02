@@ -8,9 +8,12 @@ import type {
   Sku,
 } from '@geekstore/shared';
 import type { ProductListStats } from './product-list-stats';
+import { attributesRecord } from './sku-attributes';
 
 type CategoryRow = Category & Record<string, unknown>;
-type SkuRow = Omit<Sku, 'attributes'> & { attributes: unknown };
+type SkuRow = Omit<Sku, 'attributes'> & {
+  attribute_values: { attribute: { code: string }; value: { code: string } }[];
+};
 type ProductRow = Omit<Product, 'created_at' | 'updated_at'> & {
   created_at: Date;
   updated_at: Date;
@@ -48,7 +51,7 @@ export function toSku(row: SkuRow): Sku {
     product_id: row.product_id,
     code: row.code,
     ean: row.ean,
-    attributes: row.attributes as Sku['attributes'],
+    attributes: attributesRecord(row.attribute_values),
     weight_g: row.weight_g,
     length_mm: row.length_mm,
     width_mm: row.width_mm,

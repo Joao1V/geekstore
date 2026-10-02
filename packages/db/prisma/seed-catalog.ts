@@ -149,12 +149,12 @@ async function seedProduct(seed: SeedProduct, ctx: Context): Promise<void> {
       create: {
         product_id: product.product_id,
         code: sku.code,
-        attributes: sku.attributes,
         ean: sku.ean ?? null,
         weight_g: sku.weight_g ?? DEFAULT_WEIGHT_G,
         cost_cents: Math.round(sku.price_cents * COST_RATIO),
       },
     });
+    await seedAttributes(row.sku_id, sku.attributes);
     await seedPrice(row.sku_id, sku.price_cents, ctx);
     await seedStock(row.sku_id, sku.stock ?? defaultStock(sku.code), ctx);
   }
@@ -200,3 +200,31 @@ main()
     process.exitCode = 1;
   })
   .finally(() => prisma.$disconnect());
+
+/** `{ tamanho: 'M' }` -> liga o SKU ao valor cadastrado (cria o valor se ainda não existir). */
+async function seedAttributes(skuId: string, attributes: Record<string, string>) {
+  for (const [code, label] of Object.entries(attributes)) {
+    const attribute = await prisma.attribute.findUnique({ where: { code } });
+    if (!attribute) continue;
+    const valueCode = label
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const value = await prisma.attributeValue.upsert({
+      where: { attribute_id_code: { attribute_id: attribute.attribute_id, code: valueCode } },
+      update: {},
+      create: { attribute_id: attribute.attribute_id, code: valueCode, label },
+    });
+    await prisma.skuAttributeValue.upsert({
+      where: { sku_id_attribute_id: { sku_id: skuId, attribute_id: attribute.attribute_id } },
+      update: { attribute_value_id: value.attribute_value_id },
+      create: {
+        sku_id: skuId,
+        attribute_id: attribute.attribute_id,
+        attribute_value_id: value.attribute_value_id,
+      },
+    });
+  }
+}

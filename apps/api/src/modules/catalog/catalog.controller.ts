@@ -1,4 +1,7 @@
 import type {
+  AttributeParams,
+  AttributeValueBody,
+  CategoryAttributesBody,
   CategoryBody,
   CategoryParams,
   CategoryUpdateBody,
@@ -17,6 +20,12 @@ import type {
 } from '@geekstore/shared';
 import type { FastifyReply, FastifyRequest, RouteGenericInterface } from 'fastify';
 
+import {
+  createAttributeValue,
+  getCategoryAttributes,
+  listAttributes,
+  setCategoryAttributes,
+} from './attribute.service';
 import { createCategory, deleteCategory, listCategories, updateCategory } from './category.service';
 import {
   createCollection,
@@ -195,4 +204,33 @@ export async function deleteMediaController(
 
 export async function createUploadUrlController(request: Req<{ Body: MediaUploadUrlBody }>) {
   return { data: await createUploadUrl(request.body) };
+}
+
+// ── Atributos de variação ──────────────────────────────────────────────────────
+export async function listAttributesController() {
+  return { data: await listAttributes() };
+}
+
+export async function createAttributeValueController(
+  request: Req<{ Params: AttributeParams; Body: AttributeValueBody }>,
+  reply: FastifyReply
+) {
+  const value = await createAttributeValue(
+    request.user.sub,
+    request.params.attribute_id,
+    request.body
+  );
+  return reply.code(201).send({ data: value });
+}
+
+export async function getCategoryAttributesController(request: Req<{ Params: CategoryParams }>) {
+  return { data: await getCategoryAttributes(request.params.category_id) };
+}
+
+export async function setCategoryAttributesController(
+  request: Req<{ Params: CategoryParams; Body: CategoryAttributesBody }>
+) {
+  return {
+    data: await setCategoryAttributes(request.user.sub, request.params.category_id, request.body),
+  };
 }

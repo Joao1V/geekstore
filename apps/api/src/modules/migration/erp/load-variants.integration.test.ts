@@ -2,6 +2,8 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@geekstore/db';
 import { afterAll, describe, expect, it } from 'vitest';
 
+import { toSku } from '../../catalog/catalog.mappers';
+import { skuAttributeInclude } from '../../catalog/sku-attributes';
 import { erpRowSchema } from './erp-row';
 import type { ErpSource } from './erp-source';
 import { runImport } from './load';
@@ -59,14 +61,14 @@ describe('runImport: variations (integration — requires a live DATABASE_URL)',
 
     const skus = await prisma.sku.findMany({
       where: { legacy_code: { in: codes } },
-      include: { product: { include: { media: true } } },
+      include: { product: { include: { media: true } }, ...skuAttributeInclude },
       orderBy: { legacy_code: 'asc' },
     });
     expect(new Set(skus.map((s) => s.product_id)).size).toBe(1);
-    expect(skus.map((s) => s.attributes)).toEqual([
-      { cor: 'Preto', tamanho: 'P' },
-      { cor: 'Preto', tamanho: 'M' },
-      { cor: 'Branco', tamanho: 'P' },
+    expect(skus.map((s) => toSku(s).attributes)).toEqual([
+      { cor: 'preto', tamanho: 'p' },
+      { cor: 'preto', tamanho: 'm' },
+      { cor: 'branco', tamanho: 'p' },
     ]);
     expect(skus.map((s) => s.code.split('-').slice(-2).join('-'))).toEqual([
       'PRE-P',

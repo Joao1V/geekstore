@@ -1,4 +1,10 @@
 import {
+  attributeListResponseSchema,
+  attributeParamsSchema,
+  attributeValueBodySchema,
+  attributeValueResponseSchema,
+  categoryAttributeListResponseSchema,
+  categoryAttributesBodySchema,
   categoryBodySchema,
   categoryListResponseSchema,
   categoryParamsSchema,
@@ -36,6 +42,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { requirePermission } from '../../core/hooks';
 import {
   archiveProductController,
+  createAttributeValueController,
   createCategoryController,
   createCollectionController,
   createMediaController,
@@ -45,7 +52,9 @@ import {
   deleteCategoryController,
   deleteCollectionController,
   deleteMediaController,
+  getCategoryAttributesController,
   getProductController,
+  listAttributesController,
   listCategoriesController,
   listCollectionProductsController,
   listCollectionsController,
@@ -53,6 +62,7 @@ import {
   listSkuGridController,
   productSummaryController,
   replaceCollectionProductsController,
+  setCategoryAttributesController,
   updateCategoryController,
   updateCollectionController,
   updateMediaController,
@@ -119,6 +129,61 @@ export async function catalogRoutes(fastify: FastifyInstance): Promise<void> {
       },
     },
     deleteCategoryController
+  );
+
+  // ── Atributos de variação (cor, tamanho...) ──────────────────────────────────
+  app.get(
+    '/attributes',
+    {
+      ...read,
+      schema: {
+        tags,
+        summary: 'Lista os atributos de variação com seus valores',
+        response: { 200: attributeListResponseSchema },
+      },
+    },
+    listAttributesController
+  );
+  app.post(
+    '/attributes/:attribute_id/values',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary: 'Cria um valor de atributo (ex.: nova cor)',
+        params: attributeParamsSchema,
+        body: attributeValueBodySchema,
+        response: { 201: attributeValueResponseSchema },
+      },
+    },
+    createAttributeValueController
+  );
+  app.get(
+    '/categories/:category_id/attributes',
+    {
+      ...read,
+      schema: {
+        tags,
+        summary: 'Atributos que a categoria pede (próprios e herdados da categoria-mãe)',
+        params: categoryParamsSchema,
+        response: { 200: categoryAttributeListResponseSchema },
+      },
+    },
+    getCategoryAttributesController
+  );
+  app.put(
+    '/categories/:category_id/attributes',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary: 'Define os atributos próprios da categoria',
+        params: categoryParamsSchema,
+        body: categoryAttributesBodySchema,
+        response: { 200: categoryAttributeListResponseSchema },
+      },
+    },
+    setCategoryAttributesController
   );
 
   // ── Produtos ─────────────────────────────────────────────────────────────────

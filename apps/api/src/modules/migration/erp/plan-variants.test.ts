@@ -28,7 +28,7 @@ describe('SKU codes', () => {
     expect(familyPrefix('Camiseta Naruto')).toBe('NAR');
     expect(variantCode('NAR', { cor: 'Preto', tamanho: 'P' })).toBe('NAR-PRE-P');
     expect(variantCode('NAR', { cor: 'Branco', tamanho: 'P' })).toBe('NAR-BRA-P');
-    expect(variantCode('PAN', { tamanho: 'G 39/41' })).toBe('PAN-G-39-41');
+    expect(variantCode('PAN', { tamanho: 'G', numeracao: '39/41' })).toBe('PAN-G-39-41');
   });
 });
 
@@ -91,6 +91,16 @@ describe('buildPlan: variations', () => {
     const codes = result.items.map((i) => i.skuCode);
     expect(new Set(codes).size).toBe(codes.length);
     expect(codes).toContain('NAR2-PRE-P'); // segunda família "Camiseta Naruto"
+  });
+});
+
+describe('buildPlan: colour values', () => {
+  it('uses one canonical value for masculine and feminine colours', () => {
+    const { items } = plan([
+      shirt(50, 'CAMISETA ZETA PRETA P'),
+      shirt(51, 'CAMISETA ZETA PRETO M'),
+    ]);
+    expect(items.map((i) => i.attributes.cor)).toEqual(['Preto', 'Preto']);
   });
 });
 

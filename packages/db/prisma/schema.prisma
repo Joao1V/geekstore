@@ -101,9 +101,10 @@ model Category {
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
-  parent   Category?  @relation("CategoryTree", fields: [parent_id], references: [category_id])
-  children Category[] @relation("CategoryTree")
-  products Product[]
+  parent     Category?           @relation("CategoryTree", fields: [parent_id], references: [category_id])
+  children   Category[]          @relation("CategoryTree")
+  products   Product[]
+  attributes CategoryAttribute[]
 
   @@index([parent_id])
   @@map("category")
@@ -139,7 +140,6 @@ model Sku {
   product_id  String    @db.Uuid
   code        String    @unique @db.VarChar(64) // imutável: o service rejeita alteração
   ean         String?   @db.VarChar(14)
-  attributes  Json // ex.: { "cor": "azul", "edicao": "chase" }
   weight_g    Int?
   length_mm   Int?
   width_mm    Int?
@@ -155,12 +155,13 @@ model Sku {
   created_at  DateTime  @default(now())
   updated_at  DateTime  @updatedAt
 
-  product      Product            @relation(fields: [product_id], references: [product_id])
-  media        Media[]
-  stock_levels StockLevel[]
-  movements    StockMovement[]
-  reservations StockReservation[]
-  prices       Price[]
+  product          Product             @relation(fields: [product_id], references: [product_id])
+  media            Media[]
+  stock_levels     StockLevel[]
+  movements        StockMovement[]
+  reservations     StockReservation[]
+  prices           Price[]
+  attribute_values SkuAttributeValue[]
 
   @@index([product_id])
   @@index([ean])
@@ -352,4 +353,71 @@ model Price {
   @@unique([sku_id, channel_id, starts_at])
   @@index([channel_id])
   @@map("price")
+}
+
+// ── Atributos de variação (cor, tamanho...) ──────────────────────────────────
+// O atributo é cadastrado uma vez, tem valores controlados e é ligado às categorias que o usam.
+// Cada SKU aponta para UM valor por atributo (cor = Preto, tamanho = GG).
+
+model Attribute {
+  attribute_id String   @id @default(uuid(7)) @db.Uuid
+  code         String   @unique @db.VarChar(40) // snake_case, estável: "cor", "tamanho"
+  name         String   @db.VarChar(80)
+  position     Int      @default(0)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  values     AttributeValue[]
+  categories CategoryAttribute[]
+  sku_values SkuAttributeValue[]
+
+  @@map("attribute")
+}
+
+model AttributeValue {
+  attribute_value_id String   @id @default(uuid(7)) @db.Uuid
+  attribute_id       String   @db.Uuid
+  code               String   @db.VarChar(60) // "preto", "gg", "36-38"
+  label              String   @db.VarChar(80) // "Preto", "GG", "36/38"
+  position           Int      @default(0) // ordem de exibição (P antes de M antes de G)
+  color_hex          String?  @db.VarChar(7) // amostra visual, só para cor
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  attribute  Attribute           @relation(fields: [attribute_id], references: [attribute_id])
+  sku_values SkuAttributeValue[]
+
+  @@unique([attribute_id, code])
+  @@map("attribute_value")
+}
+
+// Quais atributos uma categoria pede. As subcategorias herdam os da categoria-mãe.
+model CategoryAttribute {
+  category_attribute_id String  @id @default(uuid(7)) @db.Uuid
+  category_id           String  @db.Uuid
+  attribute_id          String  @db.Uuid
+  is_required           Boolean @default(true)
+  position              Int     @default(0)
+
+  category  Category  @relation(fields: [category_id], references: [category_id])
+  attribute Attribute @relation(fields: [attribute_id], references: [attribute_id])
+
+  @@unique([category_id, attribute_id])
+  @@map("category_attribute")
+}
+
+model SkuAttributeValue {
+  sku_attribute_value_id String @id @default(uuid(7)) @db.Uuid
+  sku_id                 String @db.Uuid
+  attribute_id           String @db.Uuid
+  attribute_value_id     String @db.Uuid
+
+  sku       Sku            @relation(fields: [sku_id], references: [sku_id], onDelete: Cascade)
+  attribute Attribute      @relation(fields: [attribute_id], references: [attribute_id])
+  value     AttributeValue @relation(fields: [attribute_value_id], references: [attribute_value_id])
+
+  // Um valor por atributo em cada SKU; o índice do valor serve ao filtro da vitrine (cor = Preto).
+  @@unique([sku_id, attribute_id])
+  @@index([attribute_value_id])
+  @@map("sku_attribute_value")
 }

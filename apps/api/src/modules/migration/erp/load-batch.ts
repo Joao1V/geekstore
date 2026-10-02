@@ -1,6 +1,7 @@
 import type { Prisma } from '@geekstore/db';
 import { v7 as uuidv7 } from 'uuid';
 
+import { type AttributeValueIds, attributeKey } from './load-attributes';
 import type { PlannedItem } from './plan-types';
 
 export const BATCH_SIZE = 500;
@@ -10,6 +11,7 @@ export const STOCK_REFERENCE = 'erp_import';
 const BASE_PRICE_STARTS_AT = new Date('2000-01-01T00:00:00Z');
 
 export type BatchContext = {
+  attributeValueIds: AttributeValueIds;
   categoryIds: ReadonlyMap<string, string>;
   siteChannelId: string;
   warehouseId: string;
@@ -22,6 +24,7 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
   const rows = {
     products: [] as Prisma.ProductCreateManyInput[],
     skus: [] as Prisma.SkuCreateManyInput[],
+    skuAttributes: [] as Prisma.SkuAttributeValueCreateManyInput[],
     prices: [] as Prisma.PriceCreateManyInput[],
     levels: [] as Prisma.StockLevelCreateManyInput[],
     movements: [] as Prisma.StockMovementCreateManyInput[],
@@ -62,7 +65,6 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
       product_id: productId,
       code: item.skuCode,
       ean: item.ean,
-      attributes: item.attributes,
       weight_g: item.weightG,
       length_mm: item.lengthMm,
       width_mm: item.widthMm,
@@ -72,6 +74,16 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
       legacy_code: item.legacyCode,
       legacy_data: { ...item.legacyData, import: ctx.importMeta } as Prisma.InputJsonValue,
     });
+    for (const [attribute, label] of Object.entries(item.attributes)) {
+      const ids = ctx.attributeValueIds.get(attributeKey(attribute, label));
+      if (!ids) throw new Error(`Valor sem id: ${attribute} ${label}`);
+      rows.skuAttributes.push({
+        sku_attribute_value_id: uuidv7(),
+        sku_id: skuId,
+        attribute_id: ids.attributeId,
+        attribute_value_id: ids.valueId,
+      });
+    }
     rows.prices.push({
       price_id: uuidv7(),
       sku_id: skuId,

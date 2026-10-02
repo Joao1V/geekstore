@@ -74,10 +74,15 @@ const sizePart = (size: string): string => size.toUpperCase().replace(/[^A-Z0-9]
 /** "NAR-KUN" + Preto + GG -> "NAR-KUN-PRE-GG". */
 export function variantCode(
   prefix: string,
-  attributes: { cor?: string; tamanho?: string }
+  attributes: { cor?: string; tamanho?: string; numeracao?: string }
 ): string {
   const color = attributes.cor ? COLOR_CODES[attributes.cor.toUpperCase()] : undefined;
-  return [prefix, color, attributes.tamanho ? sizePart(attributes.tamanho) : undefined]
+  return [
+    prefix,
+    color,
+    attributes.tamanho ? sizePart(attributes.tamanho) : undefined,
+    attributes.numeracao ? sizePart(attributes.numeracao) : undefined,
+  ]
     .filter(Boolean)
     .join('-');
 }

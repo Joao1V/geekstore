@@ -18,7 +18,7 @@ describe('catalog search (integration — requires a live DATABASE_URL)', () => 
         name: `Coleção Pokémon Ação ${fx.suffix}`,
         slug: `colecao-pokemon-acao-${fx.suffix}`,
         category_id: fx.categoryId,
-        skus: { create: [{ code: `PKM-${fx.suffix.toUpperCase()}`, attributes: {} }] },
+        skus: { create: [{ code: `PKM-${fx.suffix.toUpperCase()}` }] },
       },
     });
     accentedProductId = product.product_id;

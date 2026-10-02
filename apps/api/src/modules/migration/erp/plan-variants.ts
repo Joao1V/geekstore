@@ -28,12 +28,30 @@ const COLORS = Object.keys(COLOR_CODES).sort((a, b) => b.split(' ').length - a.s
 
 export type ParsedVariant = {
   baseName: string;
-  attributes: { cor?: string; tamanho: string };
+  /** `tamanho` (P, GG, idade) e `numeracao` (33/35) são atributos separados. */
+  attributes: { cor?: string; tamanho?: string; numeracao?: string };
 };
 
 function isSize(token: string, isKids: boolean): boolean {
   const upper = token.toUpperCase();
   return SIZES.has(upper) || RANGE.test(upper) || (isKids && KIDS_SIZE.test(upper));
+}
+
+// Uma cor só, no masculino: "Preta" e "Preto" são o mesmo valor do atributo.
+const FEMININE_TO_MASCULINE: Record<string, string> = {
+  PRETA: 'PRETO',
+  BRANCA: 'BRANCO',
+  VERMELHA: 'VERMELHO',
+  AMARELA: 'AMARELO',
+  ROXA: 'ROXO',
+};
+
+function canonicalColor(color: string): string {
+  const upper = FEMININE_TO_MASCULINE[color] ?? color;
+  return upper
+    .split(' ')
+    .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+    .join(' ');
 }
 
 function takeColor(tokens: string[]): { rest: string[]; color?: string } {
@@ -42,8 +60,10 @@ function takeColor(tokens: string[]): { rest: string[]; color?: string } {
     const words = color.split(' ');
     const at = upper.findIndex((_, i) => words.every((word, k) => upper[i + k] === word));
     if (at >= 0) {
-      const found = tokens.slice(at, at + words.length).join(' ');
-      return { rest: [...tokens.slice(0, at), ...tokens.slice(at + words.length)], color: found };
+      return {
+        rest: [...tokens.slice(0, at), ...tokens.slice(at + words.length)],
+        color: canonicalColor(color),
+      };
     }
   }
   return { rest: tokens };
@@ -63,9 +83,16 @@ export function parseVariant(name: string, groupName: string): ParsedVariant | n
   const { rest, color } = takeColor(withoutSize);
   const baseName = rest.join(' ').trim();
   if (!baseName) return null;
+  const sizes = sizeTokens.map((token) => token.toUpperCase());
+  const numeracao = sizes.find((size) => RANGE.test(size));
+  const tamanho = sizes.filter((size) => !RANGE.test(size)).join(' ');
   return {
     baseName,
-    attributes: { ...(color ? { cor: color } : {}), tamanho: sizeTokens.join(' ').toUpperCase() },
+    attributes: {
+      ...(color ? { cor: color } : {}),
+      ...(tamanho ? { tamanho } : {}),
+      ...(numeracao ? { numeracao } : {}),
+    },
   };
 }
 
@@ -78,7 +105,10 @@ export type ProductGroup = {
 };
 
 const attributesKey = (attributes: Record<string, string>) =>
-  `${attributes.cor ?? ''}|${attributes.tamanho ?? ''}`.toUpperCase();
+  [attributes.cor, attributes.tamanho, attributes.numeracao]
+    .map((v) => v ?? '')
+    .join('|')
+    .toUpperCase();
 
 /**
  * Junta em um produto os itens do ERP que diferem só por cor e tamanho. Uma família com duas

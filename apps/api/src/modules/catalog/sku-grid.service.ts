@@ -83,7 +83,14 @@ export async function listSkuGrid(query: SkuGridQuery): Promise<Paginated<SkuGri
 
   const [rows, countRows] = await Promise.all([
     prisma.$queryRaw<RawGridRow[]>`
-      SELECT s.sku_id, s.product_id, p.name AS product_name, s.code, s.attributes, s.status,
+      SELECT s.sku_id, s.product_id, p.name AS product_name, s.code, s.status,
+             (
+               SELECT COALESCE(jsonb_object_agg(a.code, av.code), '{}'::jsonb)
+               FROM sku_attribute_value sav
+               JOIN attribute a ON a.attribute_id = sav.attribute_id
+               JOIN attribute_value av ON av.attribute_value_id = sav.attribute_value_id
+               WHERE sav.sku_id = s.sku_id
+             ) AS attributes,
              (
                SELECT pr.price_cents
                FROM price pr

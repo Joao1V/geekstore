@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { type Prisma, prisma } from '@geekstore/db';
 
 import type { ErpSource } from './erp-source';
+import { ensureAttributeValues, linkCategoryAttributes } from './load-attributes';
 import { BATCH_SIZE, type BatchContext, buildBatchRows, chunkByProduct } from './load-batch';
 import { resolveCategories } from './load-categories';
 import { buildPlan } from './plan';
@@ -28,6 +29,9 @@ async function insertBatch(tx: Prisma.TransactionClient, rows: ReturnType<typeof
   // Ordem das chaves estrangeiras: produto -> sku -> o resto.
   await tx.product.createMany({ data: rows.products });
   await tx.sku.createMany({ data: rows.skus });
+  if (rows.skuAttributes.length > 0) {
+    await tx.skuAttributeValue.createMany({ data: rows.skuAttributes });
+  }
   await tx.price.createMany({ data: rows.prices });
   await tx.stockLevel.createMany({ data: rows.levels });
   if (rows.movements.length > 0) await tx.stockMovement.createMany({ data: rows.movements });
@@ -66,10 +70,13 @@ export async function runImport(source: ErpSource, now: Date): Promise<ImportRes
     takenSkuCodes: new Set(skuCodes.map((s) => s.code)),
   });
   const categories = await resolveCategories(plan.categories);
+  const attributeValueIds = await ensureAttributeValues(plan);
+  await linkCategoryAttributes(plan, categories.ids, attributeValueIds);
   const base = await loadContext();
   const ctx: BatchContext = {
     ...base,
     categoryIds: categories.ids,
+    attributeValueIds,
     now,
     importMeta: { run_id: runId, source_sha256: source.sha256, imported_at: now.toISOString() },
   };

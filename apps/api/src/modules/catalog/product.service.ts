@@ -12,12 +12,13 @@ import {
 import { BadRequestError, ConflictError, NotFoundError } from '../../core/_errors';
 import { writeAuditLog } from '../../core/audit';
 import { buildMeta, parseSort, skipTake } from '../../core/http/pagination';
-import { toProductDetail, toProductListItem } from './catalog.mappers';
+import { toProductDetail, toProductListItem, toSku } from './catalog.mappers';
 import { findProductIds, needsSqlQuery } from './product-list-query';
 import { EMPTY_STATS, loadListStats } from './product-list-stats';
+import { replaceSkuAttributes, resolveAttributes, skuAttributeInclude } from './sku-attributes';
 
 const detailInclude = {
-  skus: { orderBy: { code: 'asc' } },
+  skus: { orderBy: { code: 'asc' }, include: skuAttributeInclude },
   media: { orderBy: [{ position: 'asc' }, { created_at: 'asc' }] },
   collection_products: { select: { collection_id: true } },
 } satisfies Prisma.ProductInclude;
@@ -132,8 +133,17 @@ export async function createProduct(actorId: string, body: ProductBody): Promise
       skus.map((sku) => sku.code)
     );
 
-    const created = await tx.product.create({
-      data: { ...productData, skus: { create: skus } },
+    const resolvedBySku = await Promise.all(
+      skus.map((sku) => resolveAttributes(tx, productData.category_id, sku.attributes))
+    );
+    const product = await tx.product.create({ data: productData });
+    for (const [index, sku] of skus.entries()) {
+      const { attributes: _attributes, ...fields } = sku;
+      const row = await tx.sku.create({ data: { ...fields, product_id: product.product_id } });
+      await replaceSkuAttributes(tx, row.sku_id, resolvedBySku[index] ?? []);
+    }
+    const created = await tx.product.findUniqueOrThrow({
+      where: { product_id: product.product_id },
       include: detailInclude,
     });
 
@@ -156,7 +166,7 @@ export async function createProduct(actorId: string, body: ProductBody): Promise
         entity: 'sku',
         entityId: sku.sku_id,
         action: 'create',
-        after: sku,
+        after: { ...sku, attribute_values: undefined, attributes: toSku(sku).attributes },
       });
     }
     return toProductDetail(created);
