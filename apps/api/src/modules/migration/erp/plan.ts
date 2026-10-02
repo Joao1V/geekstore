@@ -64,10 +64,12 @@ function buildGroup(group: ProductGroup, used: Used): Built {
   const items = group.members.map(({ draft, attributes }): PlannedItem => {
     const { baseSlug: _slug, groupName: _group, subName: _sub, ...rest } = draft.item;
     const code = isFamily ? variantCode(prefix, attributes) : `${prefix}-${rest.legacyCode}`;
+    const skuCode = uniqueCode(code, used.skuCodes);
     return {
       ...rest,
-      skuCode: uniqueCode(code, used.skuCodes),
+      skuCode,
       productKey: group.key,
+      productCode: isFamily ? prefix : skuCode,
       attributes,
       erpName: rest.name,
       name,
@@ -115,7 +117,7 @@ export function buildPlan(rows: ErpRow[], options: PlanOptions): CatalogPlan {
   const used: Used = {
     slugs: new Set(options.takenSlugs),
     skuCodes: new Set(options.takenSkuCodes),
-    prefixes: new Set(),
+    prefixes: new Set(options.takenProductCodes),
   };
   const built = groupVariants(drafts).map((group) => buildGroup(group, used));
   const items = built.flatMap((b) => b.items);

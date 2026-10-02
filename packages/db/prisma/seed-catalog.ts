@@ -133,6 +133,7 @@ async function seedProduct(seed: SeedProduct, ctx: Context): Promise<void> {
     where: { slug: seed.slug },
     update: {},
     create: {
+      code: seed.skus[0]?.code ?? seed.slug.toUpperCase().slice(0, 40),
       slug: seed.slug,
       name: seed.name,
       brand: seed.brand,

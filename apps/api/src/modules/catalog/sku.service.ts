@@ -7,17 +7,25 @@ import { toSku } from './catalog.mappers';
 import { assertSkuCodesAvailable } from './product.service';
 import type { SkuUpdateRequest } from './schemas/sku-update';
 import { replaceSkuAttributes, resolveAttributes, skuAttributeInclude } from './sku-attributes';
+import { applyInitialValues, loadInitialContext } from './sku-initial';
 
 export async function createSku(actorId: string, productId: string, body: SkuBody): Promise<Sku> {
   return prisma.$transaction(async (tx) => {
     const product = await tx.product.findUnique({ where: { product_id: productId } });
     if (!product) throw new NotFoundError('Produto não encontrado.');
     await assertSkuCodesAvailable(tx, [body.code]);
-    const { attributes, ...fields } = body;
+    const { attributes, price_cents, initial_stock, ...fields } = body;
     const resolved = await resolveAttributes(tx, product.category_id, attributes);
 
     const created = await tx.sku.create({ data: { ...fields, product_id: productId } });
     await replaceSkuAttributes(tx, created.sku_id, resolved);
+    await applyInitialValues(
+      tx,
+      actorId,
+      created.sku_id,
+      { price_cents, initial_stock },
+      await loadInitialContext(tx)
+    );
     const withAttributes = await tx.sku.findUniqueOrThrow({
       where: { sku_id: created.sku_id },
       include: skuAttributeInclude,

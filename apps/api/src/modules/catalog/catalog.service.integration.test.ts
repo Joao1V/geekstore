@@ -68,6 +68,7 @@ describe('catalog services (integration — requires a live DATABASE_URL)', () =
     await expect(
       createProduct(fx.userId, {
         category_id: fx.categoryId,
+        code: `ATO-${fx.suffix.toUpperCase()}`,
         name: 'Atômico',
         slug,
         description: null,
@@ -88,6 +89,8 @@ describe('catalog services (integration — requires a live DATABASE_URL)', () =
             ncm: null,
             cost_cents: null,
             status: 'active',
+            price_cents: null,
+            initial_stock: null,
           },
         ],
       })

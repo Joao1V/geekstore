@@ -3,6 +3,7 @@ export * from './audit';
 export * from './auth';
 export * from './catalog';
 export * from './common';
+export * from './grid';
 export * from './money';
 export * from './pricing';
 export * from './rbac';

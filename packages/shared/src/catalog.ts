@@ -103,8 +103,15 @@ const skuFields = {
   status: skuStatusSchema,
 };
 
+/** Preço de venda (site) e saldo de entrada gravados junto com o SKU novo, na mesma transação. */
+const skuInitialFields = {
+  price_cents: z.number().int().positive().nullable().default(null),
+  initial_stock: z.number().int().min(0).nullable().default(null),
+};
+
 export const skuBodySchema = z.object({
   ...skuFields,
+  ...skuInitialFields,
   ean: skuFields.ean.default(null),
   attributes: skuFields.attributes.default({}),
   weight_g: skuFields.weight_g.default(null),
@@ -178,6 +185,7 @@ export const productStatusSchema = z.enum(['draft', 'active', 'archived']);
 export const productSchema = z.object({
   product_id: z.string().uuid(),
   category_id: z.string().uuid(),
+  code: z.string(),
   name: z.string(),
   slug: z.string(),
   description: z.string().nullable(),
@@ -196,6 +204,15 @@ export const productDetailSchema = productSchema.extend({
 });
 export type ProductDetail = z.infer<typeof productDetailSchema>;
 
+// Código do produto: letras maiúsculas, números e hífen (ex.: CAM-NARUTO). Imutável, como o do SKU.
+const productCodeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .min(1)
+  .max(40)
+  .regex(/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/, 'Use letras, números e hífen (ex.: CAM-NARUTO)');
+
 // Produto simples tem 1 SKU; com variação, 1 SKU por combinação (RF-CAT-04).
 const productFields = {
   category_id: z.string().uuid(),
@@ -209,6 +226,7 @@ const productFields = {
 
 export const productBodySchema = z.object({
   ...productFields,
+  code: productCodeSchema,
   description: productFields.description.default(null),
   brand: productFields.brand.default(null),
   status: productFields.status.default('draft'),

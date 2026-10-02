@@ -45,6 +45,7 @@ describe('audit log (integration — requires a live DATABASE_URL)', () => {
   it('records who/when/before/after for product and SKU changes in the same transaction', async () => {
     const created = await createProduct(fx.userId, {
       category_id: fx.categoryId,
+      code: `AUD-${fx.suffix.toUpperCase()}`,
       name: 'Auditado',
       slug: `${fx.suffix}-auditado`,
       description: null,
@@ -65,6 +66,8 @@ describe('audit log (integration — requires a live DATABASE_URL)', () => {
           ncm: null,
           cost_cents: null,
           status: 'active',
+          price_cents: null,
+          initial_stock: null,
         },
       ],
     });

@@ -34,6 +34,8 @@ export type PlannedItem = {
   skuCode: string;
   /** SKUs com a mesma chave viram um produto só (variações de cor e tamanho). */
   productKey: string;
+  /** Código do produto: o prefixo da família, ou o próprio SKU em produto simples. */
+  productCode: string;
   /** Ex.: `{ cor: 'Preto', tamanho: 'GG' }`; vazio em produto simples. */
   attributes: Record<string, string>;
   /** Nome do item no ERP (já normalizado), para o relatório. */
@@ -80,6 +82,8 @@ export type PlanOptions = {
   takenSlugs?: ReadonlySet<string>;
   /** Códigos de SKU já em uso no banco; o plano nunca os repete. */
   takenSkuCodes?: ReadonlySet<string>;
+  /** Códigos de produto já em uso no banco. */
+  takenProductCodes?: ReadonlySet<string>;
   /** Slugs de categoria já em uso no banco. */
   takenCategorySlugs?: ReadonlySet<string>;
 };

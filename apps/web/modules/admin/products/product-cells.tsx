@@ -7,23 +7,20 @@ import { PRODUCT_STATUS_LABELS, PRODUCT_STATUS_TONES } from './labels';
 
 // Abaixo (ou igual) a este saldo o estoque é "baixo": o operador precisa repor.
 const LOW_STOCK_LIMIT = 5;
-const VISIBLE_SKUS = 2;
 
-/** Código(s) do SKU em fonte monoespaçada: é o que se copia, confere e procura. */
+/** Código do produto em fonte monoespaçada (o que se copia e procura) e quantos SKUs ele tem. */
 export function SkuCell({ product }: { product: ProductListItem }) {
-  const shown = product.sku_codes.slice(0, VISIBLE_SKUS);
-  const hidden = product.sku_count - shown.length;
   return (
     <div className="grid justify-items-start gap-1">
-      {shown.map((code) => (
-        <code
-          key={code}
-          className="rounded bg-surface-secondary px-1.5 py-0.5 font-mono text-xs font-bold"
-        >
-          {code}
-        </code>
-      ))}
-      {hidden > 0 && <span className="muted text-2xs">+{hidden} SKUs</span>}
+      <code className="rounded bg-surface-secondary px-1.5 py-0.5 font-mono text-xs font-bold">
+        {product.code}
+      </code>
+      <span className="muted text-2xs">
+        {product.sku_count} {product.sku_count === 1 ? 'SKU' : 'SKUs'}
+        {product.sku_count === 1 && product.sku_codes[0] && product.sku_codes[0] !== product.code
+          ? ` · ${product.sku_codes[0]}`
+          : ''}
+      </span>
     </div>
   );
 }

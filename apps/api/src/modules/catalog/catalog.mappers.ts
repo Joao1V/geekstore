@@ -77,6 +77,7 @@ export function toProduct(row: ProductRow): Product {
   return {
     product_id: row.product_id,
     category_id: row.category_id,
+    code: row.code,
     name: row.name,
     slug: row.slug,
     description: row.description,

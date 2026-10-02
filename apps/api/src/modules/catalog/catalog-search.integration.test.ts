@@ -15,6 +15,7 @@ describe('catalog search (integration — requires a live DATABASE_URL)', () => 
     fx = await createCatalogFixture();
     const product = await prisma.product.create({
       data: {
+        code: `PKM-${fx.suffix.toUpperCase()}`,
         name: `Coleção Pokémon Ação ${fx.suffix}`,
         slug: `colecao-pokemon-acao-${fx.suffix}`,
         category_id: fx.categoryId,

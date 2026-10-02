@@ -23,6 +23,7 @@ function buildWhere(query: ProductListQuery): Prisma.Sql {
   if (query.q) {
     conditions.push(Prisma.sql`(
       ${containsInsensitive(Prisma.sql`p.name`, query.q)}
+      OR ${containsInsensitive(Prisma.sql`p.code`, query.q)}
       OR ${containsInsensitive(Prisma.sql`p.slug`, query.q)}
       OR EXISTS (
         SELECT 1 FROM sku s

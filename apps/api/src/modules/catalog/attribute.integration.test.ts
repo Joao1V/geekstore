@@ -105,6 +105,8 @@ describe('attribute management (integration — requires a live DATABASE_URL)', 
       height_mm: null,
       cost_cents: null,
       status: 'active',
+      price_cents: null,
+      initial_stock: null,
       attributes: { [attribute.code]: used.code },
     });
 

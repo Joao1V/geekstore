@@ -12,7 +12,7 @@ const NCM_PATTERN = /^\d{8}$/;
 export type RowDraft = {
   item: Omit<
     PlannedItem,
-    'slug' | 'categoryKey' | 'skuCode' | 'productKey' | 'attributes' | 'erpName'
+    'slug' | 'categoryKey' | 'skuCode' | 'productKey' | 'productCode' | 'attributes' | 'erpName'
   > & {
     baseSlug: string;
     groupName: string;

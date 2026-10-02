@@ -16,6 +16,7 @@ import { toProductDetail, toProductListItem, toSku } from './catalog.mappers';
 import { findProductIds, needsSqlQuery } from './product-list-query';
 import { EMPTY_STATS, loadListStats } from './product-list-stats';
 import { replaceSkuAttributes, resolveAttributes, skuAttributeInclude } from './sku-attributes';
+import { applyInitialValues, loadInitialContext } from './sku-initial';
 
 const detailInclude = {
   skus: { orderBy: { code: 'asc' }, include: skuAttributeInclude },
@@ -98,6 +99,12 @@ async function assertCategoryExists(tx: Prisma.TransactionClient, categoryId: st
   if (!category) throw new BadRequestError('Categoria não encontrada.');
 }
 
+async function assertProductCodeAvailable(tx: Prisma.TransactionClient, code: string) {
+  if (await tx.product.findUnique({ where: { code } })) {
+    throw new ConflictError(`Já existe um produto com o código ${code}.`);
+  }
+}
+
 async function assertSlugAvailable(tx: Prisma.TransactionClient, slug: string, exceptId?: string) {
   const existing = await tx.product.findUnique({ where: { slug } });
   if (existing && existing.product_id !== exceptId) {
@@ -128,6 +135,7 @@ export async function createProduct(actorId: string, body: ProductBody): Promise
   return prisma.$transaction(async (tx) => {
     await assertCategoryExists(tx, productData.category_id);
     await assertSlugAvailable(tx, productData.slug);
+    await assertProductCodeAvailable(tx, productData.code);
     await assertSkuCodesAvailable(
       tx,
       skus.map((sku) => sku.code)
@@ -137,10 +145,18 @@ export async function createProduct(actorId: string, body: ProductBody): Promise
       skus.map((sku) => resolveAttributes(tx, productData.category_id, sku.attributes))
     );
     const product = await tx.product.create({ data: productData });
+    const initialContext = await loadInitialContext(tx);
     for (const [index, sku] of skus.entries()) {
-      const { attributes: _attributes, ...fields } = sku;
+      const { attributes: _attributes, price_cents, initial_stock, ...fields } = sku;
       const row = await tx.sku.create({ data: { ...fields, product_id: product.product_id } });
       await replaceSkuAttributes(tx, row.sku_id, resolvedBySku[index] ?? []);
+      await applyInitialValues(
+        tx,
+        actorId,
+        row.sku_id,
+        { price_cents, initial_stock },
+        initialContext
+      );
     }
     const created = await tx.product.findUniqueOrThrow({
       where: { product_id: product.product_id },

@@ -70,8 +70,9 @@ export async function categoryAttributeRules(
 export type ResolvedAttribute = { attribute_id: string; attribute_value_id: string };
 
 /**
- * Confere `{ cor: 'preto' }` com o que a categoria pede e devolve os ids. Atributo que a categoria
- * não usa, valor que não existe ou atributo obrigatório ausente são recusados com a lista do que vale.
+ * Confere `{ cor: 'preto' }` e devolve os ids. A categoria SUGERE os atributos (e pode exigir
+ * alguns), mas o produto escolhe os seus: qualquer atributo ativo vale. Atributo inexistente ou
+ * inativo, valor que não existe e atributo obrigatório da categoria ausente são recusados.
  */
 export async function resolveAttributes(
   db: Db,
@@ -79,15 +80,6 @@ export async function resolveAttributes(
   input: Record<string, string>
 ): Promise<ResolvedAttribute[]> {
   const rules = await categoryAttributeRules(db, categoryId);
-  const allowed = new Map(rules.map((rule) => [rule.code, rule]));
-
-  const unknown = Object.keys(input).filter((code) => !allowed.has(code));
-  if (unknown.length > 0) {
-    const valid = rules.map((rule) => rule.code).join(', ') || 'nenhum';
-    throw new BadRequestError(
-      `A categoria não usa o atributo: ${unknown.join(', ')}. Atributos da categoria: ${valid}.`
-    );
-  }
   const missing = rules.filter((rule) => rule.is_required && !input[rule.code]);
   if (missing.length > 0) {
     throw new BadRequestError(
@@ -97,12 +89,25 @@ export async function resolveAttributes(
 
   const entries = Object.entries(input);
   if (entries.length === 0) return [];
+
+  const attributes = await db.attribute.findMany({
+    where: { code: { in: entries.map(([code]) => code) } },
+    select: { code: true, is_active: true },
+  });
+  const unknown = entries
+    .map(([code]) => code)
+    .filter((code) => !attributes.some((a) => a.code === code && a.is_active));
+  if (unknown.length > 0) {
+    throw new BadRequestError(`Atributo inexistente ou inativo: ${unknown.join(', ')}.`);
+  }
+
   const values = await db.attributeValue.findMany({
     where: { OR: entries.map(([code, value]) => ({ code: value, attribute: { code } })) },
     select: {
       attribute_value_id: true,
       attribute_id: true,
       code: true,
+      is_active: true,
       attribute: { select: { code: true } },
     },
   });

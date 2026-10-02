@@ -29,13 +29,16 @@ export function Td({
   children,
   align = 'left',
   className = '',
+  colSpan,
 }: {
   children?: ReactNode;
   align?: 'left' | 'right';
   className?: string;
+  colSpan?: number;
 }) {
   return (
     <td
+      colSpan={colSpan}
       className={`border-b border-border px-3 py-3 align-middle ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}
     >
       {children}

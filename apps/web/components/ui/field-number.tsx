@@ -26,6 +26,8 @@ export function FieldNumber<
   maxValue,
   step,
   formatOptions,
+  hideLabel = false,
+  isDisabled = false,
 }: {
   field: ControllerRenderProps<TFieldValues, TName>;
   fieldState: ControllerFieldState;
@@ -36,6 +38,9 @@ export function FieldNumber<
   maxValue?: number;
   step?: number;
   formatOptions?: Intl.NumberFormatOptions;
+  /** Esconde o rótulo visualmente (célula de tabela); continua para leitores de tela. */
+  hideLabel?: boolean;
+  isDisabled?: boolean;
 }) {
   const value = typeof field.value === 'number' ? field.value : Number.NaN;
   return (
@@ -46,6 +51,7 @@ export function FieldNumber<
       onBlur={field.onBlur}
       isRequired={required}
       isInvalid={fieldState.invalid}
+      isDisabled={isDisabled}
       minValue={minValue}
       maxValue={maxValue}
       step={step}
@@ -53,7 +59,7 @@ export function FieldNumber<
       isWheelDisabled
       className="form-field"
     >
-      <Label>{label}</Label>
+      <Label className={hideLabel ? 'sr-only' : undefined}>{label}</Label>
       {/* A caixa (borda, fundo, foco) é o Group; o Input interno segue sem borda, como no HeroUI. */}
       <NumberField.Group className="field-input p-0!">
         <NumberField.Input ref={field.ref} />

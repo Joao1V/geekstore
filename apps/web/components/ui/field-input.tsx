@@ -31,6 +31,7 @@ export function FieldInput<
   inputMode,
   placeholder,
   disabled = false,
+  hideLabel = false,
 }: {
   field: ControllerRenderProps<TFieldValues, TName>;
   fieldState: ControllerFieldState;
@@ -45,6 +46,8 @@ export function FieldInput<
   inputMode?: 'text' | 'numeric' | 'tel' | 'email' | 'decimal';
   placeholder?: string;
   disabled?: boolean;
+  /** Esconde o rótulo visualmente (célula de tabela); continua para leitores de tela. */
+  hideLabel?: boolean;
 }) {
   return (
     <HeroTextField
@@ -55,7 +58,7 @@ export function FieldInput<
       isDisabled={disabled}
       className="form-field"
     >
-      <Label>{label}</Label>
+      <Label className={hideLabel ? 'sr-only' : undefined}>{label}</Label>
       <Input
         ref={field.ref}
         value={(field.value ?? '') as string}

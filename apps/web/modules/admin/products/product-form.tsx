@@ -1,9 +1,9 @@
 'use client';
 
-import type { ProductDetail } from '@geekstore/shared';
+import { type ProductDetail, suggestProductCode } from '@geekstore/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { Archive, Plus, Save } from 'lucide-react';
+import { Archive, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -26,9 +26,9 @@ import {
 } from '../services/catalog/queries';
 import { Badge } from '../ui/badge';
 import { ConfirmDialog } from '../ui/confirm-dialog';
+import { GridSection } from './grid-section';
 import { PRODUCT_STATUS_OPTIONS } from './labels';
 import {
-  emptySku,
   type ProductFormValues,
   productFormDefaults,
   productFormSchema,
@@ -37,7 +37,6 @@ import {
   toProductUpdateBody,
 } from './product-form-schema';
 import { ProductImages } from './product-images';
-import { SkuFields } from './sku-fields';
 
 const SECTION = 'surface grid gap-5 p-6 max-md:p-4';
 
@@ -87,15 +86,16 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
   const defaultsJson = JSON.stringify(productFormDefaults(product));
   const defaults = useMemo<ProductFormValues>(() => JSON.parse(defaultsJson), [defaultsJson]);
 
+  const form = useForm<ProductFormValues>({
+    resolver: zodResolver(productFormSchema),
+    values: defaults,
+  });
   const {
     control,
     handleSubmit,
     setValue,
     formState: { isSubmitting, dirtyFields, errors },
-  } = useForm<ProductFormValues>({
-    resolver: zodResolver(productFormSchema),
-    values: defaults,
-  });
+  } = form;
   const skus = useFieldArray({ control, name: 'skus' });
   const categoryId = useWatch({ control, name: 'category_id' });
   const { data: categoryRules } = useQuery(categoryAttributesQueryOptions(categoryId));
@@ -151,6 +151,11 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
                     if (!isEditing && !dirtyFields.slug) {
                       setValue('slug', slugify(event.target.value), { shouldValidate: false });
                     }
+                    if (!isEditing && !dirtyFields.code) {
+                      setValue('code', suggestProductCode(event.target.value), {
+                        shouldValidate: false,
+                      });
+                    }
                   },
                 }}
                 fieldState={fieldState}
@@ -158,6 +163,26 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
               />
             )}
           />
+          <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+            <Controller
+              control={control}
+              name="code"
+              render={({ field, fieldState }) => (
+                <FieldInput
+                  field={field}
+                  fieldState={fieldState}
+                  label="Código do produto"
+                  description={
+                    isEditing
+                      ? 'O código é imutável.'
+                      : 'Base do SKU das variações. Ex.: CAM-NARUTO'
+                  }
+                  disabled={isEditing}
+                  maxLength={40}
+                />
+              )}
+            />
+          </div>
           <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
             <Controller
               control={control}
@@ -255,30 +280,20 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
         </section>
 
         <section className={SECTION} aria-labelledby="product-skus">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="product-skus" className="text-xl font-extrabold">
-              SKUs
-            </h2>
-            <Action className="action-outline" onPress={() => skus.append(emptySku())}>
-              <Plus size={16} /> Adicionar SKU
-            </Action>
-          </div>
+          <h2 id="product-skus" className="text-xl font-extrabold">
+            SKUs e variações
+          </h2>
           <p className="muted text-sm">
-            Produto simples tem 1 SKU; com variação (cor, tamanho…), 1 SKU por combinação. Os campos
-            de variação dependem da categoria. Preço e estoque são editados na grade de estoque.
+            Produto simples tem 1 SKU. Se ele existe em cores, tamanhos ou outras versões, ligue a
+            grade: cada combinação vira um SKU, com o código montado a partir do código do produto.
           </p>
-          {skus.fields.map((sku, index) => (
-            <SkuFields
-              key={sku.id}
-              control={control}
-              index={index}
-              isExisting={Boolean(sku.sku_id)}
-              canRemove={!sku.sku_id && skus.fields.length > 1}
-              onRemove={() => skus.remove(index)}
-              rules={categoryRules ?? []}
-              definitions={definitions ?? []}
-            />
-          ))}
+          <GridSection
+            form={form}
+            skus={skus}
+            definitions={definitions ?? []}
+            rules={categoryRules ?? []}
+            isEditing={isEditing}
+          />
           {errors.skus?.message && (
             <p className="error m-0" role="alert">
               {errors.skus.message}

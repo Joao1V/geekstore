@@ -56,10 +56,11 @@ async function loadContext(): Promise<Pick<BatchContext, 'siteChannelId' | 'ware
  */
 export async function runImport(source: ErpSource, now: Date): Promise<ImportResult> {
   const runId = randomUUID();
-  const [imported, products, skuCodes] = await Promise.all([
+  const [imported, products, skuCodes, productCodes] = await Promise.all([
     prisma.sku.findMany({ where: { legacy_code: { not: null } }, select: { legacy_code: true } }),
     prisma.product.findMany({ select: { slug: true } }),
     prisma.sku.findMany({ select: { code: true } }),
+    prisma.product.findMany({ select: { code: true } }),
   ]);
   const importedCodes = new Set(imported.map((sku) => sku.legacy_code));
   const pending = source.rows.filter((row) => !importedCodes.has(String(row.codigo)));
@@ -68,6 +69,7 @@ export async function runImport(source: ErpSource, now: Date): Promise<ImportRes
     now,
     takenSlugs: new Set(products.map((p) => p.slug)),
     takenSkuCodes: new Set(skuCodes.map((s) => s.code)),
+    takenProductCodes: new Set(productCodes.map((p) => p.code)),
   });
   const categories = await resolveCategories(plan.categories);
   const attributeValueIds = await ensureAttributeValues(plan);

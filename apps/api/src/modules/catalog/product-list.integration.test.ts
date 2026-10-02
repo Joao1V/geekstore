@@ -24,6 +24,7 @@ describe('product list numbers and shortcuts (integration — requires a live DA
     const warehouseId = await findWarehouseId();
     const product = await prisma.product.create({
       data: {
+        code: `PL-${name.replace(/\W/g, '').slice(0, 8).toUpperCase()}-${fx.suffix.toUpperCase()}`,
         name,
         slug: `${name}-${fx.suffix}`.toLowerCase(),
         category_id: fx.categoryId,

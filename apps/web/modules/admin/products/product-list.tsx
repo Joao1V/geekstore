@@ -122,7 +122,7 @@ export function ProductList() {
               sort={sort}
               onSort={(field) => setParams({ sort: nextSort(sort, field) }, false)}
             />
-            <Th>SKU</Th>
+            <Th>Código</Th>
             <Th>Categoria</Th>
             <Th>Preço</Th>
             <Th>Estoque</Th>

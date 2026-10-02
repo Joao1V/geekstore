@@ -45,6 +45,7 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
       rows.products.push({
         product_id: productId,
         category_id: categoryId,
+        code: item.productCode,
         name: item.name,
         slug: item.slug,
         description: item.description,

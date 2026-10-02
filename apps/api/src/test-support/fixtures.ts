@@ -42,6 +42,7 @@ export async function createCatalogFixture(): Promise<CatalogFixture> {
   const skuCode = `IT-${suffix.toUpperCase()}`;
   const product = await prisma.product.create({
     data: {
+      code: `P-${suffix.toUpperCase()}`,
       name: `IT Produto ${suffix}`,
       slug: `it-produto-${suffix}`,
       category_id: category.category_id,

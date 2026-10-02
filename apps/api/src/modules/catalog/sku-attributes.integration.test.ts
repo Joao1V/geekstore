@@ -19,6 +19,8 @@ const emptySku = {
   ncm: null,
   cost_cents: null,
   status: 'active' as const,
+  price_cents: null,
+  initial_stock: null,
 };
 
 describe('SKU attributes (integration — requires a live DATABASE_URL)', () => {
@@ -64,9 +66,14 @@ describe('SKU attributes (integration — requires a live DATABASE_URL)', () => 
     attributes,
   });
 
-  it('rejects attributes the category does not use, and says which ones it uses', async () => {
-    await expect(createSku(fx.userId, fx.productId, newSku('a', { cor: 'preto' }))).rejects.toThrow(
-      /não usa o atributo: cor.*nenhum/
+  it('lets a product pick any active attribute, even one its category does not list', async () => {
+    const sku = await createSku(fx.userId, fx.productId, newSku('a', { cor: 'preto' }));
+    expect(sku.attributes).toEqual({ cor: 'preto' });
+  });
+
+  it('rejects an unknown attribute', async () => {
+    await expect(createSku(fx.userId, fx.productId, newSku('a2', { xpto: 'y' }))).rejects.toThrow(
+      /inexistente ou inativo: xpto/
     );
   });
 
@@ -112,6 +119,7 @@ describe('SKU attributes (integration — requires a live DATABASE_URL)', () => 
 
   it('creates a product with variant SKUs in one go', async () => {
     const product = await createProduct(fx.userId, {
+      code: `CAM-${fx.suffix.toUpperCase()}`,
       name: `Camiseta ${fx.suffix}`,
       slug: `camiseta-${fx.suffix}`,
       category_id: childCategoryId,

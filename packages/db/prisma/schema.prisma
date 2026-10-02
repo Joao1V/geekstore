@@ -113,6 +113,8 @@ model Category {
 model Product {
   product_id      String        @id @default(uuid(7)) @db.Uuid
   category_id     String        @db.Uuid
+  // Código do produto (ex.: CAM-NARUTO): a base dos SKUs das variações. Imutável.
+  code            String        @unique @db.VarChar(40)
   name            String        @db.VarChar(255)
   slug            String        @unique @db.VarChar(255)
   description     String?       @db.Text
