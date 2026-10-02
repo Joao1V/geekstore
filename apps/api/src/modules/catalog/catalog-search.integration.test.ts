@@ -61,6 +61,37 @@ describe('catalog search (integration — requires a live DATABASE_URL)', () => 
     expect(desc.data.map((p) => p.product_id)).toEqual(asc.data.map((p) => p.product_id).reverse());
   });
 
+  it('lists the first photo by position as the thumbnail, or null without photos', async () => {
+    await prisma.media.createMany({
+      data: [
+        {
+          product_id: accentedProductId,
+          url: 'https://cdn.exemplo.com/segunda.jpg',
+          alt: 'b',
+          position: 1,
+        },
+        {
+          product_id: accentedProductId,
+          url: 'https://cdn.exemplo.com/primeira.jpg',
+          alt: 'a',
+          position: 0,
+        },
+      ],
+    });
+    const thumbnails = (rows: { product_id: string; thumbnail_url: string | null }[]) =>
+      Object.fromEntries(rows.map((row) => [row.product_id, row.thumbnail_url]));
+    const expected = {
+      [accentedProductId]: 'https://cdn.exemplo.com/primeira.jpg',
+      [fx.productId]: null,
+    };
+
+    // Sem busca (Prisma) e com busca (SQL com unaccent): os dois caminhos devolvem a miniatura.
+    const byCategory = await listProducts({ ...query, category_id: fx.categoryId });
+    expect(thumbnails(byCategory.data)).toEqual(expected);
+    const bySearch = await listProducts({ ...query, q: fx.suffix });
+    expect(thumbnails(bySearch.data)).toEqual(expected);
+  });
+
   it('SKU grid search ignores case and accents', async () => {
     const grid = await listSkuGrid({ ...query, q: `POKEMON ACAO ${fx.suffix}` });
     expect(grid.data.map((row) => row.product_id)).toEqual([accentedProductId]);

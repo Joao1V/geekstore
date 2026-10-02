@@ -18,6 +18,7 @@ import { PaginationBar } from '../ui/pagination-bar';
 import { SearchBox } from '../ui/search-box';
 import { SortHeader } from '../ui/sort-header';
 import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { Thumbnail } from '../ui/thumbnail';
 import { PRODUCT_STATUS_LABELS, PRODUCT_STATUS_TONES } from './labels';
 
 const ALL = 'all';
@@ -133,13 +134,18 @@ export function ProductList() {
           {data?.data.map((product) => (
             <tr key={product.product_id}>
               <Td>
-                <Link
-                  href={`/admin/produtos/${product.product_id}/`}
-                  className="font-extrabold hover:underline"
-                >
-                  {product.name}
-                </Link>
-                <span className="muted block text-xs">{product.brand ?? 'Sem marca'}</span>
+                <div className="flex items-center gap-3">
+                  <Thumbnail src={product.thumbnail_url} />
+                  <div className="min-w-0">
+                    <Link
+                      href={`/admin/produtos/${product.product_id}/`}
+                      className="font-extrabold hover:underline"
+                    >
+                      {product.name}
+                    </Link>
+                    <span className="muted block text-xs">{product.brand ?? 'Sem marca'}</span>
+                  </div>
+                </div>
               </Td>
               <Td>{categoryById.get(product.category_id) ?? '—'}</Td>
               <Td>

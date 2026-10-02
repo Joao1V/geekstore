@@ -233,7 +233,11 @@ export const productListQuerySchema = paginationQuerySchema.extend({
 });
 export type ProductListQuery = z.infer<typeof productListQuerySchema>;
 
-export const productListResponseSchema = paginatedResponse(productSchema);
+/** Item da listagem: o produto mais a primeira foto, para a lista não buscar mídia linha a linha. */
+export const productListItemSchema = productSchema.extend({ thumbnail_url: z.string().nullable() });
+export type ProductListItem = z.infer<typeof productListItemSchema>;
+
+export const productListResponseSchema = paginatedResponse(productListItemSchema);
 export const productDetailResponseSchema = dataResponse(productDetailSchema);
 
 // ── Grade do admin (SKU + preço do site + saldo agregado) ──────────────────────

@@ -1,4 +1,12 @@
-import type { Category, Collection, Media, Product, ProductDetail, Sku } from '@geekstore/shared';
+import type {
+  Category,
+  Collection,
+  Media,
+  Product,
+  ProductDetail,
+  ProductListItem,
+  Sku,
+} from '@geekstore/shared';
 
 type CategoryRow = Category & Record<string, unknown>;
 type SkuRow = Omit<Sku, 'attributes'> & { attributes: unknown };
@@ -76,6 +84,11 @@ export function toProduct(row: ProductRow): Product {
     created_at: row.created_at.toISOString(),
     updated_at: row.updated_at.toISOString(),
   };
+}
+
+/** Produto da listagem: leva a URL da primeira foto (a query já traz só a primeira, por posição). */
+export function toProductListItem(row: ProductRow & { media: { url: string }[] }): ProductListItem {
+  return { ...toProduct(row), thumbnail_url: row.media[0]?.url ?? null };
 }
 
 export function toProductDetail(

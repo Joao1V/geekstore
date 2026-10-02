@@ -1,9 +1,9 @@
 import { type Prisma, prisma } from '@geekstore/db';
 import {
   type Paginated,
-  type Product,
   type ProductBody,
   type ProductDetail,
+  type ProductListItem,
   type ProductListQuery,
   type ProductUpdateBody,
   productSortFields,
@@ -12,13 +12,18 @@ import {
 import { BadRequestError, ConflictError, NotFoundError } from '../../core/_errors';
 import { writeAuditLog } from '../../core/audit';
 import { buildMeta, parseSort, skipTake } from '../../core/http/pagination';
-import { toProduct, toProductDetail } from './catalog.mappers';
+import { toProductDetail, toProductListItem } from './catalog.mappers';
 import { searchProductIds } from './product-search';
 
 const detailInclude = {
   skus: { orderBy: { code: 'asc' } },
   media: { orderBy: [{ position: 'asc' }, { created_at: 'asc' }] },
   collection_products: { select: { collection_id: true } },
+} satisfies Prisma.ProductInclude;
+
+// Só a primeira foto de cada produto (por posição): é a miniatura da listagem.
+const thumbnailInclude = {
+  media: { orderBy: [{ position: 'asc' }, { created_at: 'asc' }], take: 1, select: { url: true } },
 } satisfies Prisma.ProductInclude;
 
 function buildWhere(query: ProductListQuery): Prisma.ProductWhereInput {
@@ -29,7 +34,7 @@ function buildWhere(query: ProductListQuery): Prisma.ProductWhereInput {
   };
 }
 
-export async function listProducts(query: ProductListQuery): Promise<Paginated<Product>> {
+export async function listProducts(query: ProductListQuery): Promise<Paginated<ProductListItem>> {
   const { field, direction } = parseSort(query.sort, productSortFields, {
     field: 'created_at',
     direction: 'desc',
@@ -43,12 +48,13 @@ export async function listProducts(query: ProductListQuery): Promise<Paginated<P
     prisma.product.findMany({
       where,
       orderBy: [{ [field]: direction }, { product_id: 'asc' }],
+      include: thumbnailInclude,
       ...window,
     }),
     prisma.product.count({ where }),
   ]);
 
-  return { data: rows.map(toProduct), meta: buildMeta(query.page, query.page_size, total) };
+  return { data: rows.map(toProductListItem), meta: buildMeta(query.page, query.page_size, total) };
 }
 
 /** Com texto de busca a ordem e a janela vêm do SQL (`unaccent`); as linhas seguem a ordem dos ids. */
@@ -56,12 +62,18 @@ async function listProductsBySearch(
   query: ProductListQuery & { q: string },
   sort: Parameters<typeof searchProductIds>[1],
   window: Parameters<typeof searchProductIds>[2]
-): Promise<Paginated<Product>> {
+): Promise<Paginated<ProductListItem>> {
   const { ids, total } = await searchProductIds(query, sort, window);
-  const rows = await prisma.product.findMany({ where: { product_id: { in: ids } } });
+  const rows = await prisma.product.findMany({
+    where: { product_id: { in: ids } },
+    include: thumbnailInclude,
+  });
   const byId = new Map(rows.map((row) => [row.product_id, row]));
   const ordered = ids.flatMap((id) => byId.get(id) ?? []);
-  return { data: ordered.map(toProduct), meta: buildMeta(query.page, query.page_size, total) };
+  return {
+    data: ordered.map(toProductListItem),
+    meta: buildMeta(query.page, query.page_size, total),
+  };
 }
 
 export async function getProductDetail(productId: string): Promise<ProductDetail> {

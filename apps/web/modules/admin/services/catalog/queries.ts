@@ -3,6 +3,7 @@ import type {
   Collection,
   Product,
   ProductDetail,
+  ProductListItem,
   ProductListQuery,
   SkuGridQuery,
   SkuGridRow,
@@ -23,7 +24,7 @@ export const categoriesQueryOptions = () =>
 export const productListQueryOptions = (params: ListParams<ProductListQuery>) =>
   queryOptions({
     queryKey: adminKeys.productList(params),
-    queryFn: () => adminApi.paginate<Product>('/api/catalog/products', params),
+    queryFn: () => adminApi.paginate<ProductListItem>('/api/catalog/products', params),
   });
 
 export const productDetailQueryOptions = (productId: string) =>
