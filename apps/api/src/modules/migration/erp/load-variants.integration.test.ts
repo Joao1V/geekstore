@@ -29,8 +29,20 @@ const rows = [
   shirt(2, `CAMISETA ${LINE} PRETO M`),
   shirt(3, `CAMISETA ${LINE} BRANCO P`),
 ];
+const brandRow = erpRowSchema.parse({
+  codigo: base + 10,
+  nome: `FUNKO POP TESTE ${suffix}`,
+  codigo_fabricante: `FNK-${suffix}`,
+  grupo: `ZZ MARCA ${suffix} #`,
+  subgrupo: `ZZ SUB ${suffix} #`,
+  preco_venda: 99,
+  estoque: 1,
+  fotos: [`https://cdn.exemplo.com/${suffix}-m.jpg`],
+});
+const brandSource: ErpSource = { rows: [brandRow], invalid: [], sha256: 'teste-marca', total: 1 };
 const source: ErpSource = { rows, invalid: [], sha256: 'teste-var', total: rows.length };
-const codes = rows.map((r) => String(r.codigo));
+const variantCodes = rows.map((r) => String(r.codigo));
+const codes = [...variantCodes, String(brandRow.codigo)];
 
 afterAll(async () => {
   const skus = await prisma.sku.findMany({
@@ -48,6 +60,9 @@ afterAll(async () => {
   await prisma.category.deleteMany({
     where: { parent_id: { not: null }, name: { contains: suffix, mode: 'insensitive' } },
   });
+  await prisma.category.deleteMany({
+    where: { name: { contains: suffix, mode: 'insensitive' } },
+  });
   await prisma.auditLog.deleteMany({
     where: { entity: 'erp_import', after: { path: ['source_sha256'], equals: 'teste-var' } },
   });
@@ -60,7 +75,7 @@ describe('runImport: variations (integration — requires a live DATABASE_URL)',
     expect(result.inserted).toMatchObject({ products: 1, skus: 3, media: 1 });
 
     const skus = await prisma.sku.findMany({
-      where: { legacy_code: { in: codes } },
+      where: { legacy_code: { in: variantCodes } },
       include: { product: { include: { media: true } }, ...skuAttributeInclude },
       orderBy: { legacy_code: 'asc' },
     });
@@ -76,7 +91,18 @@ describe('runImport: variations (integration — requires a live DATABASE_URL)',
       'BC-P',
     ]);
     expect(skus.every((s) => !s.code.startsWith('ERP-'))).toBe(true);
-    expect(skus.map((s) => s.legacy_code)).toEqual(codes);
+    expect(skus.map((s) => s.legacy_code)).toEqual(variantCodes);
     expect(skus[0]?.product.name).toBe(`Camiseta ${LINE[0]}${LINE.slice(1).toLowerCase()}`);
+  });
+
+  it('links the brand named in the item and keeps the manufacturer code', async () => {
+    await runImport(brandSource, NOW);
+    const sku = await prisma.sku.findUniqueOrThrow({
+      where: { legacy_code: String(brandRow.codigo) },
+      include: { product: { include: { brand: true } } },
+    });
+    expect(sku.product.brand?.name).toBe('Funko');
+    expect(sku.manufacturer_code).toBe(`FNK-${suffix}`);
+    expect(sku.product.code).toBe(sku.code); // produto simples: o código do produto é o do SKU
   });
 });

@@ -6,6 +6,11 @@ import {
   attributeResponseSchema,
   attributeValueBodySchema,
   attributeValueResponseSchema,
+  brandBodySchema,
+  brandListResponseSchema,
+  brandParamsSchema,
+  brandResponseSchema,
+  brandUpdateBodySchema,
   categoryAttributeListResponseSchema,
   categoryAttributesBodySchema,
   categoryBodySchema,
@@ -47,6 +52,7 @@ import {
   archiveProductController,
   createAttributeController,
   createAttributeValueController,
+  createBrandController,
   createCategoryController,
   createCollectionController,
   createMediaController,
@@ -59,6 +65,7 @@ import {
   getCategoryAttributesController,
   getProductController,
   listAttributesController,
+  listBrandsController,
   listCategoriesController,
   listCollectionProductsController,
   listCollectionsController,
@@ -68,6 +75,7 @@ import {
   replaceCollectionProductsController,
   setCategoryAttributesController,
   updateAttributeController,
+  updateBrandController,
   updateCategoryController,
   updateCollectionController,
   updateMediaController,
@@ -134,6 +142,47 @@ export async function catalogRoutes(fastify: FastifyInstance): Promise<void> {
       },
     },
     deleteCategoryController
+  );
+
+  // ── Marcas ───────────────────────────────────────────────────────────────────
+  app.get(
+    '/brands',
+    {
+      ...read,
+      schema: {
+        tags,
+        summary: 'Lista as marcas, com a quantidade de produtos de cada uma',
+        response: { 200: brandListResponseSchema },
+      },
+    },
+    listBrandsController
+  );
+  app.post(
+    '/brands',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary: 'Cria uma marca (o nome não pode repetir, nem com outra caixa ou acento)',
+        body: brandBodySchema,
+        response: { 201: brandResponseSchema },
+      },
+    },
+    createBrandController
+  );
+  app.patch(
+    '/brands/:brand_id',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary: 'Renomeia ou ativa/desativa uma marca',
+        params: brandParamsSchema,
+        body: brandUpdateBodySchema,
+        response: { 200: brandResponseSchema },
+      },
+    },
+    updateBrandController
   );
 
   // ── Atributos de variação (cor, tamanho...) ──────────────────────────────────

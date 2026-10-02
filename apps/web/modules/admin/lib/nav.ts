@@ -7,6 +7,7 @@ import {
   Package,
   ScrollText,
   SlidersHorizontal,
+  Tag,
   Users,
   Warehouse,
 } from 'lucide-react';
@@ -40,6 +41,13 @@ export const ADMIN_NAV: AdminNavItem[] = [
     label: 'Coleções',
     description: 'Franquias e curadorias',
     icon: Layers,
+    permission: 'catalog:read',
+  },
+  {
+    href: '/admin/marcas/',
+    label: 'Marcas',
+    description: 'Funko, LEGO, Konami… e quantos produtos cada uma tem',
+    icon: Tag,
     permission: 'catalog:read',
   },
   {

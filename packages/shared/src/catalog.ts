@@ -78,6 +78,7 @@ export const skuSchema = z.object({
   width_mm: z.number().int().nullable(),
   height_mm: z.number().int().nullable(),
   ncm: z.string().nullable(),
+  manufacturer_code: z.string().nullable(),
   cost_cents: z.number().int().nullable(),
   status: skuStatusSchema,
 });
@@ -90,6 +91,7 @@ const skuFields = {
     .string()
     .regex(/^\d{8,14}$/, 'EAN/GTIN com 8 a 14 dígitos')
     .nullable(),
+  manufacturer_code: z.string().trim().min(1).max(60).nullable(),
   attributes: skuAttributesSchema,
   weight_g: z.number().int().positive().nullable(),
   length_mm: z.number().int().positive().nullable(),
@@ -113,6 +115,7 @@ export const skuBodySchema = z.object({
   ...skuFields,
   ...skuInitialFields,
   ean: skuFields.ean.default(null),
+  manufacturer_code: skuFields.manufacturer_code.default(null),
   attributes: skuFields.attributes.default({}),
   weight_g: skuFields.weight_g.default(null),
   length_mm: skuFields.length_mm.default(null),
@@ -189,6 +192,8 @@ export const productSchema = z.object({
   name: z.string(),
   slug: z.string(),
   description: z.string().nullable(),
+  brand_id: z.string().uuid().nullable(),
+  /** Nome da marca (leitura); para gravar use `brand_id`. */
   brand: z.string().nullable(),
   status: productStatusSchema,
   ...seoFields,
@@ -219,7 +224,7 @@ const productFields = {
   name: z.string().min(1).max(255),
   slug: slugSchema,
   description: z.string().max(20000).nullable(),
-  brand: z.string().max(120).nullable(),
+  brand_id: z.string().uuid().nullable(),
   status: productStatusSchema,
   ...seoFields,
 };
@@ -228,7 +233,7 @@ export const productBodySchema = z.object({
   ...productFields,
   code: productCodeSchema,
   description: productFields.description.default(null),
-  brand: productFields.brand.default(null),
+  brand_id: productFields.brand_id.default(null),
   status: productFields.status.default('draft'),
   seo_title: productFields.seo_title.default(null),
   seo_description: productFields.seo_description.default(null),

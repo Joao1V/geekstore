@@ -224,7 +224,20 @@ function GridRow({
       {expanded && (
         <tr>
           <Td colSpan={columns} className="bg-surface-secondary/40">
-            <div className="grid grid-cols-5 gap-4 max-tablet:grid-cols-3 max-md:grid-cols-2">
+            <div className="grid grid-cols-6 gap-4 max-tablet:grid-cols-3 max-md:grid-cols-2">
+              <Controller
+                control={control}
+                name={`skus.${index}.manufacturer_code`}
+                render={({ field, fieldState }) => (
+                  <FieldInput
+                    field={field}
+                    fieldState={fieldState}
+                    label="Código do fabricante"
+                    required={false}
+                    maxLength={60}
+                  />
+                )}
+              />
               <Controller
                 control={control}
                 name={`skus.${index}.ncm`}

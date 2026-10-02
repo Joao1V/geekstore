@@ -122,3 +122,24 @@ export async function linkCategoryAttributes(
     }
   }
 }
+
+export type BrandIds = ReadonlyMap<string, string>;
+
+/** Cria (ou reaproveita, pelo endereço) as marcas que o plano usa; devolve `nome -> brand_id`. */
+export async function ensureBrands(plan: CatalogPlan): Promise<BrandIds> {
+  const names = [
+    ...new Set(plan.items.flatMap((item) => (item.brandName ? [item.brandName] : []))),
+  ];
+  const ids = new Map<string, string>();
+  for (const name of names) {
+    const slug = valueCodeOf(name);
+    const brand = await prisma.brand.upsert({
+      where: { slug },
+      update: {},
+      create: { brand_id: uuidv7(), name, slug },
+      select: { brand_id: true },
+    });
+    ids.set(name, brand.brand_id);
+  }
+  return ids;
+}

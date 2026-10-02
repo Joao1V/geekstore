@@ -20,12 +20,14 @@ import { applyInitialValues, loadInitialContext } from './sku-initial';
 
 const detailInclude = {
   skus: { orderBy: { code: 'asc' }, include: skuAttributeInclude },
+  brand: { select: { name: true } },
   media: { orderBy: [{ position: 'asc' }, { created_at: 'asc' }] },
   collection_products: { select: { collection_id: true } },
 } satisfies Prisma.ProductInclude;
 
 // Só a primeira foto de cada produto (por posição): é a miniatura da listagem.
 const thumbnailInclude = {
+  brand: { select: { name: true } },
   media: { orderBy: [{ position: 'asc' }, { created_at: 'asc' }], take: 1, select: { url: true } },
 } satisfies Prisma.ProductInclude;
 

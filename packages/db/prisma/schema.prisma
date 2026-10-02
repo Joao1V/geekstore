@@ -118,7 +118,7 @@ model Product {
   name            String        @db.VarChar(255)
   slug            String        @unique @db.VarChar(255)
   description     String?       @db.Text
-  brand           String?       @db.VarChar(120)
+  brand_id        String?       @db.Uuid
   status          ProductStatus @default(draft)
   seo_title       String?       @db.VarChar(255)
   seo_description String?       @db.VarChar(500)
@@ -127,35 +127,39 @@ model Product {
   updated_at      DateTime      @updatedAt
 
   category            Category            @relation(fields: [category_id], references: [category_id])
+  brand               Brand?              @relation(fields: [brand_id], references: [brand_id])
   skus                Sku[]
   media               Media[]
   collection_products CollectionProduct[]
 
   @@index([category_id])
+  @@index([brand_id])
   @@index([status])
   @@map("product")
 }
 
 // Unidade vendável (RF-CAT-02). Preço, estoque, anúncio e item de pedido apontam para cá.
 model Sku {
-  sku_id      String    @id @default(uuid(7)) @db.Uuid
-  product_id  String    @db.Uuid
-  code        String    @unique @db.VarChar(64) // imutável: o service rejeita alteração
-  ean         String?   @db.VarChar(14)
-  weight_g    Int?
-  length_mm   Int?
-  width_mm    Int?
-  height_mm   Int?
-  ncm         String?   @db.VarChar(8)
-  cost_cents  Int?
-  status      SkuStatus @default(active)
+  sku_id            String    @id @default(uuid(7)) @db.Uuid
+  product_id        String    @db.Uuid
+  code              String    @unique @db.VarChar(64) // imutável: o service rejeita alteração
+  ean               String?   @db.VarChar(14)
+  weight_g          Int?
+  length_mm         Int?
+  width_mm          Int?
+  height_mm         Int?
+  ncm               String?   @db.VarChar(8)
+  // Código do fabricante (MPN): os marketplaces e o Google Merchant pedem junto da marca.
+  manufacturer_code String?   @db.VarChar(60)
+  cost_cents        Int?
+  status            SkuStatus @default(active)
   // Código do item no sistema de origem (ERP): chave da importação, que a torna repetível, e elo
   // de conferência com a base antiga. Anulável: SKUs criados no admin não têm legado.
-  legacy_code String?   @unique @db.VarChar(32)
+  legacy_code       String?   @unique @db.VarChar(32)
   // Linha original do ERP (campos sem coluna própria), para auditoria da migração.
-  legacy_data Json?
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
+  legacy_data       Json?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
 
   product          Product             @relation(fields: [product_id], references: [product_id])
   media            Media[]
@@ -426,4 +430,17 @@ model SkuAttributeValue {
   @@unique([sku_id, attribute_id])
   @@index([attribute_value_id])
   @@map("sku_attribute_value")
+}
+
+model Brand {
+  brand_id   String   @id @default(uuid(7)) @db.Uuid
+  name       String   @unique @db.VarChar(120)
+  slug       String   @unique @db.VarChar(140)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  products Product[]
+
+  @@map("brand")
 }

@@ -4,6 +4,9 @@ import type {
   Attribute,
   AttributeBody,
   AttributeCreateBody,
+  Brand,
+  BrandBody,
+  BrandUpdateBody,
   Category,
   CategoryBody,
   CategoryUpdateBody,
@@ -224,5 +227,26 @@ export function useUpdateAttribute() {
     mutationFn: ({ attribute_id, body }: { attribute_id: string; body: AttributeBody }) =>
       adminApi.put<Attribute>(`${CATALOG}/attributes/${attribute_id}`, body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.attributes }),
+  });
+}
+
+// ── Marcas ─────────────────────────────────────────────────────────────────────
+export function useCreateBrand() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: BrandBody) => adminApi.post<Brand>(`${CATALOG}/brands`, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.brands }),
+  });
+}
+
+export function useUpdateBrand() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ brand_id, body }: { brand_id: string; body: BrandUpdateBody }) =>
+      adminApi.patch<Brand>(`${CATALOG}/brands/${brand_id}`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.brands });
+      queryClient.invalidateQueries({ queryKey: adminKeys.products });
+    },
   });
 }

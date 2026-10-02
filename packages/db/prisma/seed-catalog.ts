@@ -136,7 +136,7 @@ async function seedProduct(seed: SeedProduct, ctx: Context): Promise<void> {
       code: seed.skus[0]?.code ?? seed.slug.toUpperCase().slice(0, 40),
       slug: seed.slug,
       name: seed.name,
-      brand: seed.brand,
+      brand_id: await seedBrandId(seed.brand),
       description: renderDescription(seed),
       category_id: categoryId,
       status: seed.status ?? 'active',
@@ -230,4 +230,17 @@ async function seedAttributes(skuId: string, attributes: Record<string, string>)
       },
     });
   }
+}
+
+/** Marca da demonstração: reaproveita pelo endereço (slug) ou cria. */
+async function seedBrandId(name: string | null): Promise<string | null> {
+  if (!name) return null;
+  const slug = valueCodeOf(name);
+  if (!slug) return null;
+  const brand = await prisma.brand.upsert({
+    where: { slug },
+    update: {},
+    create: { name, slug },
+  });
+  return brand.brand_id;
 }

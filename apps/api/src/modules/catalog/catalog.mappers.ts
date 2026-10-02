@@ -14,9 +14,11 @@ type CategoryRow = Category & Record<string, unknown>;
 type SkuRow = Omit<Sku, 'attributes'> & {
   attribute_values: { attribute: { code: string }; value: { code: string } }[];
 };
-type ProductRow = Omit<Product, 'created_at' | 'updated_at'> & {
+type ProductRow = Omit<Product, 'created_at' | 'updated_at' | 'brand'> & {
   created_at: Date;
   updated_at: Date;
+  /** Relação carregada com `brandInclude`. */
+  brand: { name: string } | null;
 };
 
 export function toCategory(row: CategoryRow): Category {
@@ -57,6 +59,7 @@ export function toSku(row: SkuRow): Sku {
     width_mm: row.width_mm,
     height_mm: row.height_mm,
     ncm: row.ncm,
+    manufacturer_code: row.manufacturer_code,
     cost_cents: row.cost_cents,
     status: row.status,
   };
@@ -81,7 +84,8 @@ export function toProduct(row: ProductRow): Product {
     name: row.name,
     slug: row.slug,
     description: row.description,
-    brand: row.brand,
+    brand_id: row.brand_id,
+    brand: row.brand?.name ?? null,
     status: row.status,
     seo_title: row.seo_title,
     seo_description: row.seo_description,

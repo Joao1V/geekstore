@@ -47,6 +47,10 @@ export type PlannedItem = {
   productStatus: 'active' | 'draft';
   skuStatus: 'active' | 'inactive';
   ean: string | null;
+  /** `codigo_fabricante` do ERP (referência do fabricante, usada pelos marketplaces). */
+  manufacturerCode: string | null;
+  /** Marca citada no nome do item (a do produto, quando agrupado); `null` se não houver. */
+  brandName: string | null;
   ncm: string | null;
   weightG: number | null;
   lengthMm: number | null;

@@ -89,7 +89,7 @@ export async function listCollectionProducts(collectionId: string): Promise<Prod
   const links = await prisma.collectionProduct.findMany({
     where: { collection_id: collectionId },
     orderBy: [{ position: 'asc' }, { collection_product_id: 'asc' }],
-    include: { product: true },
+    include: { product: { include: { brand: { select: { name: true } } } } },
   });
   return links.map((link) => toProduct(link.product));
 }

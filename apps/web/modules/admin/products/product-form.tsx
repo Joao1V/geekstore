@@ -10,6 +10,7 @@ import { useMemo, useState } from 'react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 
 import { Action, FieldInput, FieldSelect, FieldTextarea } from '@/components/ui';
+import { BrandAutocomplete } from '../brands/brand-autocomplete';
 import { CategoryAutocomplete } from '../categories/category-autocomplete';
 import { getErrorMessage } from '../lib/errors';
 import { slugify } from '../lib/format';
@@ -198,9 +199,9 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
             />
             <Controller
               control={control}
-              name="brand"
+              name="brand_id"
               render={({ field, fieldState }) => (
-                <FieldInput field={field} fieldState={fieldState} label="Marca" required={false} />
+                <BrandAutocomplete field={field} fieldState={fieldState} />
               )}
             />
           </div>

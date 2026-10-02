@@ -58,6 +58,7 @@ function buildGroup(group: ProductGroup, used: Used): Built {
   const hasActiveSku = skus.some((sku) => sku.skuStatus === 'active');
   const productStatus = hasActiveSku && photos.length > 0 ? 'active' : 'draft';
   const description = skus.map((sku) => sku.description).find(Boolean) ?? null;
+  const brandName = skus.map((sku) => sku.brandName).find(Boolean) ?? null;
   const categoryKey = categoryKeyFor({ groupName: first.groupName, subName: first.subName });
   const prefix = isFamily ? uniquePrefix(name, used.prefixes) : groupPrefix(first.groupName);
 
@@ -75,6 +76,7 @@ function buildGroup(group: ProductGroup, used: Used): Built {
       name,
       slug,
       description,
+      brandName,
       categoryKey,
       productStatus,
       photos,

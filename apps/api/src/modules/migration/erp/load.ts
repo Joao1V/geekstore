@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { type Prisma, prisma } from '@geekstore/db';
 
 import type { ErpSource } from './erp-source';
-import { ensureAttributeValues, linkCategoryAttributes } from './load-attributes';
+import { ensureAttributeValues, ensureBrands, linkCategoryAttributes } from './load-attributes';
 import { BATCH_SIZE, type BatchContext, buildBatchRows, chunkByProduct } from './load-batch';
 import { resolveCategories } from './load-categories';
 import { buildPlan } from './plan';
@@ -73,12 +73,14 @@ export async function runImport(source: ErpSource, now: Date): Promise<ImportRes
   });
   const categories = await resolveCategories(plan.categories);
   const attributeValueIds = await ensureAttributeValues(plan);
+  const brandIds = await ensureBrands(plan);
   await linkCategoryAttributes(plan, categories.ids, attributeValueIds);
   const base = await loadContext();
   const ctx: BatchContext = {
     ...base,
     categoryIds: categories.ids,
     attributeValueIds,
+    brandIds,
     now,
     importMeta: { run_id: runId, source_sha256: source.sha256, imported_at: now.toISOString() },
   };

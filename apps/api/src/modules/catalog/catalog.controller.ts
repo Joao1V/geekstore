@@ -3,6 +3,9 @@ import type {
   AttributeCreateBody,
   AttributeParams,
   AttributeValueBody,
+  BrandBody,
+  BrandParams,
+  BrandUpdateBody,
   CategoryAttributesBody,
   CategoryBody,
   CategoryParams,
@@ -21,7 +24,6 @@ import type {
   SkuGridQuery,
 } from '@geekstore/shared';
 import type { FastifyReply, FastifyRequest, RouteGenericInterface } from 'fastify';
-
 import {
   createAttribute,
   createAttributeValue,
@@ -30,6 +32,7 @@ import {
   setCategoryAttributes,
   updateAttribute,
 } from './attribute.service';
+import { createBrand, listBrands, updateBrand } from './brand.service';
 import { createCategory, deleteCategory, listCategories, updateCategory } from './category.service';
 import {
   createCollection,
@@ -252,4 +255,22 @@ export async function updateAttributeController(
   return {
     data: await updateAttribute(request.user.sub, request.params.attribute_id, request.body),
   };
+}
+
+// ── Marcas ─────────────────────────────────────────────────────────────────────
+export async function listBrandsController() {
+  return { data: await listBrands() };
+}
+
+export async function createBrandController(
+  request: Req<{ Body: BrandBody }>,
+  reply: FastifyReply
+) {
+  return reply.code(201).send({ data: await createBrand(request.user.sub, request.body) });
+}
+
+export async function updateBrandController(
+  request: Req<{ Params: BrandParams; Body: BrandUpdateBody }>
+) {
+  return { data: await updateBrand(request.user.sub, request.params.brand_id, request.body) };
 }

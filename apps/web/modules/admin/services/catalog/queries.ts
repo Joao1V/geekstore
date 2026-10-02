@@ -1,5 +1,6 @@
 import type {
   Attribute,
+  Brand,
   Category,
   CategoryAttribute,
   Collection,
@@ -22,6 +23,13 @@ export const categoriesQueryOptions = () =>
   queryOptions({
     queryKey: adminKeys.categories,
     queryFn: () => adminApi.get<Category[]>('/api/catalog/categories'),
+  });
+
+export const brandsQueryOptions = () =>
+  queryOptions({
+    queryKey: adminKeys.brands,
+    queryFn: () => adminApi.get<Brand[]>('/api/catalog/brands'),
+    staleTime: 60_000,
   });
 
 export const attributesQueryOptions = () =>

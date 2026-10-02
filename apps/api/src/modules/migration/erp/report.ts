@@ -38,6 +38,8 @@ function summary(plan: CatalogPlan, source: ErpSource, now: Date) {
     com_peso: items.filter((i) => i.weightG !== null).length,
     com_dimensoes: items.filter((i) => i.lengthMm !== null).length,
     com_ncm_valido: items.filter((i) => i.ncm).length,
+    com_marca: items.filter((i) => i.brandName).length,
+    com_codigo_fabricante: items.filter((i) => i.manufacturerCode).length,
     com_descricao: items.filter((i) => i.description).length,
     fotos_total: items.reduce((sum, i) => sum + i.photos.length, 0),
     pendencias_por_tipo: countBy(plan.issues, (issue) => issue.code),
@@ -134,10 +136,11 @@ export function buildReport(plan: CatalogPlan, source: ErpSource, now: Date): Re
     {
       name: 'skus-e-variacoes.csv',
       content: toCsv(
-        ['sku', 'produto', 'cor', 'tamanho', 'codigo_erp', 'nome_no_erp'],
+        ['sku', 'produto', 'marca', 'cor', 'tamanho', 'codigo_erp', 'nome_no_erp'],
         plan.items.map((i) => [
           i.skuCode,
           i.name,
+          i.brandName ?? '',
           i.attributes.cor ?? '',
           i.attributes.tamanho ?? '',
           i.legacyCode,

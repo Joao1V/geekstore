@@ -12,6 +12,7 @@ const BASE_PRICE_STARTS_AT = new Date('2000-01-01T00:00:00Z');
 
 export type BatchContext = {
   attributeValueIds: AttributeValueIds;
+  brandIds: ReadonlyMap<string, string>;
   categoryIds: ReadonlyMap<string, string>;
   siteChannelId: string;
   warehouseId: string;
@@ -46,6 +47,7 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
         product_id: productId,
         category_id: categoryId,
         code: item.productCode,
+        brand_id: item.brandName ? (ctx.brandIds.get(item.brandName) ?? null) : null,
         name: item.name,
         slug: item.slug,
         description: item.description,
@@ -71,6 +73,7 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
       width_mm: item.widthMm,
       height_mm: item.heightMm,
       ncm: item.ncm,
+      manufacturer_code: item.manufacturerCode,
       status: item.skuStatus,
       legacy_code: item.legacyCode,
       legacy_data: { ...item.legacyData, import: ctx.importMeta } as Prisma.InputJsonValue,

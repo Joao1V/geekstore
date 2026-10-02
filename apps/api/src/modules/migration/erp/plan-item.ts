@@ -1,3 +1,4 @@
+import { detectBrand } from './brand-detect';
 import type { ErpRow } from './erp-row';
 import { isValidGtin } from './gtin';
 import { normalizeMeasures } from './measures';
@@ -133,6 +134,8 @@ export function planRow(row: ErpRow, now: Date): RowResult {
         productStatus: skuStatus === 'active' && photos.photos.length > 0 ? 'active' : 'draft',
         skuStatus,
         ean,
+        manufacturerCode: row.codigo_fabricante ? row.codigo_fabricante.slice(0, 60) : null,
+        brandName: detectBrand(name),
         ncm,
         weightG: measures.weightG,
         lengthMm: measures.lengthMm,
