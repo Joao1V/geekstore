@@ -9,6 +9,7 @@ export const adminKeys = {
   productList: (params: object) => ['admin', 'products', 'list', params] as const,
   attributes: ['admin', 'attributes'] as const,
   brands: ['admin', 'brands'] as const,
+  dashboard: ['admin', 'dashboard'] as const,
   categoryAttributes: (categoryId: string) =>
     ['admin', 'categories', categoryId, 'attributes'] as const,
   productSummary: ['admin', 'products', 'summary'] as const,

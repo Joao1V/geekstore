@@ -251,8 +251,15 @@ export const productParamsSchema = z.object({ product_id: z.string().uuid() });
 export type ProductParams = z.infer<typeof productParamsSchema>;
 
 export const productSortFields = ['name', 'created_at', 'updated_at'] as const;
-/** Atalhos da listagem: produtos que pedem atenção (sem foto, ou sem nenhum saldo disponível). */
-export const productIssueSchema = z.enum(['no_photo', 'out_of_stock']);
+/** Pendências do catálogo: produtos que pedem atenção (sem foto, sem estoque, sem marca...). */
+export const productIssueSchema = z.enum([
+  'no_photo',
+  'out_of_stock',
+  'no_price',
+  'no_brand',
+  'no_description',
+  'no_weight',
+]);
 export type ProductIssue = z.infer<typeof productIssueSchema>;
 
 export const productListQuerySchema = paginationQuerySchema.extend({
@@ -370,3 +377,34 @@ export const collectionProductsResponseSchema = z.object({ data: z.array(product
 
 export const collectionListResponseSchema = z.object({ data: z.array(collectionSchema) });
 export const collectionResponseSchema = dataResponse(collectionSchema);
+
+// ── Painel (home do admin) ─────────────────────────────────────────────────────
+export const catalogDashboardSchema = z.object({
+  products: z.object({
+    total: z.number().int(),
+    active: z.number().int(),
+    draft: z.number().int(),
+    archived: z.number().int(),
+  }),
+  skus: z.object({ total: z.number().int(), active: z.number().int() }),
+  stock: z.object({
+    units: z.number().int(),
+    /** Disponível x preço de venda do site: o que o estoque vale a preço de vitrine. */
+    value_cents: z.number().int(),
+  }),
+  /** Quantos produtos têm cada pendência (as mesmas contas dos filtros da lista). */
+  health: z.object({
+    no_photo: z.number().int(),
+    out_of_stock: z.number().int(),
+    no_price: z.number().int(),
+    no_brand: z.number().int(),
+    no_description: z.number().int(),
+    no_weight: z.number().int(),
+  }),
+  /** Categorias raiz com o total de produtos (incluindo as subcategorias). */
+  by_category: z.array(
+    z.object({ category_id: z.string().uuid(), name: z.string(), product_count: z.number().int() })
+  ),
+});
+export type CatalogDashboard = z.infer<typeof catalogDashboardSchema>;
+export const catalogDashboardResponseSchema = dataResponse(catalogDashboardSchema);

@@ -1,6 +1,7 @@
 import type {
   Attribute,
   Brand,
+  CatalogDashboard,
   Category,
   CategoryAttribute,
   Collection,
@@ -23,6 +24,13 @@ export const categoriesQueryOptions = () =>
   queryOptions({
     queryKey: adminKeys.categories,
     queryFn: () => adminApi.get<Category[]>('/api/catalog/categories'),
+  });
+
+export const catalogDashboardQueryOptions = () =>
+  queryOptions({
+    queryKey: adminKeys.dashboard,
+    queryFn: () => adminApi.get<CatalogDashboard>('/api/catalog/dashboard'),
+    staleTime: 60_000,
   });
 
 export const brandsQueryOptions = () =>

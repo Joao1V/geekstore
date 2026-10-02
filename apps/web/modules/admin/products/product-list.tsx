@@ -2,7 +2,7 @@
 
 import type { ProductListQuery } from '@geekstore/shared';
 import { useQuery } from '@tanstack/react-query';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -18,6 +18,7 @@ import {
   productListQueryOptions,
   productSummaryQueryOptions,
 } from '../services/catalog/queries';
+import { Badge } from '../ui/badge';
 import { type FilterChip, FilterChips } from '../ui/filter-chips';
 import { PageHeader } from '../ui/page-header';
 import { PaginationBar } from '../ui/pagination-bar';
@@ -25,7 +26,8 @@ import { SearchBox } from '../ui/search-box';
 import { SortHeader } from '../ui/sort-header';
 import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
 import { Thumbnail } from '../ui/thumbnail';
-import { type ChipId, chipFromParams, paramsFromChip } from './list-filters';
+import { ISSUE_LABELS } from './labels';
+import { type ChipId, chipFromParams, extraIssue, paramsFromChip } from './list-filters';
 import {
   CategoryCell,
   LegacyCodeCell,
@@ -47,7 +49,9 @@ export function ProductList() {
   const categoryId = searchParams.get('category_id');
   const sort = searchParams.get('sort') ?? 'updated_at:desc';
   const chip = chipFromParams(searchParams.get('status'), searchParams.get('issue'));
-  const { status, issue } = paramsFromChip(chip);
+  const extra = extraIssue(searchParams.get('issue'));
+  const { status, issue: chipIssue } = paramsFromChip(chip);
+  const issue = chipIssue ?? extra;
 
   const { data: categories } = useQuery(categoriesQueryOptions());
   const { data: summary } = useQuery(productSummaryQueryOptions());
@@ -76,7 +80,7 @@ export function ProductList() {
       ? [{ id: 'archived', label: 'Arquivados', count: summary.archived }]
       : []),
   ];
-  const hasFilters = Boolean(q || categoryId || chip !== 'all');
+  const hasFilters = Boolean(q || categoryId || chip !== 'all' || extra);
 
   return (
     <>
@@ -96,6 +100,19 @@ export function ProductList() {
         active={chip}
         onSelect={(id) => setParams(paramsFromChip(id as ChipId))}
       />
+      {extra && (
+        <p className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+          <span className="muted">Filtrando por pendência:</span>
+          <Badge tone="warning">{ISSUE_LABELS[extra]}</Badge>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 text-xs font-extrabold underline"
+            onClick={() => setParams({ issue: null })}
+          >
+            <X size={13} /> Limpar
+          </button>
+        </p>
+      )}
       <div className="mb-5 grid grid-cols-[2fr_1fr] items-start gap-4 max-md:grid-cols-1">
         <SearchBox
           label="Buscar por nome, SKU ou código legado"

@@ -33,6 +33,7 @@ import {
   updateAttribute,
 } from './attribute.service';
 import { createBrand, listBrands, updateBrand } from './brand.service';
+import { getCatalogDashboard } from './catalog-dashboard.service';
 import { createCategory, deleteCategory, listCategories, updateCategory } from './category.service';
 import {
   createCollection,
@@ -273,4 +274,8 @@ export async function updateBrandController(
   request: Req<{ Params: BrandParams; Body: BrandUpdateBody }>
 ) {
   return { data: await updateBrand(request.user.sub, request.params.brand_id, request.body) };
+}
+
+export async function catalogDashboardController() {
+  return { data: await getCatalogDashboard() };
 }

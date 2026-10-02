@@ -11,6 +11,7 @@ import {
   brandParamsSchema,
   brandResponseSchema,
   brandUpdateBodySchema,
+  catalogDashboardResponseSchema,
   categoryAttributeListResponseSchema,
   categoryAttributesBodySchema,
   categoryBodySchema,
@@ -50,6 +51,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { requirePermission } from '../../core/hooks';
 import {
   archiveProductController,
+  catalogDashboardController,
   createAttributeController,
   createAttributeValueController,
   createBrandController,
@@ -142,6 +144,20 @@ export async function catalogRoutes(fastify: FastifyInstance): Promise<void> {
       },
     },
     deleteCategoryController
+  );
+
+  // ── Painel ───────────────────────────────────────────────────────────────────
+  app.get(
+    '/dashboard',
+    {
+      ...read,
+      schema: {
+        tags,
+        summary: 'Painel do catálogo: totais, pendências e valor do estoque',
+        response: { 200: catalogDashboardResponseSchema },
+      },
+    },
+    catalogDashboardController
   );
 
   // ── Marcas ───────────────────────────────────────────────────────────────────

@@ -5,9 +5,6 @@ import { formatInteger } from '../lib/format';
 import { Badge } from '../ui/badge';
 import { PRODUCT_STATUS_LABELS, PRODUCT_STATUS_TONES } from './labels';
 
-// Abaixo (ou igual) a este saldo o estoque é "baixo": o operador precisa repor.
-const LOW_STOCK_LIMIT = 5;
-
 const CODE_CHIP = 'rounded bg-surface-secondary px-1.5 py-0.5 font-mono text-xs font-bold';
 
 /** SKU: o código principal. Em produto com variações mostra o primeiro e quantos mais existem. */
@@ -52,18 +49,16 @@ export function PriceCell({ product }: { product: ProductListItem }) {
   );
 }
 
-/** Ponto colorido + número: o texto garante a leitura para quem não distingue as cores. */
+/** Ponto colorido + número: vermelho só quando esgotou (o texto garante a leitura sem cor). */
 export function StockCell({ available }: { available: number }) {
-  const state =
-    available <= 0
-      ? { dot: 'bg-status-error', text: 'Esgotado' }
-      : available <= LOW_STOCK_LIMIT
-        ? { dot: 'bg-status-warning', text: `${formatInteger(available)} · baixo` }
-        : { dot: 'bg-status-success', text: formatInteger(available) };
+  const isOut = available <= 0;
   return (
     <span className="inline-flex items-center gap-2 font-bold tabular-nums">
-      <span aria-hidden="true" className={`size-2.5 shrink-0 rounded-full ${state.dot}`} />
-      {state.text}
+      <span
+        aria-hidden="true"
+        className={`size-2.5 shrink-0 rounded-full ${isOut ? 'bg-status-error' : 'bg-status-success'}`}
+      />
+      {isOut ? 'Esgotado' : formatInteger(available)}
     </span>
   );
 }

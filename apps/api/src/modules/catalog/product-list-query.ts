@@ -2,7 +2,7 @@ import { Prisma, prisma } from '@geekstore/db';
 import type { ProductListQuery, productSortFields } from '@geekstore/shared';
 
 import { asUuid, matchesSearch } from '../../core/db/sql';
-import { NO_PHOTO, OUT_OF_STOCK } from './product-conditions';
+import { ISSUE_CONDITIONS } from './product-conditions';
 
 type SortField = (typeof productSortFields)[number];
 
@@ -35,8 +35,7 @@ function buildWhere(query: ProductListQuery, categoryIds?: string[]): Prisma.Sql
   if (categoryIds) {
     conditions.push(Prisma.sql`p.category_id IN (${Prisma.join(categoryIds.map(asUuid))})`);
   }
-  if (query.issue === 'no_photo') conditions.push(NO_PHOTO);
-  if (query.issue === 'out_of_stock') conditions.push(OUT_OF_STOCK);
+  if (query.issue) conditions.push(ISSUE_CONDITIONS[query.issue]);
   return conditions.length > 0
     ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
     : Prisma.empty;

@@ -16,6 +16,18 @@ export function formatInteger(value: number): string {
   return integerFormatter.format(value);
 }
 
+const compactBrlFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
+/** Valor grande em reais, curto: 701568828 centavos -> "R$ 7 mi". */
+export function formatBRLCompact(cents: number): string {
+  return compactBrlFormatter.format(cents / 100);
+}
+
 export function slugify(text: string): string {
   return text
     .normalize('NFD')
