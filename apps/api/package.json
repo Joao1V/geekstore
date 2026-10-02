@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "import:erp": "tsx src/cli/import-erp.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1142.0",

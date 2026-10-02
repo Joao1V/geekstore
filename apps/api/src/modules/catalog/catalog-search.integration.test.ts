@@ -69,15 +69,24 @@ describe('catalog search (integration — requires a live DATABASE_URL)', () => 
   it('SKU grid puts SKUs without price last, whichever the direction', async () => {
     const sku = await prisma.sku.findFirstOrThrow({ where: { product_id: accentedProductId } });
     const site = await prisma.channel.findUniqueOrThrow({ where: { code: 'site' } });
+    // Vigência no passado: o relógio do Node e o do banco (que a grade usa) podem diferir por ms.
     await prisma.price.create({
-      data: { sku_id: sku.sku_id, channel_id: site.channel_id, price_cents: 1990 },
+      data: {
+        sku_id: sku.sku_id,
+        channel_id: site.channel_id,
+        price_cents: 1990,
+        starts_at: new Date(Date.now() - 60_000),
+      },
     });
 
+    const ours = [fx.productId, accentedProductId];
     for (const sort of ['price_cents:asc', 'price_cents:desc']) {
       const grid = await listSkuGrid({ ...query, q: fx.suffix, sort });
-      expect(grid.data).toHaveLength(2);
-      expect(grid.data[0]?.price_cents).toBe(1990);
-      expect(grid.data[1]?.price_cents).toBeNull();
+      // Só os dois SKUs deste teste: o banco pode ter o catálogo real, com outros itens.
+      const rows = grid.data.filter((row) => ours.includes(row.product_id));
+      expect(rows).toHaveLength(2);
+      expect(rows[0]?.price_cents).toBe(1990);
+      expect(rows[1]?.price_cents).toBeNull();
     }
     await prisma.price.deleteMany({ where: { sku_id: sku.sku_id } });
   });
