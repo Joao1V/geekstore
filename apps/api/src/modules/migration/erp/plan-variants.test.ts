@@ -26,8 +26,8 @@ describe('SKU codes', () => {
   it('builds the family prefix from the line, skipping the garment type', () => {
     expect(familyPrefix('Camiseta Naruto Kunai')).toBe('NAR-KUN');
     expect(familyPrefix('Camiseta Naruto')).toBe('NAR');
-    expect(variantCode('NAR', { cor: 'Preto', tamanho: 'P' })).toBe('NAR-PRE-P');
-    expect(variantCode('NAR', { cor: 'Branco', tamanho: 'P' })).toBe('NAR-BRA-P');
+    expect(variantCode('NAR', { cor: 'Preto', tamanho: 'P' })).toBe('NAR-PT-P');
+    expect(variantCode('NAR', { cor: 'Branco', tamanho: 'P' })).toBe('NAR-BC-P');
     expect(variantCode('PAN', { tamanho: 'G', numeracao: '39/41' })).toBe('PAN-G-39-41');
   });
 });
@@ -45,10 +45,10 @@ describe('buildPlan: variations', () => {
     expect(new Set(items.map((i) => i.productKey)).size).toBe(1);
     expect(items.map((i) => i.name)).toEqual(Array(4).fill('Camiseta Naruto'));
     expect(items.map((i) => [i.skuCode, i.attributes])).toEqual([
-      ['NAR-PRE-P', { cor: 'Preto', tamanho: 'P' }],
-      ['NAR-PRE-M', { cor: 'Preto', tamanho: 'M' }],
-      ['NAR-BRA-P', { cor: 'Branco', tamanho: 'P' }],
-      ['NAR-AZM-GG', { cor: 'Azul Marinho', tamanho: 'GG' }],
+      ['NAR-PT-P', { cor: 'Preto', tamanho: 'P' }],
+      ['NAR-PT-M', { cor: 'Preto', tamanho: 'M' }],
+      ['NAR-BC-P', { cor: 'Branco', tamanho: 'P' }],
+      ['NAR-MR-GG', { cor: 'Azul Marinho', tamanho: 'GG' }],
     ]);
     expect(items.map((i) => i.legacyCode)).toEqual(['1', '2', '3', '4']); // código do ERP preservado
   });
@@ -86,11 +86,11 @@ describe('buildPlan: variations', () => {
     ];
     const result = buildPlan([...rows, ...rowsB], {
       now: NOW,
-      takenSkuCodes: new Set(['NAR-PRE-GG']),
+      takenSkuCodes: new Set(['NAR-PT-GG']),
     });
     const codes = result.items.map((i) => i.skuCode);
     expect(new Set(codes).size).toBe(codes.length);
-    expect(codes).toContain('NAR2-PRE-P'); // segunda família "Camiseta Naruto"
+    expect(codes).toContain('NAR2-PT-P'); // segunda família "Camiseta Naruto"
   });
 });
 
@@ -140,7 +140,7 @@ describe('buildPlan: variations outside clothing', () => {
     const { items } = plan([item(60, 'DADO RPG PRETO'), item(61, 'DADO RPG VERMELHO')]);
     expect(new Set(items.map((i) => i.productKey)).size).toBe(1);
     expect(items.map((i) => i.attributes)).toEqual([{ cor: 'Preto' }, { cor: 'Vermelho' }]);
-    expect(items.map((i) => i.skuCode)).toEqual(['DAD-RPG-PRE', 'DAD-RPG-VML']);
+    expect(items.map((i) => i.skuCode)).toEqual(['DAD-RPG-PT', 'DAD-RPG-VM']);
   });
 
   it('groups flavour and weight/volume variants of a food', () => {
@@ -149,8 +149,8 @@ describe('buildPlan: variations outside clothing', () => {
       item(71, 'REFRIGERANTE GEEK MORANGO 2L', 'ALIMENTOS E BEBIDAS #'),
     ]);
     expect(items.map((i) => i.attributes)).toEqual([
-      { sabor: 'Uva', medida: '2L' },
-      { sabor: 'Morango', medida: '2L' },
+      { sabor: 'Uva', capacidade: '2l' },
+      { sabor: 'Morango', capacidade: '2l' },
     ]);
     expect(items[0]?.name).toBe('Refrigerante Geek');
   });

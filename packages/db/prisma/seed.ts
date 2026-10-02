@@ -1,6 +1,6 @@
 import argon2 from 'argon2';
 
-import { prisma } from '../src/index';
+import { ensureAttributeCatalog, prisma } from '../src/index';
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const DEV_PASSWORD = 'geekstore-dev-2026';
@@ -54,6 +54,8 @@ async function seedAdmin() {
 
 async function main() {
   await seedAdmin();
+  await ensureAttributeCatalog(prisma);
+  console.log('Catálogo de atributos pronto.');
 }
 
 main()

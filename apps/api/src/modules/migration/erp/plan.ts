@@ -3,7 +3,7 @@ import { categoryKeyFor, planCategories } from './plan-categories';
 import { planRow } from './plan-item';
 import type { CatalogPlan, Issue, PlannedItem, PlanOptions } from './plan-types';
 import { groupVariants, type ProductGroup } from './plan-variants';
-import { familyPrefix, groupPrefix, variantCode } from './sku-code';
+import { familyPrefix, groupPrefix, MAX_PREFIX_WORDS, variantCode } from './sku-code';
 import { slugify } from './text';
 
 type Built = { items: PlannedItem[]; issues: Issue[] };
@@ -25,8 +25,20 @@ function uniqueCode(base: string, used: Set<string>): string {
   return code;
 }
 
-/** Prefixo da família sem repetir o de outra: NAR-KUN, depois NAR-KUN2. */
-function uniquePrefix(base: string, used: Set<string>): string {
+/**
+ * Prefixo da família sem repetir o de outra: tenta NAR-KUN, depois com mais palavras do nome
+ * (NAR-KUN-ZER) e só então numera (NAR-KUN2).
+ */
+function uniquePrefix(name: string, used: Set<string>): string {
+  const base = familyPrefix(name);
+  for (let words = 3; words <= MAX_PREFIX_WORDS; words++) {
+    const candidate = familyPrefix(name, words);
+    if (!used.has(base)) break;
+    if (!used.has(candidate)) {
+      used.add(candidate);
+      return candidate;
+    }
+  }
   let prefix = base;
   for (let n = 2; used.has(prefix); n++) prefix = `${base}${n}`;
   used.add(prefix);
@@ -47,9 +59,7 @@ function buildGroup(group: ProductGroup, used: Used): Built {
   const productStatus = hasActiveSku && photos.length > 0 ? 'active' : 'draft';
   const description = skus.map((sku) => sku.description).find(Boolean) ?? null;
   const categoryKey = categoryKeyFor({ groupName: first.groupName, subName: first.subName });
-  const prefix = isFamily
-    ? uniquePrefix(familyPrefix(name), used.prefixes)
-    : groupPrefix(first.groupName);
+  const prefix = isFamily ? uniquePrefix(name, used.prefixes) : groupPrefix(first.groupName);
 
   const items = group.members.map(({ draft, attributes }): PlannedItem => {
     const { baseSlug: _slug, groupName: _group, subName: _sub, ...rest } = draft.item;

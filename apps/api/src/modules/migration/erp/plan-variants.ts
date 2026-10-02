@@ -1,5 +1,4 @@
 import type { RowDraft } from './plan-item';
-import { COLOR_CODES } from './sku-code';
 
 // Vestuário tem tamanho e numeração no nome (PP, GG, 33/35...). Nos demais grupos só se agrupa
 // quando a palavra que muda é de um tipo conhecido (cor, sabor, medida, tamanho por extenso):
@@ -27,7 +26,39 @@ const FLAVORS = new Set([
   'CARAMELO',
 ]);
 const NAMED_SIZES = new Set(['A4', 'A5', 'PEQUENO', 'MEDIO', 'GRANDE']);
-const MEASURE = /^\d+(?:[.,]\d+)?(?:G|KG|ML|L|MG)$/i;
+const WEIGHT = /^\d+(?:[.,]\d+)?(?:G|KG|MG)$/i;
+const VOLUME = /^\d+(?:[.,]\d+)?(?:ML|L)$/i;
+// Palavras de cor que aparecem no nome (as duas formas de gênero; o valor guardado é uma só).
+const COLOR_WORDS = [
+  'AZUL MARINHO',
+  'OFF WHITE',
+  'PRETO',
+  'PRETA',
+  'BRANCO',
+  'BRANCA',
+  'AZUL',
+  'VERMELHO',
+  'VERMELHA',
+  'LARANJA',
+  'VINHO',
+  'VERDE',
+  'AMARELO',
+  'AMARELA',
+  'ROSA',
+  'CINZA',
+  'ROXO',
+  'ROXA',
+  'MARROM',
+  'CARBONO',
+  'BEGE',
+  'DOURADO',
+  'PRATA',
+  'LILAS',
+  'TRANSPARENTE',
+  'TRANSLUCIDO',
+  'MARFIM',
+  'GRAFITE',
+];
 const SIZES = new Set([
   'PP',
   'P',
@@ -48,18 +79,12 @@ const SIZE_LABELS = new Set(['TAMANHO', 'TAM', 'TAM.']);
 const RANGE = /^\d{2}\/\d{2}$/;
 const KIDS_SIZE = /^\d{2}$/;
 // Cores de duas palavras primeiro, para "AZUL MARINHO" não virar "AZUL".
-const COLORS = Object.keys(COLOR_CODES).sort((a, b) => b.split(' ').length - a.split(' ').length);
+const COLORS = [...COLOR_WORDS].sort((a, b) => b.split(' ').length - a.split(' ').length);
 
 export type ParsedVariant = {
   baseName: string;
-  /** `tamanho` (P, GG, idade) e `numeracao` (33/35) são atributos separados. */
-  attributes: {
-    cor?: string;
-    tamanho?: string;
-    numeracao?: string;
-    sabor?: string;
-    medida?: string;
-  };
+  /** Código do atributo -> rótulo do valor ({ cor: 'Preto', tamanho: 'GG' }). */
+  attributes: Record<string, string>;
 };
 
 function isSize(token: string, isKids: boolean): boolean {
@@ -104,13 +129,18 @@ const titleCase = (word: string): string =>
 
 /** Fora do vestuário: cor, sabor, medida ("325ML") e tamanho por extenso ("Grande"). */
 function parseGeneric(tokens: string[], groupName: string): ParsedVariant | null {
-  const found: ParsedVariant['attributes'] = {};
+  const found: Record<string, string> = {};
   let rest = tokens;
 
-  const measure = rest.find((token) => MEASURE.test(token));
-  if (measure) {
-    found.medida = measure.toUpperCase();
-    rest = rest.filter((token) => token !== measure);
+  const weight = rest.find((token) => WEIGHT.test(token));
+  if (weight) {
+    found.peso = weight.toLowerCase();
+    rest = rest.filter((token) => token !== weight);
+  }
+  const volume = rest.find((token) => VOLUME.test(token));
+  if (volume) {
+    found.capacidade = volume.toLowerCase();
+    rest = rest.filter((token) => token !== volume);
   }
   const named = rest.find((token) => NAMED_SIZES.has(token.toUpperCase()));
   if (named) {
@@ -146,12 +176,14 @@ export function parseVariant(name: string, groupName: string): ParsedVariant | n
   if (!baseName) return null;
   const sizes = sizeTokens.map((token) => token.toUpperCase());
   const numeracao = sizes.find((size) => RANGE.test(size));
-  const tamanho = sizes.filter((size) => !RANGE.test(size)).join(' ');
+  const kids = sizes.find((size) => KIDS_SIZE.test(size));
+  const tamanho = sizes.filter((size) => !RANGE.test(size) && !KIDS_SIZE.test(size)).join(' ');
   return {
     baseName,
     attributes: {
       ...(color ? { cor: color } : {}),
       ...(tamanho ? { tamanho } : {}),
+      ...(kids ? { tamanho_infantil: String(Number(kids)) } : {}),
       ...(numeracao ? { numeracao } : {}),
     },
   };
@@ -166,10 +198,7 @@ export type ProductGroup = {
 };
 
 const attributesKey = (attributes: Record<string, string>) =>
-  [attributes.cor, attributes.tamanho, attributes.numeracao, attributes.sabor, attributes.medida]
-    .map((v) => v ?? '')
-    .join('|')
-    .toUpperCase();
+  JSON.stringify(Object.entries(attributes).sort()).toUpperCase();
 
 /**
  * Junta em um produto os itens do ERP que diferem só por cor e tamanho. Uma família com duas

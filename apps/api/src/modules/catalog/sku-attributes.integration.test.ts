@@ -1,4 +1,4 @@
-import { prisma } from '@geekstore/db';
+import { ensureAttributeCatalog, prisma } from '@geekstore/db';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { type CatalogFixture, createCatalogFixture } from '../../test-support/fixtures';
@@ -29,6 +29,7 @@ describe('SKU attributes (integration — requires a live DATABASE_URL)', () => 
   const createdValues: string[] = [];
 
   beforeAll(async () => {
+    await ensureAttributeCatalog(prisma);
     fx = await createCatalogFixture();
     colorId = (await prisma.attribute.findUniqueOrThrow({ where: { code: 'cor' } })).attribute_id;
     sizeId = (await prisma.attribute.findUniqueOrThrow({ where: { code: 'tamanho' } }))
@@ -128,13 +129,33 @@ describe('SKU attributes (integration — requires a live DATABASE_URL)', () => 
     expect(product.skus.map((s) => s.attributes.tamanho)).toEqual(['p', 'm']);
   });
 
-  it('creates a new attribute value once, refusing a duplicate', async () => {
+  it('creates a new attribute value once, refusing a duplicate label or SKU suffix', async () => {
     const label = `Turquesa ${fx.suffix}`;
-    const value = await createAttributeValue(fx.userId, colorId, { label, color_hex: '#40E0D0' });
+    const sku_suffix = `T${fx.suffix.slice(0, 5).toUpperCase()}`;
+    const value = await createAttributeValue(fx.userId, colorId, {
+      label,
+      sku_suffix,
+      color_hex: '#40E0D0',
+    });
     createdValues.push(value.attribute_value_id);
-    expect(value).toMatchObject({ label, color_hex: '#40E0D0' });
+    expect(value).toMatchObject({ label, color_hex: '#40E0D0', sku_suffix });
+
     await expect(
-      createAttributeValue(fx.userId, colorId, { label, color_hex: null })
+      createAttributeValue(fx.userId, colorId, { label, sku_suffix, color_hex: null })
     ).rejects.toThrow(/já existe/);
+    await expect(
+      createAttributeValue(fx.userId, colorId, {
+        label: `Outra ${fx.suffix}`,
+        sku_suffix,
+        color_hex: null,
+      })
+    ).rejects.toThrow(/sufixo/);
+  });
+
+  it('derives the SKU suffix from the catalog when it is not given', async () => {
+    const label = 'Azul Bebê';
+    const value = await createAttributeValue(fx.userId, colorId, { label, color_hex: null });
+    createdValues.push(value.attribute_value_id);
+    expect(value.sku_suffix).toBe('AZU');
   });
 });

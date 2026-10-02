@@ -1,3 +1,5 @@
+import { suffixFor } from '@geekstore/db';
+
 import { slugify } from './text';
 
 // Palavras que dizem o tipo da peça, não a linha: ficam fora do prefixo do SKU.
@@ -18,83 +20,50 @@ const GENERIC_WORDS = new Set([
   'GEEK',
 ]);
 const PREFIX_WORDS = 2;
+const MAX_PREFIX_WORDS = 4;
 const LETTERS = 3;
 const FALLBACK_PREFIX = 'VAR';
 
 /** Letras e números maiúsculos, sem acento: "Pokémon" -> "POKEMON". */
 const plain = (text: string): string => slugify(text).replace(/-/g, '').toUpperCase();
 
-/** "Camiseta Naruto Kunai" -> "NAR-KUN". */
-export function familyPrefix(baseName: string): string {
+/** "Camiseta Naruto Kunai" -> "NAR-KUN". Com `wordCount` maior, usa mais palavras do nome. */
+export function familyPrefix(baseName: string, wordCount = PREFIX_WORDS): string {
   const words = baseName
     .split(/\s+/)
     .filter((word) => !GENERIC_WORDS.has(word.toUpperCase()))
     .map(plain)
     .filter(Boolean)
-    .slice(0, PREFIX_WORDS);
+    .slice(0, wordCount);
   return words.length > 0 ? words.map((word) => word.slice(0, LETTERS)).join('-') : FALLBACK_PREFIX;
 }
+
+export { MAX_PREFIX_WORDS };
 
 /** "Jogos de Tabuleiro" -> "JOG": prefixo do SKU de produto simples. */
 export function groupPrefix(groupName: string): string {
   return plain(groupName).slice(0, LETTERS) || FALLBACK_PREFIX;
 }
 
-/** Códigos de cor com 3 letras, sem ambiguidade (VERDE e VERMELHO não podem ser os dois "VER"). */
-export const COLOR_CODES: Record<string, string> = {
-  'AZUL MARINHO': 'AZM',
-  'OFF WHITE': 'OFW',
-  PRETO: 'PRE',
-  PRETA: 'PRE',
-  BRANCO: 'BRA',
-  BRANCA: 'BRA',
-  AZUL: 'AZU',
-  VERMELHO: 'VML',
-  VERMELHA: 'VML',
-  LARANJA: 'LAR',
-  VINHO: 'VIN',
-  VERDE: 'VRD',
-  AMARELO: 'AMA',
-  AMARELA: 'AMA',
-  ROSA: 'ROS',
-  CINZA: 'CIN',
-  ROXO: 'ROX',
-  ROXA: 'ROX',
-  MARROM: 'MAR',
-  CARBONO: 'CAR',
-  BEGE: 'BEG',
-  DOURADO: 'DOU',
-  PRATA: 'PRA',
-  MARINHO: 'MRN',
-  LILAS: 'LIL',
-  TRANSPARENTE: 'TRA',
-  TRANSLUCIDO: 'TRL',
-  MARFIM: 'MAF',
-  GRAFITE: 'GRF',
-};
+// Ordem dos sufixos no SKU: cor primeiro, depois o que mede (tamanho, numeração, peso...).
+const SUFFIX_ORDER = [
+  'cor',
+  'edicao',
+  'tamanho',
+  'tamanho_infantil',
+  'numeracao',
+  'sabor',
+  'peso',
+  'capacidade',
+] as const;
 
-const sizePart = (size: string): string => size.toUpperCase().replace(/[^A-Z0-9]+/g, '-');
+const sizePart = (suffix: string): string => suffix.toUpperCase().replace(/[^A-Z0-9]+/g, '-');
 
-/** "NAR-KUN" + Preto + GG -> "NAR-KUN-PRE-GG". */
-export function variantCode(
-  prefix: string,
-  attributes: {
-    cor?: string;
-    tamanho?: string;
-    numeracao?: string;
-    sabor?: string;
-    medida?: string;
-  }
-): string {
-  const color = attributes.cor ? COLOR_CODES[attributes.cor.toUpperCase()] : undefined;
-  return [
-    prefix,
-    color,
-    attributes.tamanho ? sizePart(attributes.tamanho) : undefined,
-    attributes.numeracao ? sizePart(attributes.numeracao) : undefined,
-    attributes.sabor ? plain(attributes.sabor).slice(0, LETTERS) : undefined,
-    attributes.medida ? sizePart(attributes.medida) : undefined,
-  ]
-    .filter(Boolean)
-    .join('-');
+/** "NAR-KUN" + { cor: Preto, tamanho: GG } -> "NAR-KUN-PT-GG" (sufixos do catálogo de atributos). */
+export function variantCode(prefix: string, attributes: Record<string, string>): string {
+  const parts = SUFFIX_ORDER.flatMap((code) => {
+    const label = attributes[code];
+    return label ? [sizePart(suffixFor(code, label))] : [];
+  });
+  return [prefix, ...parts].join('-');
 }

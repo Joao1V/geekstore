@@ -1,4 +1,4 @@
-import { prisma } from '@geekstore/db';
+import { ensureAttributeCatalog, prisma, suffixFor, valueCodeOf } from '@geekstore/db';
 import { v7 as uuidv7 } from 'uuid';
 
 import type { CatalogPlan } from './plan-types';
@@ -7,22 +7,14 @@ export type AttributeValueIds = ReadonlyMap<string, { attributeId: string; value
 
 const keyOf = (attribute: string, label: string) => `${attribute}:${label}`;
 
-function codeOf(label: string): string {
-  return label
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60);
-}
-
 /**
- * Garante os valores de atributo que o plano usa (cor Preto, tamanho GG...) e devolve
- * `atributo:rótulo -> ids`. Valor existente é reaproveitado (por código), nunca duplicado.
- * Os atributos em si (cor, tamanho, numeração) vêm da migração.
+ * Garante o catálogo de atributos e os valores que o plano usa (cor Preto, tamanho GG...) e devolve
+ * `atributo:rótulo -> ids`. Valor existente é reaproveitado (por código), nunca duplicado; um valor
+ * fora do catálogo é criado com sufixo de SKU derivado (único dentro do atributo).
  */
 export async function ensureAttributeValues(plan: CatalogPlan): Promise<AttributeValueIds> {
+  await ensureAttributeCatalog(prisma);
+
   const wanted = new Map<string, { attribute: string; label: string }>();
   for (const item of plan.items) {
     for (const [attribute, label] of Object.entries(item.attributes)) {
@@ -38,23 +30,48 @@ export async function ensureAttributeValues(plan: CatalogPlan): Promise<Attribut
 
   for (const [key, { attribute, label }] of wanted) {
     const id = attributeId.get(attribute);
-    if (!id) throw new Error(`Atributo "${attribute}" não existe; aplique as migrações.`);
-    const code = codeOf(label);
+    if (!id) throw new Error(`Atributo "${attribute}" fora do catálogo.`);
+    const code = valueCodeOf(label);
     const existing = await prisma.attributeValue.findUnique({
       where: { attribute_id_code: { attribute_id: id, code } },
       select: { attribute_value_id: true },
     });
-    const valueId =
-      existing?.attribute_value_id ??
-      (
-        await prisma.attributeValue.create({
-          data: { attribute_value_id: uuidv7(), attribute_id: id, code, label },
-          select: { attribute_value_id: true },
-        })
-      ).attribute_value_id;
+    const valueId = existing?.attribute_value_id ?? (await createValue(id, attribute, label, code));
     result.set(key, { attributeId: id, valueId });
   }
   return result;
+}
+
+async function createValue(
+  attributeId: string,
+  attribute: string,
+  label: string,
+  code: string
+): Promise<string> {
+  const base = suffixFor(attribute, label);
+  let suffix = base;
+  for (
+    let n = 2;
+    await prisma.attributeValue.findFirst({
+      where: { attribute_id: attributeId, sku_suffix: suffix },
+    });
+    n++
+  ) {
+    suffix = `${base.slice(0, 10)}${n}`;
+  }
+  const position = await prisma.attributeValue.count({ where: { attribute_id: attributeId } });
+  const row = await prisma.attributeValue.create({
+    data: {
+      attribute_value_id: uuidv7(),
+      attribute_id: attributeId,
+      code,
+      label,
+      sku_suffix: suffix,
+      position,
+    },
+    select: { attribute_value_id: true },
+  });
+  return row.attribute_value_id;
 }
 
 export const attributeKey = keyOf;

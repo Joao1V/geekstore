@@ -13,8 +13,10 @@ export const attributeValueSchema = z.object({
   attribute_value_id: z.string().uuid(),
   code: z.string(),
   label: z.string(),
+  sku_suffix: z.string(),
   position: z.number().int(),
   color_hex: z.string().nullable(),
+  is_active: z.boolean(),
 });
 export type AttributeValue = z.infer<typeof attributeValueSchema>;
 
@@ -23,6 +25,7 @@ export const attributeSchema = z.object({
   code: z.string(),
   name: z.string(),
   position: z.number().int(),
+  is_active: z.boolean(),
   values: z.array(attributeValueSchema),
 });
 export type Attribute = z.infer<typeof attributeSchema>;
@@ -35,6 +38,8 @@ export type AttributeParams = z.infer<typeof attributeParamsSchema>;
 export const attributeValueBodySchema = z.object({
   label: z.string().trim().min(1).max(80),
   code: codeSchema.optional(),
+  /** Final do SKU deste valor (ex.: AZ, GG). Sai do catálogo ou do rótulo se não vier. */
+  sku_suffix: z.string().trim().min(1).max(12).optional(),
   color_hex: z
     .string()
     .regex(/^#[0-9A-Fa-f]{6}$/, 'cor em hexadecimal, ex.: #1F5FBF')

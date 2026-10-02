@@ -71,9 +71,9 @@ describe('runImport: variations (integration — requires a live DATABASE_URL)',
       { cor: 'branco', tamanho: 'p' },
     ]);
     expect(skus.map((s) => s.code.split('-').slice(-2).join('-'))).toEqual([
-      'PRE-P',
-      'PRE-M',
-      'BRA-P',
+      'PT-P',
+      'PT-M',
+      'BC-P',
     ]);
     expect(skus.every((s) => !s.code.startsWith('ERP-'))).toBe(true);
     expect(skus.map((s) => s.legacy_code)).toEqual(codes);

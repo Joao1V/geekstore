@@ -1,4 +1,4 @@
-import { prisma } from '@geekstore/db';
+import { prisma, suffixFor } from '@geekstore/db';
 import type {
   Attribute,
   AttributeValue,
@@ -15,8 +15,10 @@ const valueSelect = {
   attribute_value_id: true,
   code: true,
   label: true,
+  sku_suffix: true,
   position: true,
   color_hex: true,
+  is_active: true,
 } as const;
 
 function slugCode(label: string): string {
@@ -34,11 +36,12 @@ export async function listAttributes(): Promise<Attribute[]> {
     orderBy: { position: 'asc' },
     include: { values: { orderBy: [{ position: 'asc' }, { label: 'asc' }], select: valueSelect } },
   });
-  return rows.map(({ attribute_id, code, name, position, values }) => ({
+  return rows.map(({ attribute_id, code, name, position, is_active, values }) => ({
     attribute_id,
     code,
     name,
     position,
+    is_active,
     values,
   }));
 }
@@ -58,6 +61,14 @@ export async function createAttributeValue(
     });
     if (existing) throw new ConflictError(`${attribute.name} "${existing.label}" já existe.`);
 
+    const suffix = (body.sku_suffix ?? suffixFor(attribute.code, body.label)).toUpperCase();
+    const suffixTaken = await tx.attributeValue.findFirst({
+      where: { attribute_id: attributeId, sku_suffix: suffix },
+    });
+    if (suffixTaken) {
+      throw new ConflictError(`O sufixo "${suffix}" já é de ${suffixTaken.label} neste atributo.`);
+    }
+
     const last = await tx.attributeValue.aggregate({
       where: { attribute_id: attributeId },
       _max: { position: true },
@@ -67,6 +78,7 @@ export async function createAttributeValue(
         attribute_id: attributeId,
         code,
         label: body.label,
+        sku_suffix: suffix,
         color_hex: body.color_hex,
         position: (last._max.position ?? -1) + 1,
       },

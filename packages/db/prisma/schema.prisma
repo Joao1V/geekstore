@@ -364,6 +364,7 @@ model Attribute {
   code         String   @unique @db.VarChar(40) // snake_case, estável: "cor", "tamanho"
   name         String   @db.VarChar(80)
   position     Int      @default(0)
+  is_active    Boolean  @default(true)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
@@ -379,6 +380,8 @@ model AttributeValue {
   attribute_id       String   @db.Uuid
   code               String   @db.VarChar(60) // "preto", "gg", "36-38"
   label              String   @db.VarChar(80) // "Preto", "GG", "36/38"
+  sku_suffix         String   @db.VarChar(12) // final do SKU: AZ, GG, 33-35 (CAM-01 + AZ + M)
+  is_active          Boolean  @default(true)
   position           Int      @default(0) // ordem de exibição (P antes de M antes de G)
   color_hex          String?  @db.VarChar(7) // amostra visual, só para cor
   created_at         DateTime @default(now())
@@ -388,6 +391,7 @@ model AttributeValue {
   sku_values SkuAttributeValue[]
 
   @@unique([attribute_id, code])
+  @@unique([attribute_id, sku_suffix])
   @@map("attribute_value")
 }
 
