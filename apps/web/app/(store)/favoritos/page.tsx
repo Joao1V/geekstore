@@ -1,12 +1,7 @@
-import { Suspense } from 'react';
-import { Catalog } from '@/modules/store/catalog';
+import { Favorites } from '@/modules/store/favorites';
 
 export const metadata = { title: 'Favoritos' };
 
 export default function Page() {
-  return (
-    <Suspense fallback={<p>Carregando…</p>}>
-      <Catalog favoritesOnly />
-    </Suspense>
-  );
+  return <Favorites />;
 }

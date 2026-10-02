@@ -5,6 +5,7 @@ import {
   getStoreFacets,
   getStoreHome,
   getStoreProduct,
+  getStoreSitemap,
   listStoreCategories,
   listStoreProducts,
 } from './storefront.service';
@@ -33,4 +34,8 @@ export async function storeProductController(
   request: FastifyRequest<{ Params: StoreProductParams }>
 ) {
   return { data: await getStoreProduct(request.params.slug) };
+}
+
+export async function storeSitemapController() {
+  return { data: await getStoreSitemap() };
 }

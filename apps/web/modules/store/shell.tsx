@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@heroui/react';
+import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
   Heart,
@@ -20,12 +21,18 @@ import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Dialog, Quantity } from '@/components/ui';
-import { matches, money, products } from '@/lib/catalog';
 import { getMascot } from '@/lib/mascot';
+import { formatBRL } from './lib/money';
+import { ProductImage } from './product-image';
+import { storeProductsQuery } from './services/catalog/queries';
 import { useCartStore } from './state/cart-store';
 import { StoreAlert } from './store-alert';
 
-const STORE_CATEGORIES = ['Colecionáveis', 'Games', 'Vestuário', 'RPG'];
+const SUGGESTIONS = 4;
+const SEARCH_DEBOUNCE_MS = 250;
+const MIN_SEARCH_LENGTH = 2;
+
+export type NavCategory = { name: string; slug: string };
 
 const ICON_BTN =
   'place-items-center size-[39px] min-w-[39px] rounded-[10px] p-0 text-white hover:bg-white/8 max-md:size-[34px] max-md:min-w-[34px]';
@@ -34,6 +41,7 @@ const FOOTER_LINK = 'mb-2.5 block text-sm';
 const FOOTER_TEXT = 'my-3 text-sm leading-[1.8]';
 const FOOTER_TITLE = 'mb-[18px] text-base font-extrabold text-white';
 const FREE_SHIPPING_THRESHOLD = 299;
+const CENTS_PER_REAL = 100;
 
 const BENEFITS = [
   { icon: Truck, title: 'Entrega para seu CEP', text: 'Consulte opções na compra' },
@@ -47,7 +55,23 @@ const BENEFITS = [
 
 type SearchFormValues = { q: string };
 
-export function Shell({ children }: { children: ReactNode }) {
+/** Valor que só muda depois de `delay` ms sem novas digitações (evita uma chamada por tecla). */
+function useDebounced<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
+export function Shell({
+  children,
+  categories,
+}: {
+  children: ReactNode;
+  categories: NavCategory[];
+}) {
   const store = useCartStore();
   const router = useRouter();
   const path = usePathname();
@@ -75,7 +99,12 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [path]);
 
   const count = store.lines.reduce((sum, line) => sum + line.qty, 0);
-  const results = products.filter((p) => matches(p, search ?? '')).slice(0, 4);
+  const term = useDebounced((search ?? '').trim(), SEARCH_DEBOUNCE_MS);
+  const { data: suggestions } = useQuery({
+    ...storeProductsQuery({ q: term, page_size: SUGGESTIONS }),
+    enabled: term.length >= MIN_SEARCH_LENGTH,
+  });
+  const results = suggestions?.data ?? [];
 
   const submit = ({ q }: SearchFormValues) => {
     setFocused(false);
@@ -138,28 +167,37 @@ export function Shell({ children }: { children: ReactNode }) {
               <div className="absolute inset-x-0 top-[54px] z-[51] rounded-xl border border-border bg-surface p-[18px] text-foreground [box-shadow:0_20px_45px_#0003]">
                 <small className="text-xs tracking-[0.12em] text-muted">PRODUTOS</small>
                 {results.length ? (
-                  results.map((p) => (
+                  <>
+                    {results.map((p) => (
+                      <Link
+                        key={p.product_id}
+                        href={`/produto/${p.slug}/`}
+                        onClick={() => setFocused(false)}
+                        className="flex gap-3 border-b border-border py-3 text-sm font-extrabold"
+                      >
+                        <span className="block size-[45px] shrink-0 overflow-hidden rounded-[7px]">
+                          <ProductImage src={p.image_url} alt="" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="line-clamp-2">{p.name}</span>
+                          <small className="mt-1 block text-xs text-muted">
+                            {formatBRL(p.price_cents)}
+                          </small>
+                        </span>
+                      </Link>
+                    ))}
                     <Link
-                      key={p.id}
-                      href={`/produto/${p.slug}/`}
+                      href={`/catalogo/?q=${encodeURIComponent(search ?? '')}`}
                       onClick={() => setFocused(false)}
-                      className="flex gap-3 border-b border-border py-3 text-sm font-extrabold"
+                      className="mt-3 block text-sm font-extrabold underline"
                     >
-                      <Image
-                        className="size-[45px] rounded-[7px] object-cover"
-                        src={p.image}
-                        alt=""
-                        width={45}
-                        height={45}
-                      />
-                      <span>
-                        {p.name}
-                        <small className="mt-1 block text-xs text-muted">{money(p.price)}</small>
-                      </span>
+                      Ver todos os resultados
                     </Link>
-                  ))
+                  </>
+                ) : term.length < MIN_SEARCH_LENGTH || !suggestions ? (
+                  <p className="text-sm text-muted">Buscando…</p>
                 ) : (
-                  <p>Nenhum produto. Tente “games” ou “RPG”.</p>
+                  <p className="text-sm">Nenhum produto. Tente “funko” ou “lego”.</p>
                 )}
               </div>
             )}
@@ -207,17 +245,17 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
         <div className="wrap flex h-10 items-center justify-between text-sm text-night-fg">
           <nav className="flex gap-[27px] font-bold max-md:w-full max-md:gap-[22px] max-md:overflow-x-auto max-md:text-xs max-md:whitespace-nowrap">
-            {STORE_CATEGORIES.map((category) => (
+            {categories.map((category) => (
               <Link
-                key={category}
-                href={`/catalogo/?categoria=${encodeURIComponent(category)}`}
+                key={category.slug}
+                href={`/catalogo/?categoria=${category.slug}`}
                 className={NAV_LINK}
               >
-                {category}
+                {category.name}
               </Link>
             ))}
-            <Link href="/catalogo/?ofertas=1" className={`${NAV_LINK} text-geek-yellow`}>
-              Ofertas
+            <Link href="/catalogo/?ordem=newest" className={`${NAV_LINK} text-geek-yellow`}>
+              Novidades
             </Link>
           </nav>
           <span className="flex items-center gap-2 max-md:hidden">
@@ -304,7 +342,8 @@ export function ShippingProgress({ total }: { total: number }) {
         <Truck className="mr-1" size={18} />
         {remaining ? (
           <>
-            Faltam <strong>{money(remaining)}</strong> para frete grátis*
+            Faltam <strong>{formatBRL(Math.round(remaining * CENTS_PER_REAL))}</strong> para frete
+            grátis*
           </>
         ) : (
           <strong>Frete grátis desbloqueado neste exemplo!</strong>
@@ -325,71 +364,55 @@ export function ShippingProgress({ total }: { total: number }) {
 
 export function CartDialog() {
   const store = useCartStore();
-  const total = store.lines.reduce((sum, line) => {
-    const product = products.find((p) => p.id === line.id);
-    return sum + (product ? product.price * line.qty : 0);
-  }, 0);
+  const totalCents = store.lines.reduce((sum, line) => sum + line.price_cents * line.qty, 0);
   return (
     <Dialog open={store.cartOpen} onChange={store.setCartOpen} title="Seu carrinho">
       {store.lines.length ? (
         <>
-          <ShippingProgress total={total} />
+          <ShippingProgress total={totalCents / CENTS_PER_REAL} />
           <div className="grid max-h-[42vh] gap-[15px] overflow-x-hidden overflow-y-auto">
-            {store.lines.map((line, i) => {
-              const product = products.find((p) => p.id === line.id);
-              if (!product) return null;
-              const reservedElsewhere = store.lines
-                .filter((l, j) => l.id === line.id && i !== j)
-                .reduce((sum, l) => sum + l.qty, 0);
-              return (
-                <div
-                  className="grid grid-cols-[72px_1fr_30px] gap-3.5 border-b border-border pb-[15px]"
-                  key={`${line.id}-${line.size}`}
-                >
-                  <Link href={`/produto/${product.slug}/`} onClick={() => store.setCartOpen(false)}>
-                    <Image
-                      className="h-[85px] w-[72px] rounded-[9px] object-cover"
-                      src={product.image}
-                      alt={product.name}
-                      width={72}
-                      height={85}
-                    />
-                  </Link>
-                  <div className="min-w-0">
-                    <Link
-                      className="text-sm font-extrabold wrap-anywhere"
-                      href={`/produto/${product.slug}/`}
-                      onClick={() => store.setCartOpen(false)}
-                    >
-                      {product.name}
-                    </Link>
-                    {line.size && (
-                      <small className="my-[5px] block text-sm">Tamanho: {line.size}</small>
-                    )}
-                    <strong className="my-[5px] block text-sm">
-                      {money(product.price * line.qty)}
-                    </strong>
-                    <Quantity
-                      value={line.qty}
-                      max={product.stock - reservedElsewhere}
-                      onChange={(qty) => store.quantity(i, qty)}
-                    />
-                  </div>
-                  <Button
-                    isIconOnly
-                    className="min-w-[26px] bg-transparent p-0 text-muted"
-                    aria-label={`Remover ${product.name}`}
-                    onPress={() => store.quantity(i, 0)}
+            {store.lines.map((line) => (
+              <div
+                className="grid grid-cols-[72px_1fr_30px] gap-3.5 border-b border-border pb-[15px]"
+                key={line.sku_id}
+              >
+                <Link href={`/produto/${line.slug}/`} onClick={() => store.setCartOpen(false)}>
+                  <span className="block h-[85px] w-[72px] overflow-hidden rounded-[9px]">
+                    <ProductImage src={line.image_url} alt={line.name} />
+                  </span>
+                </Link>
+                <div className="min-w-0">
+                  <Link
+                    className="text-sm font-extrabold wrap-anywhere"
+                    href={`/produto/${line.slug}/`}
+                    onClick={() => store.setCartOpen(false)}
                   >
-                    <Trash2 size={17} />
-                  </Button>
+                    {line.name}
+                  </Link>
+                  {line.variant && <small className="my-[5px] block text-sm">{line.variant}</small>}
+                  <strong className="my-[5px] block text-sm">
+                    {formatBRL(line.price_cents * line.qty)}
+                  </strong>
+                  <Quantity
+                    value={line.qty}
+                    max={line.max}
+                    onChange={(qty) => store.quantity(line.sku_id, qty)}
+                  />
                 </div>
-              );
-            })}
+                <Button
+                  isIconOnly
+                  className="min-w-[26px] bg-transparent p-0 text-muted"
+                  aria-label={`Remover ${line.name}`}
+                  onPress={() => store.quantity(line.sku_id, 0)}
+                >
+                  <Trash2 size={17} />
+                </Button>
+              </div>
+            ))}
           </div>
           <div className="mt-6 flex justify-between text-xl font-extrabold">
             <span>Subtotal</span>
-            <strong>{money(total)}</strong>
+            <strong>{formatBRL(totalCents)}</strong>
           </div>
           <p className="muted text-sm">Frete e descontos calculados na próxima etapa.</p>
           <Link

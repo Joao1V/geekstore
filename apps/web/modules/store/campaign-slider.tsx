@@ -22,8 +22,8 @@ const campaigns = [
     tag: 'Dê um upgrade na coleção',
     title: ['Pequenos achados.', 'Grandes histórias.'],
     text: 'Explore os produtos e encontre seu próximo favorito.',
-    cta: 'Explorar ofertas',
-    href: '/catalogo/?ofertas=1',
+    cta: 'Ver as novidades',
+    href: '/catalogo/?ordem=newest',
   },
 ];
 

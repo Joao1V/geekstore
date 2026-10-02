@@ -7,6 +7,7 @@ import {
   storeProductParamsSchema,
   storeProductsQuerySchema,
   storeProductsResponseSchema,
+  storeSitemapResponseSchema,
 } from '@geekstore/shared';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
@@ -17,6 +18,7 @@ import {
   storeHomeController,
   storeProductController,
   storeProductsController,
+  storeSitemapController,
 } from './storefront.controller';
 
 const tags = ['Vitrine'];
@@ -35,6 +37,17 @@ export async function storefrontRoutes(fastify: FastifyInstance): Promise<void> 
       },
     },
     storeHomeController
+  );
+  app.get(
+    '/sitemap',
+    {
+      schema: {
+        tags,
+        summary: 'Endereços de produtos e categorias à venda, para o sitemap',
+        response: { 200: storeSitemapResponseSchema },
+      },
+    },
+    storeSitemapController
   );
   app.get(
     '/categories',

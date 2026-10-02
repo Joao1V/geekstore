@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-import { dataResponse, paginatedResponse, paginationQuerySchema } from './common';
+import {
+  dataResponse,
+  isoDateTimeSchema,
+  paginatedResponse,
+  paginationQuerySchema,
+} from './common';
 
 // Contratos da vitrine pública (sem login): o que o cliente vê. Só entra produto ativo com ao
 // menos um SKU ativo e com preço vigente no site; dinheiro em centavos.
@@ -124,6 +129,14 @@ export const storeProductDetailSchema = z.object({
 });
 export type StoreProductDetail = z.infer<typeof storeProductDetailSchema>;
 export const storeProductDetailResponseSchema = dataResponse(storeProductDetailSchema);
+
+/** Endereços para o sitemap: os produtos à venda e as categorias com produtos. */
+export const storeSitemapSchema = z.object({
+  products: z.array(z.object({ slug: z.string(), updated_at: isoDateTimeSchema })),
+  categories: z.array(z.object({ slug: z.string() })),
+});
+export type StoreSitemap = z.infer<typeof storeSitemapSchema>;
+export const storeSitemapResponseSchema = dataResponse(storeSitemapSchema);
 
 export const storeProductParamsSchema = z.object({ slug: z.string().min(1).max(255) });
 export type StoreProductParams = z.infer<typeof storeProductParamsSchema>;

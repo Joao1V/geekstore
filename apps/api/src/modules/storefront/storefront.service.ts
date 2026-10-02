@@ -9,6 +9,7 @@ import type {
   StoreProductCard,
   StoreProductDetail,
   StoreProductsQuery,
+  StoreSitemap,
 } from '@geekstore/shared';
 
 import { NotFoundError } from '../../core/_errors';
@@ -383,4 +384,20 @@ async function categoryPath(categoryId: string): Promise<{ name: string; slug: s
     currentId = category.parent_id;
   }
   return path;
+}
+
+/** Todas as URLs da vitrine para o sitemap (só o que está à venda). */
+export async function getStoreSitemap(): Promise<StoreSitemap> {
+  const [products, categories] = await Promise.all([
+    prisma.$queryRaw<{ slug: string; updated_at: Date }[]>`
+      WITH ${VISIBLE_PRODUCTS_ALL}
+      SELECT p.slug, p.updated_at
+      FROM vis v JOIN product p ON p.product_id = v.product_id
+      ORDER BY p.created_at DESC`,
+    listStoreCategories(),
+  ]);
+  return {
+    products: products.map((row) => ({ slug: row.slug, updated_at: row.updated_at.toISOString() })),
+    categories: categories.map((category) => ({ slug: category.slug })),
+  };
 }

@@ -7,8 +7,9 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Action, FieldInput, FieldSelect, Quantity } from '@/components/ui';
-import { money, pixPrice, products } from '@/lib/catalog';
 import { getMascot } from '@/lib/mascot';
+import { formatBRL, pixCents } from './lib/money';
+import { ProductImage } from './product-image';
 import { ShippingProgress } from './shell';
 import { useCartStore } from './state/cart-store';
 
@@ -70,6 +71,11 @@ type CheckoutContactFormValues = {
 
 type CouponFormValues = { coupon: string };
 
+// O checkout de demonstração calcula em reais; o carrinho guarda centavos.
+const CENTS_PER_REAL = 100;
+const money = (reais: number) => formatBRL(Math.round(reais * CENTS_PER_REAL));
+const pixPrice = (reais: number) => pixCents(Math.round(reais * CENTS_PER_REAL)) / CENTS_PER_REAL;
+
 export function Checkout() {
   const store = useCartStore();
   const { control, handleSubmit } = useForm<CheckoutContactFormValues>();
@@ -84,12 +90,7 @@ export function Checkout() {
   const [complete, setComplete] = useState(false);
 
   const subtotal =
-    Math.round(
-      store.lines.reduce((sum, line) => {
-        const product = products.find((p) => p.id === line.id);
-        return sum + (product ? product.price * line.qty : 0);
-      }, 0) * 100
-    ) / 100;
+    store.lines.reduce((sum, line) => sum + line.price_cents * line.qty, 0) / CENTS_PER_REAL;
   const discount = applied ? Math.round(subtotal * COUPON_DISCOUNT_RATE * 100) / 100 : 0;
   const freight =
     shipping === 'express'
@@ -376,48 +377,35 @@ export function Checkout() {
         <aside className="surface sticky top-[140px] p-[25px] max-md:static max-md:order-2">
           <h2 className={CHECKOUT_TITLE}>Resumo do carrinho</h2>
           <ShippingProgress total={subtotal} />
-          {store.lines.map((line, i) => {
-            const product = products.find((p) => p.id === line.id);
-            if (!product) return null;
-            const reservedElsewhere = store.lines
-              .filter((l, j) => l.id === line.id && i !== j)
-              .reduce((sum, l) => sum + l.qty, 0);
-            return (
-              <div
-                className="grid grid-cols-[54px_1fr_24px] gap-3 border-b border-border py-[18px]"
-                key={`${line.id}-${line.size}`}
-              >
-                <Image
-                  className="h-[67px] w-[54px] rounded-lg object-cover"
-                  src={product.image}
-                  alt={product.name}
-                  width={54}
-                  height={67}
+          {store.lines.map((line) => (
+            <div
+              className="grid grid-cols-[54px_1fr_24px] gap-3 border-b border-border py-[18px]"
+              key={line.sku_id}
+            >
+              <span className="block h-[67px] w-[54px] overflow-hidden rounded-lg">
+                <ProductImage src={line.image_url} alt={line.name} />
+              </span>
+              <div>
+                <strong className="block text-sm leading-[1.35]">{line.name}</strong>
+                {line.variant && <small className="block text-xs text-muted">{line.variant}</small>}
+                <span className="text-sm">{formatBRL(line.price_cents * line.qty)}</span>
+                <Quantity
+                  size="compact"
+                  value={line.qty}
+                  max={line.max}
+                  onChange={(qty) => store.quantity(line.sku_id, qty)}
                 />
-                <div>
-                  <strong className="block text-sm leading-[1.35]">{product.name}</strong>
-                  {line.size && (
-                    <small className="block text-xs text-muted">Tamanho {line.size}</small>
-                  )}
-                  <span className="text-sm">{money(product.price * line.qty)}</span>
-                  <Quantity
-                    size="compact"
-                    value={line.qty}
-                    max={product.stock - reservedElsewhere}
-                    onChange={(qty) => store.quantity(i, qty)}
-                  />
-                </div>
-                <Button
-                  isIconOnly
-                  className="min-w-[22px] bg-transparent p-0 text-muted"
-                  aria-label={`Remover ${product.name}`}
-                  onPress={() => store.quantity(i, 0)}
-                >
-                  <Trash2 size={16} />
-                </Button>
               </div>
-            );
-          })}
+              <Button
+                isIconOnly
+                className="min-w-[22px] bg-transparent p-0 text-muted"
+                aria-label={`Remover ${line.name}`}
+                onPress={() => store.quantity(line.sku_id, 0)}
+              >
+                <Trash2 size={16} />
+              </Button>
+            </div>
+          ))}
           <form
             className="mt-[23px] flex gap-1.5 text-sm"
             onSubmit={handleCouponSubmit(submitCoupon)}

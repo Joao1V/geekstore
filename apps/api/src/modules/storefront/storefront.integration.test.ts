@@ -279,6 +279,15 @@ describe('storefront (integration — requires a live DATABASE_URL)', () => {
     }
   });
 
+  it('lists the sellable products and categories for the sitemap, nothing hidden', async () => {
+    const { body } = await get('/api/store/sitemap');
+    const slugs = body.data.products.map((p: { slug: string }) => p.slug);
+    expect(slugs).toContain(`st-camiseta-${fx.suffix}`);
+    expect(slugs).not.toContain(`st-rascunho-${fx.suffix}`);
+    expect(slugs).not.toContain(`st-sempreco-${fx.suffix}`);
+    expect(body.data.categories.map((c: { slug: string }) => c.slug)).toContain(categorySlug);
+  });
+
   it('loads favorites by id, ignoring invalid ids', async () => {
     const { body } = await get(`/api/store/products?ids=${ids.camiseta},nao-e-uuid,${ids.barato}`);
     expect(body.data.map((p: { slug: string }) => p.slug).sort()).toEqual([

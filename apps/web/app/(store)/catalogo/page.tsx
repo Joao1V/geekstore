@@ -1,12 +1,12 @@
-import { Suspense } from 'react';
-import { Catalog } from '@/modules/store/catalog';
+import { CatalogPage } from '@/modules/store/catalog-page';
+import { parseCatalogState } from '@/modules/store/lib/catalog-url';
 
 export const metadata = { title: 'Catálogo' };
 
-export default function Page() {
-  return (
-    <Suspense fallback={<p className="wrap section">Carregando catálogo…</p>}>
-      <Catalog />
-    </Suspense>
-  );
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  return <CatalogPage state={parseCatalogState(await searchParams)} />;
 }

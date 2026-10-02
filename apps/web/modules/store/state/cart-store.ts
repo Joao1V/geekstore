@@ -1,27 +1,42 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { type Product, products } from '@/lib/catalog';
 
-type CartLine = { id: number; size: string; qty: number };
+/** Uma linha do carrinho: guarda o que a tela precisa mostrar (nada de buscar o produto de novo). */
+export type CartLine = {
+  sku_id: string;
+  slug: string;
+  name: string;
+  /** "Preto · GG"; vazio em produto sem variação. */
+  variant: string;
+  image_url: string | null;
+  price_cents: number;
+  qty: number;
+  /** Unidades disponíveis quando foi adicionado: o teto da quantidade. */
+  max: number;
+};
+export type CartItem = Omit<CartLine, 'qty'>;
 export type ToastNotice = { message: string; kind: 'success' | 'warning' | 'info'; id: number };
 
 type CartState = {
   lines: CartLine[];
-  favorites: number[];
+  /** product_id dos favoritos. */
+  favorites: string[];
   theme: 'light' | 'dark';
   cartOpen: boolean;
   toast: ToastNotice | null;
   hasHydrated: boolean;
-  add: (product: Product, qty?: number, size?: string) => boolean;
-  quantity: (index: number, qty: number) => void;
+  add: (item: CartItem, qty?: number) => boolean;
+  quantity: (skuId: string, qty: number) => void;
   clear: () => void;
-  favorite: (id: number) => void;
+  favorite: (productId: string) => void;
   toggleTheme: () => void;
   setCartOpen: (open: boolean) => void;
   notify: (message: string) => void;
   dismissToast: () => void;
   setHasHydrated: (value: boolean) => void;
 };
+
+const STORAGE_VERSION = 2;
 
 export const useCartStore = create<CartState>()(
   persist(
@@ -32,57 +47,43 @@ export const useCartStore = create<CartState>()(
       cartOpen: false,
       toast: null,
       hasHydrated: false,
-      add: (product, qty = 1, size = '') => {
-        const alreadyInCart = get()
-          .lines.filter((line) => line.id === product.id)
-          .reduce((sum, line) => sum + line.qty, 0);
-        if (alreadyInCart + qty > product.stock) {
+      add: (item, qty = 1) => {
+        const inCart = get().lines.find((line) => line.sku_id === item.sku_id)?.qty ?? 0;
+        if (item.max <= 0 || inCart + qty > item.max) {
           set({
             toast: {
-              message: 'Você atingiu o estoque disponível neste exemplo.',
+              message: 'Você atingiu o estoque disponível deste item.',
               kind: 'warning',
               id: Date.now(),
             },
           });
           return false;
         }
-        set((state) => {
-          const existingLine = state.lines.find(
-            (line) => line.id === product.id && line.size === size
-          );
-          const lines = existingLine
+        set((state) => ({
+          lines: inCart
             ? state.lines.map((line) =>
-                line === existingLine ? { ...line, qty: line.qty + qty } : line
+                line.sku_id === item.sku_id ? { ...line, ...item, qty: line.qty + qty } : line
               )
-            : [...state.lines, { id: product.id, size, qty }];
-          return {
-            lines,
-            toast: { message: 'Produto adicionado ao carrinho.', kind: 'success', id: Date.now() },
-          };
-        });
+            : [...state.lines, { ...item, qty }],
+          toast: { message: 'Produto adicionado ao carrinho.', kind: 'success', id: Date.now() },
+        }));
         return true;
       },
-      quantity: (index, qty) =>
+      quantity: (skuId, qty) =>
         set((state) => {
-          if (qty <= 0) return { lines: state.lines.filter((_, i) => i !== index) };
-          const line = state.lines[index];
-          const product = products.find((p) => p.id === line?.id);
-          if (!line || !product) return state;
-          const reservedElsewhere = state.lines
-            .filter((l, i) => l.id === line.id && i !== index)
-            .reduce((sum, l) => sum + l.qty, 0);
+          if (qty <= 0) return { lines: state.lines.filter((line) => line.sku_id !== skuId) };
           return {
-            lines: state.lines.map((l, i) =>
-              i === index ? { ...l, qty: Math.min(qty, product.stock - reservedElsewhere) } : l
+            lines: state.lines.map((line) =>
+              line.sku_id === skuId ? { ...line, qty: Math.min(qty, line.max) } : line
             ),
           };
         }),
       clear: () => set({ lines: [] }),
-      favorite: (id) =>
+      favorite: (productId) =>
         set((state) => ({
-          favorites: state.favorites.includes(id)
-            ? state.favorites.filter((favoriteId) => favoriteId !== id)
-            : [...state.favorites, id],
+          favorites: state.favorites.includes(productId)
+            ? state.favorites.filter((id) => id !== productId)
+            : [...state.favorites, productId],
         })),
       toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
       setCartOpen: (open) => set({ cartOpen: open }),
@@ -92,6 +93,14 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: 'geekstore-store',
+      version: STORAGE_VERSION,
+      // Versão 1 guardava ids numéricos do catálogo de demonstração: carrinho e favoritos antigos
+      // não valem mais; o tema continua.
+      migrate: (persisted) => ({
+        theme: (persisted as { theme?: 'light' | 'dark' } | null)?.theme ?? 'light',
+        lines: [],
+        favorites: [],
+      }),
       partialize: (state) => ({
         lines: state.lines,
         favorites: state.favorites,
@@ -99,16 +108,9 @@ export const useCartStore = create<CartState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        state.lines = state.lines
-          .filter(
-            (line) =>
-              products.some((p) => p.id === line.id) && Number.isInteger(line.qty) && line.qty > 0
-          )
-          .map((line) => {
-            const product = products.find((p) => p.id === line.id);
-            return product ? { ...line, qty: Math.min(line.qty, product.stock) } : line;
-          });
-        state.favorites = state.favorites.filter((id) => products.some((p) => p.id === id));
+        state.lines = state.lines.filter(
+          (line) => line.sku_id && Number.isInteger(line.qty) && line.qty > 0
+        );
         state.setHasHydrated(true);
       },
     }
