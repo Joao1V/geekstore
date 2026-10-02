@@ -5,6 +5,7 @@ import { asUuid, utcNow } from '../../core/db/sql';
 export type ProductListStats = {
   skuCount: number;
   skuCodes: string[];
+  legacyCodes: string[];
   priceMinCents: number | null;
   priceMaxCents: number | null;
   available: number;
@@ -13,6 +14,7 @@ export type ProductListStats = {
 export const EMPTY_STATS: ProductListStats = {
   skuCount: 0,
   skuCodes: [],
+  legacyCodes: [],
   priceMinCents: null,
   priceMaxCents: null,
   available: 0,
@@ -22,6 +24,7 @@ type RawStats = {
   product_id: string;
   sku_count: number;
   sku_codes: string[];
+  legacy_codes: string[];
   price_min_cents: number | null;
   price_max_cents: number | null;
   available: number;
@@ -39,6 +42,7 @@ export async function loadListStats(productIds: string[]): Promise<Map<string, P
     SELECT s.product_id,
            COUNT(*)::int AS sku_count,
            (ARRAY_AGG(s.code ORDER BY s.code))[1:3] AS sku_codes,
+           COALESCE((ARRAY_AGG(s.legacy_code ORDER BY s.code) FILTER (WHERE s.legacy_code IS NOT NULL))[1:3], '{}') AS legacy_codes,
            MIN(pr.price_cents)::int AS price_min_cents,
            MAX(pr.price_cents)::int AS price_max_cents,
            COALESCE(SUM(st.available), 0)::int AS available
@@ -69,6 +73,7 @@ export async function loadListStats(productIds: string[]): Promise<Map<string, P
       {
         skuCount: row.sku_count,
         skuCodes: row.sku_codes,
+        legacyCodes: row.legacy_codes,
         priceMinCents: row.price_min_cents,
         priceMaxCents: row.price_max_cents,
         available: row.available,

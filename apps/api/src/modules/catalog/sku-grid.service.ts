@@ -24,6 +24,7 @@ type RawGridRow = {
   product_id: string;
   product_name: string;
   code: string;
+  legacy_code: string | null;
   attributes: unknown;
   status: SkuGridRow['status'];
   price_cents: number | bigint | null;
@@ -61,6 +62,7 @@ function toGridRow(row: RawGridRow): SkuGridRow {
     product_id: row.product_id,
     product_name: row.product_name,
     code: row.code,
+    legacy_code: row.legacy_code,
     attributes: parseAttributes(row.attributes),
     status: row.status,
     price_cents: row.price_cents === null ? null : Number(row.price_cents),
@@ -86,7 +88,7 @@ export async function listSkuGrid(query: SkuGridQuery): Promise<Paginated<SkuGri
 
   const [rows, countRows] = await Promise.all([
     prisma.$queryRaw<RawGridRow[]>`
-      SELECT s.sku_id, s.product_id, p.name AS product_name, s.code, s.status,
+      SELECT s.sku_id, s.product_id, p.name AS product_name, s.code, s.legacy_code, s.status,
              (
                SELECT COALESCE(jsonb_object_agg(a.code, av.code), '{}'::jsonb)
                FROM sku_attribute_value sav

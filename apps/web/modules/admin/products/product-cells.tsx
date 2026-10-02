@@ -8,19 +8,33 @@ import { PRODUCT_STATUS_LABELS, PRODUCT_STATUS_TONES } from './labels';
 // Abaixo (ou igual) a este saldo o estoque é "baixo": o operador precisa repor.
 const LOW_STOCK_LIMIT = 5;
 
-/** Código do produto em fonte monoespaçada (o que se copia e procura) e quantos SKUs ele tem. */
+const CODE_CHIP = 'rounded bg-surface-secondary px-1.5 py-0.5 font-mono text-xs font-bold';
+
+/** SKU: o código principal. Em produto com variações mostra o primeiro e quantos mais existem. */
 export function SkuCell({ product }: { product: ProductListItem }) {
+  const [first] = product.sku_codes;
+  const more = product.sku_count - 1;
   return (
     <div className="grid justify-items-start gap-1">
-      <code className="rounded bg-surface-secondary px-1.5 py-0.5 font-mono text-xs font-bold">
-        {product.code}
-      </code>
-      <span className="muted text-2xs">
-        {product.sku_count} {product.sku_count === 1 ? 'SKU' : 'SKUs'}
-        {product.sku_count === 1 && product.sku_codes[0] && product.sku_codes[0] !== product.code
-          ? ` · ${product.sku_codes[0]}`
-          : ''}
-      </span>
+      <code className={CODE_CHIP}>{first ?? '—'}</code>
+      {more > 0 && (
+        <span className="muted text-2xs">
+          +{more} {more === 1 ? 'variação' : 'variações'}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Código do ERP de origem (para a integração e a conferência com o sistema antigo). */
+export function LegacyCodeCell({ product }: { product: ProductListItem }) {
+  const [first] = product.legacy_codes;
+  if (!first) return <span className="muted text-xs">—</span>;
+  const more = product.sku_count - 1;
+  return (
+    <div className="grid justify-items-start gap-1">
+      <code className="font-mono text-xs text-muted">{first}</code>
+      {more > 0 && <span className="muted text-2xs">+{more}</span>}
     </div>
   );
 }

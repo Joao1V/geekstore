@@ -101,6 +101,7 @@ export function toProductListItem(
     thumbnail_url: row.media[0]?.url ?? null,
     sku_count: stats.skuCount,
     sku_codes: stats.skuCodes,
+    legacy_codes: stats.legacyCodes,
     price_min_cents: stats.priceMinCents,
     price_max_cents: stats.priceMaxCents,
     available: stats.available,

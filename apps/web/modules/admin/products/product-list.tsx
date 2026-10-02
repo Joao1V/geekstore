@@ -26,10 +26,17 @@ import { SortHeader } from '../ui/sort-header';
 import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
 import { Thumbnail } from '../ui/thumbnail';
 import { type ChipId, chipFromParams, paramsFromChip } from './list-filters';
-import { CategoryCell, PriceCell, SkuCell, StatusCell, StockCell } from './product-cells';
+import {
+  CategoryCell,
+  LegacyCodeCell,
+  PriceCell,
+  SkuCell,
+  StatusCell,
+  StockCell,
+} from './product-cells';
 
 const PAGE_SIZE = 20;
-const COLUMNS = 8;
+const COLUMNS = 9;
 
 type Filters = { category_id: string | null };
 
@@ -91,7 +98,7 @@ export function ProductList() {
       />
       <div className="mb-5 grid grid-cols-[2fr_1fr] items-start gap-4 max-md:grid-cols-1">
         <SearchBox
-          label="Buscar por nome ou código (SKU)"
+          label="Buscar por nome, SKU ou código legado"
           initialValue={q}
           onSearch={(value) => setParams({ q: value })}
         />
@@ -122,7 +129,8 @@ export function ProductList() {
               sort={sort}
               onSort={(field) => setParams({ sort: nextSort(sort, field) }, false)}
             />
-            <Th>Código</Th>
+            <Th>SKU</Th>
+            <Th>Cód. legado</Th>
             <Th>Categoria</Th>
             <Th>Preço</Th>
             <Th>Estoque</Th>
@@ -164,6 +172,9 @@ export function ProductList() {
               </Td>
               <Td>
                 <SkuCell product={product} />
+              </Td>
+              <Td>
+                <LegacyCodeCell product={product} />
               </Td>
               <Td>
                 <CategoryCell label={labels.get(product.category_id)} />

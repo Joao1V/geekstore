@@ -167,11 +167,14 @@ export function StockGrid() {
         ),
         cell: ({ row }) => (
           <Td>
-            <strong>{row.original.code}</strong>
+            <strong className="font-mono">{row.original.code}</strong>
             {row.original.status === 'inactive' && (
               <span className="ml-2">
                 <Badge>Inativo</Badge>
               </span>
+            )}
+            {row.original.legacy_code && (
+              <span className="muted block font-mono text-2xs">ERP {row.original.legacy_code}</span>
             )}
           </Td>
         ),
@@ -434,7 +437,7 @@ export function StockGrid() {
       <PageHeader title="Estoque e preços" />
       <div className="mb-4 grid grid-cols-[minmax(0,420px)_1fr] items-start gap-4 max-md:grid-cols-1">
         <SearchBox
-          label="Buscar por SKU ou produto"
+          label="Buscar por SKU, código legado ou produto"
           initialValue={q}
           onSearch={(value) => setParams({ q: value })}
         />

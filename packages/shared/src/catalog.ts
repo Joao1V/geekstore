@@ -265,6 +265,8 @@ export const productListItemSchema = productSchema.extend({
   sku_count: z.number().int(),
   /** Até 3 códigos, em ordem alfabética; `sku_count` diz quantos existem no total. */
   sku_codes: z.array(z.string()),
+  /** Códigos do ERP de origem (até 3), dos SKUs que os têm; vazio para SKU criado no admin. */
+  legacy_codes: z.array(z.string()),
   price_min_cents: z.number().int().nullable(),
   price_max_cents: z.number().int().nullable(),
   /** Disponível = físico - reservado, somando os SKUs e os locais vendáveis (quarentena fora). */
@@ -293,6 +295,7 @@ export const skuGridRowSchema = z.object({
   product_id: z.string().uuid(),
   product_name: z.string(),
   code: z.string(),
+  legacy_code: z.string().nullable(),
   attributes: skuAttributesSchema,
   status: skuStatusSchema,
   price_cents: z.number().int().nullable(),
