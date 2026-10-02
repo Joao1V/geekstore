@@ -1,7 +1,7 @@
 import { Prisma } from '@geekstore/db';
 import { describe, expect, it } from 'vitest';
 
-import { asInt, asUuid, containsInsensitive, escapeLike, utcNow } from './sql';
+import { asInt, asUuid, compactText, matchesSearch, utcNow } from './sql';
 
 describe('sql helpers', () => {
   it('casts ids and integers explicitly', () => {
@@ -9,14 +9,23 @@ describe('sql helpers', () => {
     expect(asInt(3).text).toBe('$1::int');
   });
 
-  it('escapes LIKE wildcards so user input stays literal', () => {
-    expect(escapeLike('50%_off\\x')).toBe('50\\%\\_off\\\\x');
+  it('compacts text: no accents, no case, no punctuation', () => {
+    expect(compactText('R.P.G')).toBe('rpg');
+    expect(compactText('Coleção Pokémon, Edição #2')).toBe('colecaopokemonedicao2');
+    expect(compactText(' . - ')).toBe('');
   });
 
-  it('builds an accent- and case-insensitive contains with a bound pattern', () => {
-    const fragment = containsInsensitive(Prisma.sql`p.name`, 'acessó%');
-    expect(fragment.text).toBe('unaccent(p.name) ILIKE unaccent($1)');
-    expect(fragment.values).toEqual(['%acessó\\%%']);
+  it('requires every word of the term, in any of the columns, with bound patterns', () => {
+    const fragment = matchesSearch([Prisma.sql`p.name`, Prisma.sql`p.code`], 'R.P.G dado');
+    expect(fragment.values).toEqual(['%rpg%', '%rpg%', '%dado%', '%dado%']);
+    expect(fragment.text).toContain(' AND ');
+    expect(fragment.text).toContain(
+      "regexp_replace(lower(unaccent(p.name)), '[^a-z0-9]', '', 'g') LIKE $1"
+    );
+  });
+
+  it('does not filter on a term that is only punctuation', () => {
+    expect(matchesSearch([Prisma.sql`p.name`], ' . - ').text).toBe('TRUE');
   });
 
   it('uses UTC for "now"', () => {

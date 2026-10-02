@@ -42,13 +42,41 @@ describe('catalog search (integration — requires a live DATABASE_URL)', () => 
     expect(await productIds(`COLEÇÃO POKÉMON AÇÃO ${fx.suffix}`)).toContain(accentedProductId);
   });
 
+  it('product search ignores punctuation and matches word by word', async () => {
+    const dotted = await prisma.product.create({
+      data: {
+        code: `RPG-${fx.suffix.toUpperCase()}`,
+        name: `Dado R.P.G Dourado ${fx.suffix}`,
+        slug: `dado-rpg-dourado-${fx.suffix}`,
+        category_id: fx.categoryId,
+        skus: {
+          create: [{ code: `RPG-D-${fx.suffix.toUpperCase()}`, legacy_code: `L${fx.suffix}` }],
+        },
+      },
+    });
+    try {
+      expect(await productIds(`rpg ${fx.suffix}`)).toContain(dotted.product_id);
+      expect(await productIds(`R P G dourado ${fx.suffix}`)).toContain(dotted.product_id);
+      expect(await productIds(`dourado dado ${fx.suffix}`)).toContain(dotted.product_id);
+      expect(await productIds(`rpg naoexiste${fx.suffix}`)).not.toContain(dotted.product_id);
+      // O código legado (ERP) também acha o produto.
+      expect(await productIds(`L${fx.suffix}`)).toContain(dotted.product_id);
+    } finally {
+      await prisma.sku.deleteMany({ where: { product_id: dotted.product_id } });
+      await prisma.product.delete({ where: { product_id: dotted.product_id } });
+    }
+  });
+
   it('product search also matches the slug and the SKU code', async () => {
     expect(await productIds(`pokemon-acao-${fx.suffix}`)).toContain(accentedProductId);
     expect(await productIds(`pkm-${fx.suffix}`)).toContain(accentedProductId);
   });
 
-  it('product search treats % and _ literally, reports the total and respects the filters', async () => {
-    expect(await productIds('%')).not.toContain(accentedProductId);
+  it('product search treats % and _ as punctuation, reports the total and respects the filters', async () => {
+    // Curinga digitado vira pontuação: não filtra (e não vaza como padrão do LIKE).
+    const withWildcard = await listProducts({ ...query, category_id: fx.categoryId, q: '%_' });
+    const withoutSearch = await listProducts({ ...query, category_id: fx.categoryId });
+    expect(withWildcard.meta.total).toBe(withoutSearch.meta.total);
     const filtered = await listProducts({ ...query, q: fx.suffix, status: 'archived' });
     expect(filtered.data).toHaveLength(0);
     const all = await listProducts({ ...query, q: fx.suffix });

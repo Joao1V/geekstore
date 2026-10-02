@@ -1,7 +1,7 @@
 import { Prisma, prisma } from '@geekstore/db';
 import type { ProductListQuery, productSortFields } from '@geekstore/shared';
 
-import { asUuid, containsInsensitive } from '../../core/db/sql';
+import { asUuid, matchesSearch } from '../../core/db/sql';
 import { NO_PHOTO, OUT_OF_STOCK } from './product-conditions';
 
 type SortField = (typeof productSortFields)[number];
@@ -21,13 +21,13 @@ export function needsSqlQuery(query: ProductListQuery): boolean {
 function buildWhere(query: ProductListQuery): Prisma.Sql {
   const conditions: Prisma.Sql[] = [];
   if (query.q) {
+    // Nome, código e endereço do produto; ou o código (SKU ou legado) de qualquer SKU dele.
     conditions.push(Prisma.sql`(
-      ${containsInsensitive(Prisma.sql`p.name`, query.q)}
-      OR ${containsInsensitive(Prisma.sql`p.code`, query.q)}
-      OR ${containsInsensitive(Prisma.sql`p.slug`, query.q)}
+      ${matchesSearch([Prisma.sql`p.name`, Prisma.sql`p.code`, Prisma.sql`p.slug`], query.q)}
       OR EXISTS (
         SELECT 1 FROM sku s
-        WHERE s.product_id = p.product_id AND ${containsInsensitive(Prisma.sql`s.code`, query.q)}
+        WHERE s.product_id = p.product_id
+          AND ${matchesSearch([Prisma.sql`s.code`, Prisma.sql`s.legacy_code`], query.q)}
       )
     )`);
   }

@@ -6,7 +6,7 @@ import {
   skuGridSortFields,
 } from '@geekstore/shared';
 
-import { asUuid, containsInsensitive, utcNow } from '../../core/db/sql';
+import { asUuid, matchesSearch, utcNow } from '../../core/db/sql';
 import { buildMeta, parseSort, skipTake } from '../../core/http/pagination';
 
 type SortField = (typeof skuGridSortFields)[number];
@@ -37,7 +37,10 @@ function buildWhere(query: SkuGridQuery): Prisma.Sql {
   if (query.product_id) conditions.push(Prisma.sql`s.product_id = ${asUuid(query.product_id)}`);
   if (query.q) {
     conditions.push(
-      Prisma.sql`(${containsInsensitive(Prisma.sql`s.code`, query.q)} OR ${containsInsensitive(Prisma.sql`p.name`, query.q)})`
+      matchesSearch(
+        [Prisma.sql`s.code`, Prisma.sql`s.legacy_code`, Prisma.sql`p.name`, Prisma.sql`p.code`],
+        query.q
+      )
     );
   }
   return conditions.length > 0
