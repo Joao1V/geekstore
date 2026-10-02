@@ -252,6 +252,8 @@ export const skuGridRowSchema = z.object({
   on_hand: z.number().int(),
   reserved: z.number().int(),
   available: z.number().int(),
+  /** Foto do SKU, ou a primeira do produto quando o SKU não tem a sua. */
+  thumbnail_url: z.string().nullable(),
 });
 export type SkuGridRow = z.infer<typeof skuGridRowSchema>;
 

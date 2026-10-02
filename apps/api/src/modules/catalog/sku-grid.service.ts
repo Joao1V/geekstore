@@ -29,6 +29,7 @@ type RawGridRow = {
   price_cents: number | bigint | null;
   on_hand: number | bigint | string;
   reserved: number | bigint | string;
+  thumbnail_url: string | null;
 };
 
 function buildWhere(query: SkuGridQuery): Prisma.Sql {
@@ -63,6 +64,7 @@ function toGridRow(row: RawGridRow): SkuGridRow {
     on_hand: onHand,
     reserved,
     available: onHand - reserved,
+    thumbnail_url: row.thumbnail_url,
   };
 }
 
@@ -92,7 +94,14 @@ export async function listSkuGrid(query: SkuGridQuery): Promise<Paginated<SkuGri
                LIMIT 1
              ) AS price_cents,
              COALESCE(st.on_hand, 0) AS on_hand,
-             COALESCE(st.reserved, 0) AS reserved
+             COALESCE(st.reserved, 0) AS reserved,
+             (
+               SELECT m.url
+               FROM media m
+               WHERE m.product_id = s.product_id AND (m.sku_id IS NULL OR m.sku_id = s.sku_id)
+               ORDER BY (m.sku_id IS NOT NULL) DESC, m.position ASC, m.created_at ASC
+               LIMIT 1
+             ) AS thumbnail_url
       FROM sku s
       JOIN product p ON p.product_id = s.product_id
       LEFT JOIN (

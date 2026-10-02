@@ -97,6 +97,42 @@ describe('catalog search (integration — requires a live DATABASE_URL)', () => 
     expect(grid.data.map((row) => row.product_id)).toEqual([accentedProductId]);
   });
 
+  it('SKU grid shows the SKU photo first, then the product photo, then null', async () => {
+    const sku = await prisma.sku.findFirstOrThrow({ where: { product_id: accentedProductId } });
+    // Posições extremas para o resultado não depender das fotos de outros testes.
+    await prisma.media.create({
+      data: {
+        product_id: accentedProductId,
+        url: 'https://cdn.exemplo.com/grid-produto.jpg',
+        alt: 'p',
+        position: -5,
+      },
+    });
+    const skuPhoto = await prisma.media.create({
+      data: {
+        product_id: accentedProductId,
+        sku_id: sku.sku_id,
+        url: 'https://cdn.exemplo.com/grid-sku.jpg',
+        alt: 's',
+        position: 9,
+      },
+    });
+    const thumbnails = async () => {
+      const grid = await listSkuGrid({ ...query, q: fx.suffix });
+      return Object.fromEntries(grid.data.map((row) => [row.product_id, row.thumbnail_url]));
+    };
+
+    expect(await thumbnails()).toMatchObject({
+      [accentedProductId]: 'https://cdn.exemplo.com/grid-sku.jpg',
+      [fx.productId]: null,
+    });
+
+    await prisma.media.delete({ where: { media_id: skuPhoto.media_id } });
+    expect((await thumbnails())[accentedProductId]).toBe(
+      'https://cdn.exemplo.com/grid-produto.jpg'
+    );
+  });
+
   it('SKU grid puts SKUs without price last, whichever the direction', async () => {
     const sku = await prisma.sku.findFirstOrThrow({ where: { product_id: accentedProductId } });
     const site = await prisma.channel.findUniqueOrThrow({ where: { code: 'site' } });

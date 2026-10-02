@@ -21,6 +21,7 @@ import { PaginationBar } from '../ui/pagination-bar';
 import { SearchBox } from '../ui/search-box';
 import { SortHeader } from '../ui/sort-header';
 import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { Thumbnail } from '../ui/thumbnail';
 import { type EditMap, formatPriceInput, type RowEdit, rowState } from './grid-edits';
 import { MovementDialog } from './movement-dialog';
 import { MovementHistoryDialog } from './movement-history';
@@ -189,8 +190,13 @@ export function StockGrid() {
             .join(' · ');
           return (
             <Td className="min-w-[200px]">
-              {row.original.product_name}
-              {attributes && <span className="muted block text-xs">{attributes}</span>}
+              <div className="flex items-center gap-3">
+                <Thumbnail src={row.original.thumbnail_url} />
+                <div className="min-w-0">
+                  {row.original.product_name}
+                  {attributes && <span className="muted block text-xs">{attributes}</span>}
+                </div>
+              </div>
             </Td>
           );
         },
