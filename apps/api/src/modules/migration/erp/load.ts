@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { type Prisma, prisma } from '@geekstore/db';
 
 import type { ErpSource } from './erp-source';
-import { BATCH_SIZE, type BatchContext, buildBatchRows } from './load-batch';
+import { BATCH_SIZE, type BatchContext, buildBatchRows, chunkByProduct } from './load-batch';
 import { resolveCategories } from './load-categories';
 import { buildPlan } from './plan';
 import type { CatalogPlan } from './plan-types';
@@ -23,11 +23,6 @@ export type ImportResult = {
     media: number;
   };
 };
-
-const chunk = <T>(items: T[], size: number): T[][] =>
-  Array.from({ length: Math.ceil(items.length / size) }, (_, i) =>
-    items.slice(i * size, (i + 1) * size)
-  );
 
 async function insertBatch(tx: Prisma.TransactionClient, rows: ReturnType<typeof buildBatchRows>) {
   // Ordem das chaves estrangeiras: produto -> sku -> o resto.
@@ -57,14 +52,19 @@ async function loadContext(): Promise<Pick<BatchContext, 'siteChannelId' | 'ware
  */
 export async function runImport(source: ErpSource, now: Date): Promise<ImportResult> {
   const runId = randomUUID();
-  const [imported, products] = await Promise.all([
+  const [imported, products, skuCodes] = await Promise.all([
     prisma.sku.findMany({ where: { legacy_code: { not: null } }, select: { legacy_code: true } }),
     prisma.product.findMany({ select: { slug: true } }),
+    prisma.sku.findMany({ select: { code: true } }),
   ]);
   const importedCodes = new Set(imported.map((sku) => sku.legacy_code));
   const pending = source.rows.filter((row) => !importedCodes.has(String(row.codigo)));
 
-  const plan = buildPlan(pending, { now, takenSlugs: new Set(products.map((p) => p.slug)) });
+  const plan = buildPlan(pending, {
+    now,
+    takenSlugs: new Set(products.map((p) => p.slug)),
+    takenSkuCodes: new Set(skuCodes.map((s) => s.code)),
+  });
   const categories = await resolveCategories(plan.categories);
   const base = await loadContext();
   const ctx: BatchContext = {
@@ -75,7 +75,7 @@ export async function runImport(source: ErpSource, now: Date): Promise<ImportRes
   };
 
   const inserted = { products: 0, skus: 0, prices: 0, stockLevels: 0, movements: 0, media: 0 };
-  for (const [index, items] of chunk(plan.items, BATCH_SIZE).entries()) {
+  for (const [index, items] of chunkByProduct(plan.items, BATCH_SIZE).entries()) {
     const rows = buildBatchRows(items, ctx);
     await prisma.$transaction((tx) => insertBatch(tx, rows), TRANSACTION_OPTIONS);
     inserted.products += rows.products.length;

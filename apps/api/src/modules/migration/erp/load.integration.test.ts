@@ -68,7 +68,7 @@ describe('runImport (integration — requires a live DATABASE_URL)', () => {
       where: { legacy_code: String(base + 1) },
       include: { product: { include: { media: true } }, prices: true, stock_levels: true },
     });
-    expect(sku.code).toBe(`ERP-${base + 1}`);
+    expect(sku.code).toBe(`ZZT-${base + 1}`);
     expect(sku.status).toBe('active');
     expect(sku.product.status).toBe('active');
     expect(sku.product.media).toHaveLength(1);

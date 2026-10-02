@@ -1,25 +1,83 @@
 import type { ErpRow } from './erp-row';
 import { categoryKeyFor, planCategories } from './plan-categories';
-import { planRow, type RowDraft } from './plan-item';
+import { planRow } from './plan-item';
 import type { CatalogPlan, Issue, PlannedItem, PlanOptions } from './plan-types';
+import { groupVariants, type ProductGroup } from './plan-variants';
+import { familyPrefix, groupPrefix, variantCode } from './sku-code';
+import { slugify } from './text';
 
-type Slugged = { item: PlannedItem; issues: Issue[] };
+type Built = { items: PlannedItem[]; issues: Issue[] };
 
-/** Primeiro código fica com o slug limpo; repetidos ganham `-<codigo>`. Slug do banco nunca se repete. */
-function assignSlugs(drafts: RowDraft[], takenSlugs: ReadonlySet<string>): Slugged[] {
-  const used = new Set(takenSlugs);
-  return drafts.map((draft) => {
-    const { baseSlug, groupName, subName, ...rest } = draft.item;
-    const collides = used.has(baseSlug);
-    let slug = collides ? `${baseSlug}-${rest.legacyCode}` : baseSlug;
-    for (let n = 2; used.has(slug); n++) slug = `${baseSlug}-${rest.legacyCode}-${n}`;
-    used.add(slug);
+type Used = { slugs: Set<string>; skuCodes: Set<string>; prefixes: Set<string> };
 
-    const issues: Issue[] = collides
-      ? [...draft.issues, { legacyCode: rest.legacyCode, code: 'slug_collision', detail: baseSlug }]
-      : draft.issues;
-    return { item: { ...rest, slug, categoryKey: categoryKeyFor({ groupName, subName }) }, issues };
+/** Primeiro uso fica com o slug limpo; repetidos ganham `-<codigo>`. Slug do banco nunca se repete. */
+function uniqueSlug(base: string, legacyCode: string, used: Set<string>): string {
+  let slug = used.has(base) ? `${base}-${legacyCode}` : base;
+  for (let n = 2; used.has(slug); n++) slug = `${base}-${legacyCode}-${n}`;
+  used.add(slug);
+  return slug;
+}
+
+function uniqueCode(base: string, used: Set<string>): string {
+  let code = base;
+  for (let n = 2; used.has(code); n++) code = `${base}-${n}`;
+  used.add(code);
+  return code;
+}
+
+/** Prefixo da família sem repetir o de outra: NAR-KUN, depois NAR-KUN2. */
+function uniquePrefix(base: string, used: Set<string>): string {
+  let prefix = base;
+  for (let n = 2; used.has(prefix); n++) prefix = `${base}${n}`;
+  used.add(prefix);
+  return prefix;
+}
+
+function buildGroup(group: ProductGroup, used: Used): Built {
+  const first = group.members[0]!.draft.item;
+  const isFamily = group.baseName !== null;
+  const name = group.baseName ?? first.name;
+  const baseSlug = isFamily ? slugify(name) || `produto-${first.legacyCode}` : first.baseSlug;
+  const slug = uniqueSlug(baseSlug, first.legacyCode, used.slugs);
+  const slugCollided = !isFamily && slug !== baseSlug;
+
+  const skus = group.members.map((m) => m.draft.item);
+  const photos = [...new Set(skus.flatMap((sku) => sku.photos))];
+  const hasActiveSku = skus.some((sku) => sku.skuStatus === 'active');
+  const productStatus = hasActiveSku && photos.length > 0 ? 'active' : 'draft';
+  const description = skus.map((sku) => sku.description).find(Boolean) ?? null;
+  const categoryKey = categoryKeyFor({ groupName: first.groupName, subName: first.subName });
+  const prefix = isFamily
+    ? uniquePrefix(familyPrefix(name), used.prefixes)
+    : groupPrefix(first.groupName);
+
+  const items = group.members.map(({ draft, attributes }): PlannedItem => {
+    const { baseSlug: _slug, groupName: _group, subName: _sub, ...rest } = draft.item;
+    const code = isFamily ? variantCode(prefix, attributes) : `${prefix}-${rest.legacyCode}`;
+    return {
+      ...rest,
+      skuCode: uniqueCode(code, used.skuCodes),
+      productKey: group.key,
+      attributes,
+      erpName: rest.name,
+      name,
+      slug,
+      description,
+      categoryKey,
+      productStatus,
+      photos,
+    };
   });
+
+  const extra: Issue[] = [
+    ...(slugCollided
+      ? [{ legacyCode: first.legacyCode, code: 'slug_collision' as const, detail: baseSlug }]
+      : []),
+    ...(group.ambiguous
+      ? [{ legacyCode: first.legacyCode, code: 'variant_ambiguous' as const, detail: name }]
+      : []),
+  ];
+  return { items, issues: [...group.members.flatMap((m) => m.draft.issues), ...extra] };
 }
 
 function findDuplicateEans(items: PlannedItem[]): CatalogPlan['duplicateEans'] {
@@ -44,8 +102,13 @@ export function buildPlan(rows: ErpRow[], options: PlanOptions): CatalogPlan {
     drafts.map(({ item }) => ({ groupName: item.groupName, subName: item.subName })),
     options.takenCategorySlugs
   );
-  const slugged = assignSlugs(drafts, options.takenSlugs ?? new Set());
-  const items = slugged.map(({ item }) => item);
+  const used: Used = {
+    slugs: new Set(options.takenSlugs),
+    skuCodes: new Set(options.takenSkuCodes),
+    prefixes: new Set(),
+  };
+  const built = groupVariants(drafts).map((group) => buildGroup(group, used));
+  const items = built.flatMap((b) => b.items);
   const duplicateEans = findDuplicateEans(items);
   const duplicateIssues = duplicateEans.flatMap(({ ean, legacyCodes }) =>
     legacyCodes.map(
@@ -61,7 +124,7 @@ export function buildPlan(rows: ErpRow[], options: PlanOptions): CatalogPlan {
     categories,
     items,
     skipped,
-    issues: [...slugged.flatMap(({ issues }) => issues), ...duplicateIssues],
+    issues: [...built.flatMap((b) => b.issues), ...duplicateIssues],
     duplicateEans,
   };
 }

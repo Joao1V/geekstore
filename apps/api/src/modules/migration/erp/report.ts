@@ -20,9 +20,13 @@ function summary(plan: CatalogPlan, source: ErpSource, now: Date) {
     linhas_no_arquivo: source.total,
     linhas_invalidas: source.invalid.length,
     a_importar: items.length,
+    produtos: new Set(items.map((i) => i.productKey)).size,
+    produtos_com_variacoes: new Set(
+      items.filter((i) => i.productKey.startsWith('family:')).map((i) => i.productKey)
+    ).size,
     pulados: countBy(plan.skipped, (s) => s.reason),
-    produtos_publicados: items.filter((i) => i.productStatus === 'active').length,
-    produtos_rascunho: items.filter((i) => i.productStatus === 'draft').length,
+    skus_em_produto_publicado: items.filter((i) => i.productStatus === 'active').length,
+    skus_em_produto_rascunho: items.filter((i) => i.productStatus === 'draft').length,
     skus_inativos_sem_estoque: items.filter((i) => i.skuStatus === 'inactive').length,
     categorias: {
       raizes: plan.categories.filter((c) => c.parentKey === null).length,
@@ -57,6 +61,7 @@ const ISSUE_LABELS: Record<IssueCode, string> = {
   promo_invalid: 'Promoção não é menor que o preço (ignorada)',
   promo_perpetual: 'Promoção sem datas (aplicada sem prazo)',
   slug_collision: 'Nome repetido (endereço recebeu o código do ERP)',
+  variant_ambiguous: 'Duas variações iguais (mesma cor e tamanho): não agrupado, revisar',
 };
 
 function nameSample(plan: CatalogPlan): string[][] {
@@ -125,6 +130,20 @@ export function buildReport(plan: CatalogPlan, source: ErpSource, now: Date): Re
     {
       name: 'nomes-amostra.csv',
       content: toCsv(['codigo_erp', 'nome_original', 'nome_novo'], nameSample(plan)),
+    },
+    {
+      name: 'skus-e-variacoes.csv',
+      content: toCsv(
+        ['sku', 'produto', 'cor', 'tamanho', 'codigo_erp', 'nome_no_erp'],
+        plan.items.map((i) => [
+          i.skuCode,
+          i.name,
+          i.attributes.cor ?? '',
+          i.attributes.tamanho ?? '',
+          i.legacyCode,
+          i.erpName,
+        ])
+      ),
     },
     {
       name: 'linhas-invalidas.csv',

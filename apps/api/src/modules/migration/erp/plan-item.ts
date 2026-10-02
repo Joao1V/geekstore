@@ -10,7 +10,10 @@ const MAX_PHOTO_URL_LENGTH = 500;
 const NCM_PATTERN = /^\d{8}$/;
 
 export type RowDraft = {
-  item: Omit<PlannedItem, 'slug' | 'categoryKey'> & {
+  item: Omit<
+    PlannedItem,
+    'slug' | 'categoryKey' | 'skuCode' | 'productKey' | 'attributes' | 'erpName'
+  > & {
     baseSlug: string;
     groupName: string;
     subName: string | null;
@@ -121,7 +124,6 @@ export function planRow(row: ErpRow, now: Date): RowResult {
       issues: found.map(([code, detail]) => ({ legacyCode, code, detail })),
       item: {
         legacyCode,
-        skuCode: `ERP-${legacyCode}`,
         name,
         baseSlug: slugify(name) || `produto-${legacyCode}`,
         description: cleanDescription(row.descricao_detalhada),

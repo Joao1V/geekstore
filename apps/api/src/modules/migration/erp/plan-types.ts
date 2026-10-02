@@ -12,7 +12,8 @@ export type IssueCode =
   | 'promo_expired'
   | 'promo_invalid'
   | 'promo_perpetual'
-  | 'slug_collision';
+  | 'slug_collision'
+  | 'variant_ambiguous';
 
 /** Pendência de um item: não impede a importação, vai para o relatório. */
 export type Issue = { legacyCode: string; code: IssueCode; detail: string };
@@ -27,9 +28,16 @@ export type Promo = {
   endsAt: Date | null;
 };
 
+/** Uma linha do ERP = um SKU. Os campos de produto (nome, slug, fotos...) se repetem nos SKUs do mesmo `productKey`. */
 export type PlannedItem = {
   legacyCode: string;
   skuCode: string;
+  /** SKUs com a mesma chave viram um produto só (variações de cor e tamanho). */
+  productKey: string;
+  /** Ex.: `{ cor: 'Preto', tamanho: 'GG' }`; vazio em produto simples. */
+  attributes: Record<string, string>;
+  /** Nome do item no ERP (já normalizado), para o relatório. */
+  erpName: string;
   name: string;
   slug: string;
   description: string | null;
@@ -70,6 +78,8 @@ export type PlanOptions = {
   now: Date;
   /** Slugs de produto já em uso no banco (reexecução); o plano nunca os repete. */
   takenSlugs?: ReadonlySet<string>;
+  /** Códigos de SKU já em uso no banco; o plano nunca os repete. */
+  takenSkuCodes?: ReadonlySet<string>;
   /** Slugs de categoria já em uso no banco. */
   takenCategorySlugs?: ReadonlySet<string>;
 };

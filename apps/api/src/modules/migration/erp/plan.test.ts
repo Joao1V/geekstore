@@ -28,7 +28,7 @@ describe('buildPlan: item rules', () => {
     const [item] = plan([row()]).items;
     expect(item).toMatchObject({
       legacyCode: '3',
-      skuCode: 'ERP-3',
+      skuCode: 'BRI-3',
       name: 'Jogo de Tabuleiro Roll Camera',
       slug: 'jogo-de-tabuleiro-roll-camera',
       priceCents: 34999,

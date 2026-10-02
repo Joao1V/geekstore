@@ -28,27 +28,41 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
     media: [] as Prisma.MediaCreateManyInput[],
   };
 
+  const productIds = new Map<string, string>();
   for (const item of items) {
     const categoryId = ctx.categoryIds.get(item.categoryKey);
     if (!categoryId)
       throw new Error(`Categoria sem id para o item ${item.legacyCode}: ${item.categoryKey}`);
-    const productId = uuidv7();
     const skuId = uuidv7();
-
-    rows.products.push({
-      product_id: productId,
-      category_id: categoryId,
-      name: item.name,
-      slug: item.slug,
-      description: item.description,
-      status: item.productStatus,
-    });
+    // Variações do mesmo produto compartilham a linha de produto e as fotos.
+    const known = productIds.get(item.productKey);
+    const productId = known ?? uuidv7();
+    if (!known) {
+      productIds.set(item.productKey, productId);
+      rows.products.push({
+        product_id: productId,
+        category_id: categoryId,
+        name: item.name,
+        slug: item.slug,
+        description: item.description,
+        status: item.productStatus,
+      });
+      for (const [position, url] of item.photos.entries()) {
+        rows.media.push({
+          media_id: uuidv7(),
+          product_id: productId,
+          url,
+          alt: `${item.name} (foto ${position + 1})`.slice(0, 255),
+          position,
+        });
+      }
+    }
     rows.skus.push({
       sku_id: skuId,
       product_id: productId,
       code: item.skuCode,
       ean: item.ean,
-      attributes: {},
+      attributes: item.attributes,
       weight_g: item.weightG,
       length_mm: item.lengthMm,
       width_mm: item.widthMm,
@@ -95,15 +109,21 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
         reference_type: STOCK_REFERENCE,
       });
     }
-    for (const [position, url] of item.photos.entries()) {
-      rows.media.push({
-        media_id: uuidv7(),
-        product_id: productId,
-        url,
-        alt: `${item.name} (foto ${position + 1})`.slice(0, 255),
-        position,
-      });
-    }
   }
   return rows;
+}
+
+/**
+ * Lotes de ~`size` itens que nunca partem um produto ao meio: as variações de um produto vão
+ * juntas (o produto é criado uma vez por lote). Os itens de um produto são contíguos no plano.
+ */
+export function chunkByProduct(items: PlannedItem[], size: number): PlannedItem[][] {
+  const batches: PlannedItem[][] = [];
+  for (const item of items) {
+    const current = batches.at(-1);
+    const startsNewProduct = current?.at(-1)?.productKey !== item.productKey;
+    if (current && !(startsNewProduct && current.length >= size)) current.push(item);
+    else batches.push([item]);
+  }
+  return batches;
 }
