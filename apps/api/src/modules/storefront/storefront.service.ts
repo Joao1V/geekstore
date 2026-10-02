@@ -92,6 +92,7 @@ type CardRow = {
   compare_at_cents: number | null;
   sku_count: number | bigint;
   available: number | bigint | string;
+  sku_id: string | null;
 };
 
 const toCard = (row: CardRow): StoreProductCard => ({
@@ -108,6 +109,8 @@ const toCard = (row: CardRow): StoreProductCard => ({
   compare_at_cents: row.compare_at_cents === null ? null : Number(row.compare_at_cents),
   sku_count: Number(row.sku_count),
   in_stock: Number(row.available) > 0,
+  available: Math.max(0, Number(row.available)),
+  sku_id: row.sku_id,
 });
 
 /** Dados de exibição dos produtos de UMA página, na ordem dos ids recebidos. */
@@ -130,7 +133,14 @@ async function loadCards(ids: string[]): Promise<StoreProductCard[]> {
              JOIN LATERAL ${currentSitePrice} pr ON TRUE
              WHERE k.product_id = v.product_id AND k.status = 'active' AND pr.price_cents = v.price_min
              LIMIT 1
-           ) AS compare_at_cents
+           ) AS compare_at_cents,
+           (
+             SELECT k.sku_id
+             FROM sku k
+             JOIN LATERAL ${currentSitePrice} pr ON TRUE
+             WHERE v.sku_count = 1 AND k.product_id = v.product_id AND k.status = 'active'
+             LIMIT 1
+           ) AS sku_id
     FROM vis v
     JOIN category c ON c.category_id = v.category_id
     LEFT JOIN brand b ON b.brand_id = v.brand_id

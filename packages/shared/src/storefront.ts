@@ -40,6 +40,10 @@ export const storeProductCardSchema = z.object({
   compare_at_cents: z.number().int().nullable(),
   sku_count: z.number().int(),
   in_stock: z.boolean(),
+  /** Unidades à venda somando os SKUs. */
+  available: z.number().int(),
+  /** O SKU, quando o produto tem um só ("Adicionar" direto no cartão); senão `null`. */
+  sku_id: z.string().uuid().nullable(),
 });
 export type StoreProductCard = z.infer<typeof storeProductCardSchema>;
 
