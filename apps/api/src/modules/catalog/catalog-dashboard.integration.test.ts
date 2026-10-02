@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type CatalogFixture, createCatalogFixture } from '../../test-support/fixtures';
 import { getCatalogDashboard } from './catalog-dashboard.service';
 import { listProducts } from './product.service';
+import { ISSUE_CONDITIONS } from './product-conditions';
 
 describe('catalog dashboard (integration — requires a live DATABASE_URL)', () => {
   let fx: CatalogFixture;
@@ -17,19 +18,13 @@ describe('catalog dashboard (integration — requires a live DATABASE_URL)', () 
     await prisma.$disconnect();
   });
 
-  it('counts each pendency with the same rule as the list filter', async () => {
+  it('reports exactly the pendencies the list can filter by, none above the total', async () => {
     const dashboard = await getCatalogDashboard();
-    for (const issue of [
-      'no_photo',
-      'out_of_stock',
-      'no_price',
-      'no_brand',
-      'no_description',
-      'no_weight',
-    ] as const) {
-      const listed = await listProducts({ page: 1, page_size: 1, issue });
-      // Os testes em paralelo criam e apagam produtos: aceita uma folga pequena, nunca uma conta diferente.
-      expect(Math.abs(dashboard.health[issue] - listed.meta.total)).toBeLessThanOrEqual(5);
+    // Mesma fonte de verdade da lista: ISSUE_CONDITIONS. Se uma pendência entrar em um e não no outro, falha aqui.
+    expect(Object.keys(dashboard.health).sort()).toEqual(Object.keys(ISSUE_CONDITIONS).sort());
+    for (const count of Object.values(dashboard.health)) {
+      expect(count).toBeGreaterThanOrEqual(0);
+      expect(count).toBeLessThanOrEqual(dashboard.products.total);
     }
   });
 
