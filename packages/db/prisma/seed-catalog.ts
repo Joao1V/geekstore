@@ -1,6 +1,6 @@
 // Mock de catálogo com dados reais (ver `seed-data/types.ts`): `pnpm --filter @geekstore/db seed:catalog`.
 // Idempotente e opcional: não faz parte do `seed` padrão, que só cria o admin.
-import { prisma } from '../src/index';
+import { ensureAttributeCatalog, prisma, suffixFor, valueCodeOf } from '../src/index';
 import { categories, collections, products, type SeedProduct } from './seed-data';
 
 const SEED_MOVEMENT_REASON = 'Estoque inicial (seed)';
@@ -203,19 +203,21 @@ main()
 
 /** `{ tamanho: 'M' }` -> liga o SKU ao valor cadastrado (cria o valor se ainda não existir). */
 async function seedAttributes(skuId: string, attributes: Record<string, string>) {
+  await ensureAttributeCatalog(prisma);
   for (const [code, label] of Object.entries(attributes)) {
     const attribute = await prisma.attribute.findUnique({ where: { code } });
     if (!attribute) continue;
-    const valueCode = label
-      .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
     const value = await prisma.attributeValue.upsert({
-      where: { attribute_id_code: { attribute_id: attribute.attribute_id, code: valueCode } },
+      where: {
+        attribute_id_code: { attribute_id: attribute.attribute_id, code: valueCodeOf(label) },
+      },
       update: {},
-      create: { attribute_id: attribute.attribute_id, code: valueCode, label },
+      create: {
+        attribute_id: attribute.attribute_id,
+        code: valueCodeOf(label),
+        label,
+        sku_suffix: suffixFor(code, label),
+      },
     });
     await prisma.skuAttributeValue.upsert({
       where: { sku_id_attribute_id: { sku_id: skuId, attribute_id: attribute.attribute_id } },
