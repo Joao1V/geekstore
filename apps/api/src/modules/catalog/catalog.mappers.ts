@@ -10,7 +10,7 @@ import type {
 import type { ProductListStats } from './product-list-stats';
 import { attributesRecord } from './sku-attributes';
 
-type CategoryRow = Category & Record<string, unknown>;
+type CategoryRow = Omit<Category, 'product_count'> & Record<string, unknown>;
 type SkuRow = Omit<Sku, 'attributes'> & {
   attribute_values: { attribute: { code: string }; value: { code: string } }[];
 };
@@ -21,7 +21,7 @@ type ProductRow = Omit<Product, 'created_at' | 'updated_at' | 'brand'> & {
   brand: { name: string } | null;
 };
 
-export function toCategory(row: CategoryRow): Category {
+export function toCategory(row: CategoryRow, productCount = 0): Category {
   return {
     category_id: row.category_id,
     parent_id: row.parent_id,
@@ -29,6 +29,7 @@ export function toCategory(row: CategoryRow): Category {
     slug: row.slug,
     featured: row.featured,
     position: row.position,
+    product_count: productCount,
     seo_title: row.seo_title,
     seo_description: row.seo_description,
     canonical_url: row.canonical_url,

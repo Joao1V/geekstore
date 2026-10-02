@@ -23,6 +23,12 @@ export function depthOf(
   return depth;
 }
 
+/** O id da categoria e o de todas as descendentes: filtrar uma "pasta" inclui as subpastas. */
+export function descendantIds(nodes: readonly CategoryNode[], categoryId: string): string[] {
+  const children = nodes.filter((node) => node.parent_id === categoryId);
+  return [categoryId, ...children.flatMap((child) => descendantIds(nodes, child.category_id))];
+}
+
 /** Altura da subárvore de `categoryId` contando o próprio nó: folha = 1. */
 export function subtreeHeight(categoryId: string, nodes: readonly CategoryNode[]): number {
   const children = nodes.filter((node) => node.parent_id === categoryId);

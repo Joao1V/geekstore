@@ -13,6 +13,7 @@ import { BadRequestError, ConflictError, NotFoundError } from '../../core/_error
 import { writeAuditLog } from '../../core/audit';
 import { buildMeta, parseSort, skipTake } from '../../core/http/pagination';
 import { toProductDetail, toProductListItem, toSku } from './catalog.mappers';
+import { categoryScope } from './category.service';
 import { findProductIds, needsSqlQuery } from './product-list-query';
 import { EMPTY_STATS, loadListStats } from './product-list-stats';
 import { replaceSkuAttributes, resolveAttributes, skuAttributeInclude } from './sku-attributes';
@@ -35,16 +36,21 @@ type ListRow = Prisma.ProductGetPayload<{ include: typeof thumbnailInclude }>;
 type ListSort = Parameters<typeof findProductIds>[1];
 type ListWindow = Parameters<typeof findProductIds>[2];
 
-function buildWhere(query: ProductListQuery): Prisma.ProductWhereInput {
-  const { status, category_id } = query;
+function buildWhere(query: ProductListQuery, categoryIds?: string[]): Prisma.ProductWhereInput {
+  const { status } = query;
   return {
     ...(status ? { status } : {}),
-    ...(category_id ? { category_id } : {}),
+    ...(categoryIds ? { category_id: { in: categoryIds } } : {}),
   };
 }
 
-async function listWithPrisma(query: ProductListQuery, sort: ListSort, window: ListWindow) {
-  const where = buildWhere(query);
+async function listWithPrisma(
+  query: ProductListQuery,
+  sort: ListSort,
+  window: ListWindow,
+  categoryIds?: string[]
+) {
+  const where = buildWhere(query, categoryIds);
   const [rows, total] = await Promise.all([
     prisma.product.findMany({
       where,
@@ -58,8 +64,13 @@ async function listWithPrisma(query: ProductListQuery, sort: ListSort, window: L
 }
 
 /** Com busca ou atalho a ordem e a janela vêm do SQL; as linhas seguem a ordem dos ids. */
-async function listWithSql(query: ProductListQuery, sort: ListSort, window: ListWindow) {
-  const { ids, total } = await findProductIds(query, sort, window);
+async function listWithSql(
+  query: ProductListQuery,
+  sort: ListSort,
+  window: ListWindow,
+  categoryIds?: string[]
+) {
+  const { ids, total } = await findProductIds(query, sort, window, categoryIds);
   const found = await prisma.product.findMany({
     where: { product_id: { in: ids } },
     include: thumbnailInclude,
@@ -76,9 +87,11 @@ export async function listProducts(query: ProductListQuery): Promise<Paginated<P
   const sort = { field, direction };
   const window = skipTake(query.page, query.page_size);
 
+  // Filtrar uma categoria inclui as subcategorias (a categoria é uma "pasta").
+  const categoryIds = query.category_id ? await categoryScope(query.category_id) : undefined;
   const { rows, total } = needsSqlQuery(query)
-    ? await listWithSql(query, sort, window)
-    : await listWithPrisma(query, sort, window);
+    ? await listWithSql(query, sort, window, categoryIds)
+    : await listWithPrisma(query, sort, window, categoryIds);
   const stats = await loadListStats(rows.map((row) => row.product_id));
 
   return {

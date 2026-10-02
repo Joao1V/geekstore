@@ -6,6 +6,7 @@ import {
   createCatalogFixture,
   findWarehouseId,
 } from '../../test-support/fixtures';
+import { listCategories } from './category.service';
 import { listProducts } from './product.service';
 import { getProductSummary } from './product-summary';
 
@@ -137,5 +138,44 @@ describe('product list numbers and shortcuts (integration — requires a live DA
     expect(summary.out_of_stock).toBeGreaterThanOrEqual(2);
     expect(summary.no_photo).toBeGreaterThanOrEqual(2);
     expect(summary.total).toBeGreaterThanOrEqual(3);
+  });
+
+  it('filtering a category includes its subcategories ("folder" semantics) and counts per category', async () => {
+    const child = await prisma.category.create({
+      data: { name: `Sub ${fx.suffix}`, slug: `sub-${fx.suffix}`, parent_id: fx.categoryId },
+    });
+    const inChild = await prisma.product.create({
+      data: {
+        code: `SUB-${fx.suffix.toUpperCase()}`,
+        name: `Filho ${fx.suffix}`,
+        slug: `filho-${fx.suffix}`,
+        category_id: child.category_id,
+        status: 'active',
+      },
+    });
+    try {
+      const parent = await listProducts({ ...query, category_id: fx.categoryId });
+      expect(parent.data.map((p) => p.product_id)).toContain(inChild.product_id);
+      expect(parent.data.map((p) => p.product_id)).toContain(withVariants);
+
+      const onlyChild = await listProducts({ ...query, category_id: child.category_id });
+      expect(onlyChild.data.map((p) => p.product_id)).toEqual([inChild.product_id]);
+
+      // O mesmo vale pelo caminho de SQL (atalho/busca) e a contagem por categoria é direta.
+      const viaSql = await listProducts({
+        ...query,
+        category_id: fx.categoryId,
+        issue: 'no_photo',
+      });
+      expect(viaSql.data.map((p) => p.product_id)).toContain(inChild.product_id);
+      const counts = Object.fromEntries(
+        (await listCategories()).map((c) => [c.category_id, c.product_count])
+      );
+      expect(counts[child.category_id]).toBe(1);
+      expect(counts[fx.categoryId]).toBeGreaterThanOrEqual(3); // os do pai, sem o filho
+    } finally {
+      await prisma.product.delete({ where: { product_id: inChild.product_id } });
+      await prisma.category.delete({ where: { category_id: child.category_id } });
+    }
   });
 });

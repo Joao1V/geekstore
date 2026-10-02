@@ -27,6 +27,8 @@ export const categorySchema = z.object({
   slug: z.string(),
   featured: z.boolean(),
   position: z.number().int(),
+  /** Produtos diretamente nesta categoria (sem contar as subcategorias). */
+  product_count: z.number().int(),
   ...seoFields,
 });
 export type Category = z.infer<typeof categorySchema>;

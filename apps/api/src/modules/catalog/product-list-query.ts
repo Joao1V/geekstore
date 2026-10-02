@@ -18,7 +18,7 @@ export function needsSqlQuery(query: ProductListQuery): boolean {
   return Boolean(query.q || query.issue);
 }
 
-function buildWhere(query: ProductListQuery): Prisma.Sql {
+function buildWhere(query: ProductListQuery, categoryIds?: string[]): Prisma.Sql {
   const conditions: Prisma.Sql[] = [];
   if (query.q) {
     // Nome, código e endereço do produto; ou o código (SKU ou legado) de qualquer SKU dele.
@@ -32,7 +32,9 @@ function buildWhere(query: ProductListQuery): Prisma.Sql {
     )`);
   }
   if (query.status) conditions.push(Prisma.sql`p.status = ${query.status}::"ProductStatus"`);
-  if (query.category_id) conditions.push(Prisma.sql`p.category_id = ${asUuid(query.category_id)}`);
+  if (categoryIds) {
+    conditions.push(Prisma.sql`p.category_id IN (${Prisma.join(categoryIds.map(asUuid))})`);
+  }
   if (query.issue === 'no_photo') conditions.push(NO_PHOTO);
   if (query.issue === 'out_of_stock') conditions.push(OUT_OF_STOCK);
   return conditions.length > 0
@@ -49,9 +51,10 @@ function buildWhere(query: ProductListQuery): Prisma.Sql {
 export async function findProductIds(
   query: ProductListQuery,
   sort: { field: SortField; direction: 'asc' | 'desc' },
-  window: { skip: number; take: number }
+  window: { skip: number; take: number },
+  categoryIds?: string[]
 ): Promise<{ ids: string[]; total: number }> {
-  const where = buildWhere(query);
+  const where = buildWhere(query, categoryIds);
   const direction = sort.direction === 'desc' ? Prisma.sql`DESC` : Prisma.sql`ASC`;
 
   const [rows, countRows] = await Promise.all([

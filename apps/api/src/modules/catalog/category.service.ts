@@ -3,13 +3,21 @@ import type { Category, CategoryBody, CategoryUpdateBody } from '@geekstore/shar
 import { ConflictError, NotFoundError } from '../../core/_errors';
 import { writeAuditLog } from '../../core/audit';
 import { toCategory } from './catalog.mappers';
-import { assertValidPlacement } from './category-tree';
+import { assertValidPlacement, descendantIds } from './category-tree';
 
 const ENTITY = 'category';
 
 export async function listCategories(): Promise<Category[]> {
-  const rows = await prisma.category.findMany({ orderBy: [{ position: 'asc' }, { name: 'asc' }] });
-  return rows.map(toCategory);
+  const rows = await prisma.category.findMany({
+    orderBy: [{ position: 'asc' }, { name: 'asc' }],
+    include: { _count: { select: { products: true } } },
+  });
+  return rows.map((row) => toCategory(row, row._count.products));
+}
+
+/** A categoria e todas as suas subcategorias (para filtrar uma "pasta" inteira). */
+export async function categoryScope(categoryId: string): Promise<string[]> {
+  return descendantIds(await loadTreeNodes(), categoryId);
 }
 
 async function assertSlugAvailable(slug: string, exceptId?: string): Promise<void> {
@@ -36,7 +44,7 @@ export async function createCategory(actorId: string, body: CategoryBody): Promi
       action: 'create',
       after: created,
     });
-    return toCategory(created);
+    return toCategory(created, 0);
   });
 }
 
@@ -63,7 +71,7 @@ export async function updateCategory(
       before,
       after: updated,
     });
-    return toCategory(updated);
+    return toCategory(updated, await tx.product.count({ where: { category_id: categoryId } }));
   });
 }
 

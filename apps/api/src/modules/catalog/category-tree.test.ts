@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { assertValidPlacement, type CategoryNode, depthOf, subtreeHeight } from './category-tree';
+import {
+  assertValidPlacement,
+  type CategoryNode,
+  depthOf,
+  descendantIds,
+  subtreeHeight,
+} from './category-tree';
 
 // a (raiz) > b > c ; d (raiz) ; e (raiz) > f
 const nodes: CategoryNode[] = [
@@ -42,5 +48,24 @@ describe('category tree depth', () => {
     expect(() => assertValidPlacement(nodes, 'a', 'a')).toThrow();
     expect(() => assertValidPlacement(nodes, 'a', 'c')).toThrow(/dentro de si mesma/);
     expect(() => assertValidPlacement(nodes, null, 'zzz')).toThrow(/não encontrada/);
+  });
+});
+
+describe('descendantIds', () => {
+  const nodes = [
+    { category_id: 'a', parent_id: null },
+    { category_id: 'b', parent_id: 'a' },
+    { category_id: 'c', parent_id: 'b' },
+    { category_id: 'd', parent_id: null },
+  ];
+
+  it('returns the category and every category below it', () => {
+    expect(descendantIds(nodes, 'a').sort()).toEqual(['a', 'b', 'c']);
+    expect(descendantIds(nodes, 'b').sort()).toEqual(['b', 'c']);
+  });
+
+  it('returns only itself for a leaf and ignores other branches', () => {
+    expect(descendantIds(nodes, 'c')).toEqual(['c']);
+    expect(descendantIds(nodes, 'd')).toEqual(['d']);
   });
 });
