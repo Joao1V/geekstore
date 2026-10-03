@@ -58,12 +58,12 @@
   color-scheme: light;
 }
 [data-theme="dark"] {
-  --background: #0d0d10;
+  --background: #18181d;
   --foreground: #f8f7f2;
-  --surface: #19191e;
-  --surface-secondary: #25252c;
+  --surface: #23232a;
+  --surface-secondary: #31313a;
   --muted: #b1b0b9;
-  --border: #38383f;
+  --border: #42424c;
   --accent: var(--color-geek-yellow);
   --accent-foreground: var(--color-ink);
   --ink-shadow: var(--color-geek-yellow);
