@@ -27,6 +27,9 @@ const FILTER_LINK =
 const FILTER_INPUT =
   'h-[42px] w-full rounded-[7px] border border-border bg-surface-secondary px-3 text-sm text-foreground';
 const VISIBLE_BRANDS = 8;
+// Ramificação da árvore: o cotovelo curvo liga o item à linha vertical, que segue até o último irmão.
+const BRANCH =
+  'relative before:absolute before:top-0 before:left-0 before:h-[19px] before:w-3 before:rounded-bl-lg before:border-b before:border-l before:border-border not-last:after:absolute not-last:after:top-[19px] not-last:after:bottom-0 not-last:after:left-0 not-last:after:border-l not-last:after:border-border';
 
 /** Árvore de categorias: raízes, e dentro da que está aberta (ou é ancestral da escolhida) os filhos. */
 function CategoryFilter({
@@ -54,19 +57,21 @@ function CategoryFilter({
     (byParent.get(parent) ?? []).map((category) => {
       const isSelected = category.slug === state.categoria;
       return (
-        <li key={category.category_id}>
+        <li key={category.category_id} className={depth > 0 ? BRANCH : undefined}>
           <Link
             href={catalogHref(state, { categoria: category.slug })}
             aria-current={isSelected ? 'page' : undefined}
             className={`${FILTER_LINK} ${isSelected ? 'bg-geek-yellow font-extrabold text-ink hover:bg-geek-yellow' : ''}`}
-            style={{ paddingLeft: `${0.625 + depth * 0.9}rem` }}
+            style={{ paddingLeft: depth > 0 ? '1.25rem' : '0.625rem' }}
           >
             <span className="truncate">{category.name}</span>
             <span className={`text-xs tabular-nums ${isSelected ? '' : 'text-muted'}`}>
               {category.product_count}
             </span>
           </Link>
-          {openIds.has(category.category_id) && <ul>{render(category.category_id, depth + 1)}</ul>}
+          {openIds.has(category.category_id) && (
+            <ul className="ml-4">{render(category.category_id, depth + 1)}</ul>
+          )}
         </li>
       );
     });
