@@ -40,6 +40,7 @@ const WRAPPER_WORDS: ReadonlySet<string> = new Set([
   'CONJUNTO',
   'COMBO',
   'PAR',
+  'MINI',
   'DE',
   'DO',
   'DA',
@@ -305,7 +306,6 @@ const NAME_RULES: readonly Rule[] = [
         'CLIMATIZADOR',
         'PARAFUSADEIRA',
         'TAMAGOTCHI',
-        'CAIXA',
       ]) && !has(c, / (CARTAS|DECK) /),
   ],
   // Alimentos
@@ -335,6 +335,26 @@ const NAME_RULES: readonly Rule[] = [
   ],
   ['pelucias', (c) => firstIn(c, ['PELUCIA', 'PELUCIAS']) || has(c, / PELUCIA /)],
   ['brinquedos-e-hobbies', (c) => firstIn(c, ['BRINQUEDO', 'BRINQUEDOS', 'BEYBLADE', 'PIAO'])],
+  // Frases que decidem sozinhas, depois de todos os tipos (uma caneca "de vinho" já virou caneca acima)
+  ['livros', (c) => has(c, / FIGURINHAS? /) || (firstIn(c, ['BOX']) && has(c, / ALBUM /))],
+  ['cozinha-e-lancheiras', (c) => has(c, / (VINHO|CHEF) /)],
+  ['papelaria-e-escritorio', (c) => has(c, / SELO DE CARTAS /)],
+  ['carteiras-e-necessaires', (c) => has(c, / PASSAPORTE /)],
+  ['malas', (c) => firstIn(c, ['TAG']) && has(c, / MALA /)],
+  ['decoracao-e-iluminacao', (c) => has(c, / JARDINAGEM /)],
+  [
+    'eletronicos-e-gadgets',
+    (c) =>
+      has(c, / SPEAKER /) ||
+      (firstIn(c, ['SUPORTE']) && has(c, / CELULAR /)) ||
+      firstIn(c, ['BASE', 'CONTROLE', 'KARAOKE', 'FERRAMENTA', 'FERRAMENTAS', 'MULTIUSO']),
+  ],
+  ['alimentos-e-guloseimas', (c) => firstIn(c, ['GOMA', 'PRIULITO']) || has(c, / DANCLETS /)],
+  ['acessorios-de-jogo', (c) => firstIn(c, ['CAIXA']) && has(c, TCG_BRANDS)],
+  ['eletronicos-e-gadgets', (c) => firstIn(c, ['CAIXA']) && has(c, / (SOM|BLUETOOTH) /)],
+  ['decoracao-e-iluminacao', (c) => firstIn(c, ['CAIXA', 'BAU'])],
+  ['almofadas', (c) => firstIn(c, ['TOALHA', 'TOALHAS', 'ROUPAO'])],
+  ['brinquedos-e-hobbies', (c) => firstIn(c, ['IOIO'])],
   // Marca no nome (depois dos tipos: uma camiseta LEGO continua sendo camiseta)
   ['lego', (c) => has(c, / LEGO /)],
   ['funko', (c) => has(c, / FUNKO /)],

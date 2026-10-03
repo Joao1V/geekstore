@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, Boxes, Copy, PackageCheck, Tags, Wallet } from 'lucide-react';
+import { ArrowRight, Boxes, Copy, FolderInput, PackageCheck, Tags, Wallet } from 'lucide-react';
 import Link from 'next/link';
 
 import { getErrorMessage } from '../lib/errors';
@@ -84,6 +84,28 @@ export function AdminHome() {
               hint="a preço de vitrine"
             />
           </div>
+          {data.unclassified && data.unclassified.product_count > 0 && (
+            <Link
+              href={`/admin/produtos/?category_id=${data.unclassified.category_id}`}
+              className="surface group flex flex-wrap items-center gap-4 p-5"
+            >
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-secondary">
+                <FolderInput size={21} aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <strong className="block text-lg">
+                  {formatInteger(data.unclassified.product_count)} produtos sem categoria definida
+                </strong>
+                <span className="muted text-sm">
+                  Marque vários na lista e mova todos de uma vez para a categoria certa.
+                </span>
+              </span>
+              <span className="flex items-center gap-1.5 text-sm font-extrabold">
+                Revisar{' '}
+                <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
+              </span>
+            </Link>
+          )}
           {duplicateGroups > 0 && duplicates && (
             <Link
               href="/admin/duplicados/"

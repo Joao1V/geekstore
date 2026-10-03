@@ -22,6 +22,7 @@ import type {
   MediaUpdateBody,
   ProductBody,
   ProductDetail,
+  ProductMoveBody,
   ProductUpdateBody,
   Sku,
   SkuBody,
@@ -298,5 +299,24 @@ export function useDismissDuplicates() {
     mutationFn: (skuIds: string[]) =>
       adminApi.post<void>(`${CATALOG}/duplicates/dismiss`, { sku_ids: skuIds }),
     onSuccess: invalidate,
+  });
+}
+
+/** Move produtos de categoria (os escolhidos ou tudo o que o filtro mostra). */
+export function useMoveProducts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ProductMoveBody) =>
+      adminApi.post<{ moved: number }>(`${CATALOG}/products/move`, body),
+    onSuccess: () => {
+      for (const key of [
+        adminKeys.products,
+        adminKeys.categories,
+        adminKeys.dashboard,
+        adminKeys.skuGrid,
+      ]) {
+        queryClient.invalidateQueries({ queryKey: key });
+      }
+    },
   });
 }

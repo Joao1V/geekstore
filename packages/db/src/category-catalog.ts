@@ -86,7 +86,7 @@ export const CATEGORY_CATALOG: readonly CategorySeed[] = [
     children: [
       { slug: 'canecas', name: 'Canecas', prefix: 'CNC' },
       { slug: 'copos-e-garrafas', name: 'Copos e Garrafas', prefix: 'CPG' },
-      { slug: 'almofadas', name: 'Almofadas', prefix: 'ALM' },
+      { slug: 'almofadas', name: 'Almofadas e Têxteis', prefix: 'ALM' },
       { slug: 'decoracao-e-iluminacao', name: 'Decoração e Iluminação', prefix: 'DEC' },
       { slug: 'cozinha-e-lancheiras', name: 'Cozinha e Lancheiras', prefix: 'CZN' },
     ],

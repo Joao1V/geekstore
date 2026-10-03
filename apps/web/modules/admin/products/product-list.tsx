@@ -4,15 +4,16 @@ import type { ProductListQuery } from '@geekstore/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Pencil, Plus, X } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { CategoryAutocomplete } from '../categories/category-autocomplete';
 import { categoryLabels } from '../lib/category-tree';
 import { getErrorMessage } from '../lib/errors';
-import { formatDateTime } from '../lib/format';
+import { formatDateTime, formatInteger } from '../lib/format';
 import { useCan } from '../lib/use-can';
 import { nextSort, useUrlState } from '../lib/use-url-state';
+import { useMoveProducts } from '../services/catalog/mutations';
 import {
   categoriesQueryOptions,
   productListQueryOptions,
@@ -28,6 +29,7 @@ import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
 import { Thumbnail } from '../ui/thumbnail';
 import { ISSUE_LABELS } from './labels';
 import { type ChipId, chipFromParams, extraIssue, paramsFromChip } from './list-filters';
+import { ProductBulkBar } from './product-bulk-bar';
 import {
   CategoryCell,
   LegacyCodeCell,
@@ -38,7 +40,7 @@ import {
 } from './product-cells';
 
 const PAGE_SIZE = 20;
-const COLUMNS = 9;
+const COLUMNS = 10;
 
 type Filters = { category_id: string | null };
 
@@ -68,6 +70,62 @@ export function ProductList() {
   );
 
   const { control } = useForm<Filters>({ values: { category_id: categoryId } });
+
+  // Seleção para ações em massa: os marcados na página, ou todos os resultados do filtro.
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const [allMatching, setAllMatching] = useState(false);
+  const [moveError, setMoveError] = useState('');
+  const [moveNotice, setMoveNotice] = useState('');
+  const move = useMoveProducts();
+  const filterKey = [q, categoryId, chip, extra, page, sort].join('|');
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a seleção vale para UMA tela de resultados; mudou o filtro ou a página, zera
+  useEffect(() => {
+    setSelected(new Set());
+    setAllMatching(false);
+  }, [filterKey]);
+  const rows = data?.data ?? [];
+  const pageFullySelected = rows.length > 0 && rows.every((row) => selected.has(row.product_id));
+  const selectedCount = allMatching ? (data?.meta.total ?? 0) : selected.size;
+  const toggleRow = (id: string) => {
+    setAllMatching(false);
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const togglePage = () => {
+    setAllMatching(false);
+    setSelected(pageFullySelected ? new Set() : new Set(rows.map((row) => row.product_id)));
+  };
+  const runMove = async (targetCategoryId: string) => {
+    setMoveError('');
+    setMoveNotice('');
+    try {
+      const body = allMatching
+        ? {
+            category_id: targetCategoryId,
+            filter: {
+              q: q || undefined,
+              status: (status ?? undefined) as ProductListQuery['status'],
+              issue: (issue ?? undefined) as ProductListQuery['issue'],
+              category_id: categoryId ?? undefined,
+            },
+          }
+        : { category_id: targetCategoryId, product_ids: [...selected] };
+      const result = await move.mutateAsync(body);
+      setMoveNotice(
+        result.moved === 0
+          ? 'Nada mudou: os produtos já estavam nessa categoria.'
+          : `${formatInteger(result.moved)} ${result.moved === 1 ? 'produto movido' : 'produtos movidos'}.`
+      );
+      setSelected(new Set());
+      setAllMatching(false);
+    } catch (err) {
+      setMoveError(getErrorMessage(err));
+    }
+  };
   const labels = useMemo(() => categoryLabels(categories ?? []), [categories]);
 
   const chips: FilterChip[] = [
@@ -137,9 +195,41 @@ export function ProductList() {
           {getErrorMessage(error)}
         </p>
       )}
+      {moveNotice && (
+        <p className="notice mb-4" role="status">
+          {moveNotice}
+        </p>
+      )}
+      {canWrite && selectedCount > 0 && (
+        <ProductBulkBar
+          selectedCount={selectedCount}
+          total={data?.meta.total ?? 0}
+          pageFullySelected={pageFullySelected}
+          allMatching={allMatching}
+          isMoving={move.isPending}
+          error={moveError}
+          onSelectAllMatching={() => setAllMatching(true)}
+          onClear={() => {
+            setSelected(new Set());
+            setAllMatching(false);
+          }}
+          onMove={runMove}
+        />
+      )}
       <AdminTable>
         <thead>
           <tr>
+            {canWrite && (
+              <Th>
+                <input
+                  type="checkbox"
+                  aria-label="Selecionar os produtos desta página"
+                  className="size-4 accent-geek-yellow"
+                  checked={pageFullySelected}
+                  onChange={togglePage}
+                />
+              </Th>
+            )}
             <SortHeader
               label="Produto"
               field="name"
@@ -165,8 +255,22 @@ export function ProductList() {
         </thead>
         <tbody>
           {isPending && <EmptyRow colSpan={COLUMNS}>Carregando…</EmptyRow>}
-          {data?.data.map((product) => (
-            <tr key={product.product_id} className="hover:bg-surface-secondary/50">
+          {rows.map((product) => (
+            <tr
+              key={product.product_id}
+              className={`hover:bg-surface-secondary/50 ${selected.has(product.product_id) || allMatching ? 'bg-geek-yellow/10' : ''}`}
+            >
+              {canWrite && (
+                <Td>
+                  <input
+                    type="checkbox"
+                    aria-label={`Selecionar ${product.name}`}
+                    className="size-4 accent-geek-yellow"
+                    checked={allMatching || selected.has(product.product_id)}
+                    onChange={() => toggleRow(product.product_id)}
+                  />
+                </Td>
+              )}
               <Td className="min-w-[260px]">
                 <div className="flex items-center gap-3">
                   <Link
