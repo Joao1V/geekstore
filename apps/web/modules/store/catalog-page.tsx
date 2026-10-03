@@ -12,7 +12,6 @@ import {
   SORT_OPTIONS,
   toApiFilters,
 } from './lib/catalog-url';
-import { formatBRL } from './lib/money';
 import { Pagination } from './pagination';
 import { ProductGrid } from './product-card';
 import {
@@ -29,7 +28,7 @@ const FILTER_INPUT =
 const VISIBLE_BRANDS = 8;
 // Ramificação da árvore: o cotovelo curvo liga o item à linha vertical, que segue até o último irmão.
 const BRANCH =
-  'relative before:absolute before:top-0 before:left-0 before:h-[19px] before:w-3 before:rounded-bl-lg before:border-b before:border-l before:border-border not-last:after:absolute not-last:after:top-[19px] not-last:after:bottom-0 not-last:after:left-0 not-last:after:border-l not-last:after:border-border';
+  'relative before:absolute before:top-0 before:left-0 before:h-[19px] before:w-3 before:rounded-bl-lg before:border-b before:border-l before:border-border not-last:after:absolute not-last:after:top-0 not-last:after:bottom-0 not-last:after:left-0 not-last:after:border-l not-last:after:border-border';
 
 /** Árvore de categorias: raízes, e dentro da que está aberta (ou é ancestral da escolhida) os filhos. */
 function CategoryFilter({
@@ -264,13 +263,6 @@ export async function CatalogPage({ state }: { state: CatalogState }) {
             <p className="text-sm text-muted" aria-live="polite">
               {products.meta.total.toLocaleString('pt-BR')}{' '}
               {products.meta.total === 1 ? 'produto' : 'produtos'}
-              {facets.price_min_cents !== null && (
-                <span className="max-md:hidden">
-                  {' '}
-                  · de {formatBRL(facets.price_min_cents)} a{' '}
-                  {formatBRL(facets.price_max_cents ?? 0)}
-                </span>
-              )}
             </p>
             <nav aria-label="Ordenar por" className="flex flex-wrap gap-1.5">
               {SORT_OPTIONS.map((option) => (
