@@ -29,7 +29,7 @@ const FLAVORS = new Set([
 ]);
 const NAMED_SIZES = new Set(['A4', 'A5', 'PEQUENO', 'MEDIO', 'GRANDE']);
 const WEIGHT = /^\d+(?:[.,]\d+)?(?:G|KG|MG)$/i;
-const VOLUME = /^\d+(?:[.,]\d+)?(?:ML|L)$/i;
+const VOLUME = /^\d+(?:[.,]\d+)?(?:ML|L|LT|LTS)$/i;
 // Palavras de cor que aparecem no nome (as duas formas de gênero; o valor guardado é uma só).
 const COLOR_WORDS = [
   'AZUL MARINHO',
@@ -60,7 +60,38 @@ const COLOR_WORDS = [
   'TRANSLUCIDO',
   'MARFIM',
   'GRAFITE',
+  'NOIR',
+  'ARMY',
+  'NUDE',
+  'LAVANDA',
+  'PETROLEO',
+  'TURQUESA',
+  'FUCSIA',
+  'SALMAO',
+  'CORAL',
+  'CREME',
+  'CAQUI',
+  'OLIVA',
+  'MOSTARDA',
+  'TERRACOTA',
+  'OURO',
+  'FUME',
+  'VIOLETA',
+  'AZUL CLARO',
+  'AZUL ESCURO',
+  'AZUL ROYAL',
+  'VERDE CLARO',
+  'VERDE ESCURO',
+  'VERDE MILITAR',
+  'ROSA CLARO',
+  'LARANJA CLARO',
+  'CINZA CLARO',
+  'CINZA ESCURO',
 ];
+// Nomes de cor de marca (garrafas, bolsas). Só valem onde cor de marca é comum: "Sand" é cor numa
+// garrafa e nome de um jogo de tabuleiro.
+const BRAND_COLOR_ROOTS = new Set(['casa-e-utensilios', 'bolsas-e-mochilas']);
+const BRAND_COLOR_WORDS = ['PINK GLAZE', 'PINK GLACE', 'BLUE EMBER', 'DUSKY VINE', 'SAND'];
 const SIZES = new Set([
   'PP',
   'P',
@@ -81,7 +112,10 @@ const SIZE_LABELS = new Set(['TAMANHO', 'TAM', 'TAM.']);
 const RANGE = /^\d{2}\/\d{2}$/;
 const KIDS_SIZE = /^\d{2}$/;
 // Cores de duas palavras primeiro, para "AZUL MARINHO" não virar "AZUL".
-const COLORS = [...COLOR_WORDS].sort((a, b) => b.split(' ').length - a.split(' ').length);
+const byWordCount = (list: string[]) =>
+  [...list].sort((a, b) => b.split(' ').length - a.split(' ').length);
+const COLORS = byWordCount(COLOR_WORDS);
+const COLORS_WITH_BRAND = byWordCount([...COLOR_WORDS, ...BRAND_COLOR_WORDS]);
 
 export type ParsedVariant = {
   baseName: string;
@@ -111,9 +145,9 @@ function canonicalColor(color: string): string {
     .join(' ');
 }
 
-function takeColor(tokens: string[]): { rest: string[]; color?: string } {
+function takeColor(tokens: string[], list: string[] = COLORS): { rest: string[]; color?: string } {
   const upper = tokens.map((token) => token.toUpperCase());
-  for (const color of COLORS) {
+  for (const color of list) {
     const words = color.split(' ');
     const at = upper.findIndex((_, i) => words.every((word, k) => upper[i + k] === word));
     if (at >= 0) {
@@ -141,7 +175,7 @@ function parseGeneric(tokens: string[], rootSlug: string): ParsedVariant | null 
   }
   const volume = rest.find((token) => VOLUME.test(token));
   if (volume) {
-    found.capacidade = volume.toLowerCase();
+    found.capacidade = volume.toLowerCase().replace(/lts?$/, 'l');
     rest = rest.filter((token) => token !== volume);
   }
   const named = rest.find((token) => NAMED_SIZES.has(token.toUpperCase()));
@@ -155,7 +189,10 @@ function parseGeneric(tokens: string[], rootSlug: string): ParsedVariant | null 
     found.sabor = titleCase(flavor);
     rest = rest.filter((token) => token !== flavor);
   }
-  const { rest: withoutColor, color } = takeColor(rest);
+  const { rest: withoutColor, color } = takeColor(
+    rest,
+    BRAND_COLOR_ROOTS.has(rootSlug) ? COLORS_WITH_BRAND : COLORS
+  );
   if (color) found.cor = color;
 
   const baseName = withoutColor.join(' ').trim();
