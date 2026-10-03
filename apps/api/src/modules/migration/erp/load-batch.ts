@@ -33,11 +33,32 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
   };
 
   const productIds = new Map<string, string>();
+  const mediaCount = new Map<string, number>();
+  const seenUrls = new Set<string>();
+  /** Fotos de um produto (ou da variação, com `skuId`), em sequência e sem repetir a mesma URL. */
+  const pushMedia = (urls: string[], productId: string, skuId: string | null, name: string) => {
+    for (const url of urls) {
+      const key = `${productId}|${url}`;
+      if (seenUrls.has(key)) continue;
+      seenUrls.add(key);
+      const position = mediaCount.get(productId) ?? 0;
+      mediaCount.set(productId, position + 1);
+      rows.media.push({
+        media_id: uuidv7(),
+        product_id: productId,
+        sku_id: skuId,
+        url,
+        alt: `${name} (foto ${position + 1})`.slice(0, 255),
+        position,
+      });
+    }
+  };
   for (const item of items) {
     const categoryId = ctx.categoryIds.get(item.categoryKey);
     if (!categoryId)
       throw new Error(`Categoria sem id para o item ${item.legacyCode}: ${item.categoryKey}`);
     const skuId = uuidv7();
+    const isFamily = item.productKey.startsWith('family:');
     // Variações do mesmo produto compartilham a linha de produto e as fotos.
     const known = productIds.get(item.productKey);
     const productId = known ?? uuidv7();
@@ -53,16 +74,10 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
         description: item.description,
         status: item.productStatus,
       });
-      for (const [position, url] of item.photos.entries()) {
-        rows.media.push({
-          media_id: uuidv7(),
-          product_id: productId,
-          url,
-          alt: `${item.name} (foto ${position + 1})`.slice(0, 255),
-          position,
-        });
-      }
+      if (!isFamily) pushMedia(item.photos, productId, null, item.name);
     }
+    // Numa família cada variação leva as fotos dela: escolher a cor no site troca a imagem.
+    if (isFamily) pushMedia(item.ownPhotos, productId, skuId, item.name);
     rows.skus.push({
       sku_id: skuId,
       product_id: productId,

@@ -22,6 +22,7 @@ export type RowDraft = {
     | 'productCode'
     | 'attributes'
     | 'erpName'
+    | 'ownPhotos'
   > & {
     baseSlug: string;
     /** Categoria da taxonomia nossa (resultado do classificador). */

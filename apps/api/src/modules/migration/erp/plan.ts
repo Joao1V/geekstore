@@ -86,6 +86,7 @@ function buildGroup(group: ProductGroup, used: Used): Built {
       categoryKey,
       productStatus,
       photos,
+      ownPhotos: rest.photos,
     };
   });
 

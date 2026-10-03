@@ -63,6 +63,8 @@ export type PlannedItem = {
   promo: Promo | null;
   stock: number;
   photos: string[];
+  /** Fotos deste item do ERP (numa família, cada variação tem as suas; `photos` é a união). */
+  ownPhotos: string[];
   legacyData: Record<string, unknown>;
 };
 
