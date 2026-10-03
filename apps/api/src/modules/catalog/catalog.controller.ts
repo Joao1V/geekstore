@@ -13,6 +13,10 @@ import type {
   CollectionBody,
   CollectionProductsBody,
   CollectionUpdateBody,
+  DuplicateDismissBody,
+  DuplicateListQuery,
+  DuplicateMergeBody,
+  DuplicateMergeCertainBody,
   MediaBody,
   MediaUpdateBody,
   MediaUploadUrlBody,
@@ -43,6 +47,13 @@ import {
   replaceCollectionProducts,
   updateCollection,
 } from './collection.service';
+import {
+  dismissDuplicates,
+  getDuplicateSummary,
+  listDuplicateGroups,
+  mergeCertainDuplicates,
+  mergeSkus,
+} from './duplicates.service';
 import { createMedia, deleteMedia, updateMedia } from './media.service';
 import { createUploadUrl } from './media.storage';
 import {
@@ -278,4 +289,31 @@ export async function updateBrandController(
 
 export async function catalogDashboardController() {
   return { data: await getCatalogDashboard() };
+}
+
+// ── Duplicados ─────────────────────────────────────────────────────────────────
+export async function listDuplicatesController(request: Req<{ Querystring: DuplicateListQuery }>) {
+  return listDuplicateGroups(request.query);
+}
+
+export async function duplicateSummaryController() {
+  return { data: await getDuplicateSummary() };
+}
+
+export async function mergeDuplicatesController(request: Req<{ Body: DuplicateMergeBody }>) {
+  return { data: await mergeSkus(request.user.sub, request.body) };
+}
+
+export async function mergeCertainDuplicatesController(
+  request: Req<{ Body: DuplicateMergeCertainBody }>
+) {
+  return { data: await mergeCertainDuplicates(request.user.sub, request.body.dry_run) };
+}
+
+export async function dismissDuplicatesController(
+  request: Req<{ Body: DuplicateDismissBody }>,
+  reply: FastifyReply
+) {
+  await dismissDuplicates(request.user.sub, request.body.sku_ids);
+  return reply.code(204).send();
 }

@@ -26,6 +26,14 @@ import {
   collectionProductsResponseSchema,
   collectionResponseSchema,
   collectionUpdateBodySchema,
+  duplicateDismissBodySchema,
+  duplicateListQuerySchema,
+  duplicateListResponseSchema,
+  duplicateMergeBodySchema,
+  duplicateMergeCertainBodySchema,
+  duplicateMergeCertainResponseSchema,
+  duplicateMergeResponseSchema,
+  duplicateSummaryResponseSchema,
   mediaBodySchema,
   mediaParamsSchema,
   mediaResponseSchema,
@@ -64,6 +72,8 @@ import {
   deleteCategoryController,
   deleteCollectionController,
   deleteMediaController,
+  dismissDuplicatesController,
+  duplicateSummaryController,
   getCategoryAttributesController,
   getProductController,
   listAttributesController,
@@ -71,8 +81,11 @@ import {
   listCategoriesController,
   listCollectionProductsController,
   listCollectionsController,
+  listDuplicatesController,
   listProductsController,
   listSkuGridController,
+  mergeCertainDuplicatesController,
+  mergeDuplicatesController,
   productSummaryController,
   replaceCollectionProductsController,
   setCategoryAttributesController,
@@ -158,6 +171,72 @@ export async function catalogRoutes(fastify: FastifyInstance): Promise<void> {
       },
     },
     catalogDashboardController
+  );
+
+  // ── Duplicados ───────────────────────────────────────────────────────────────
+  app.get(
+    '/duplicates',
+    {
+      ...read,
+      schema: {
+        tags,
+        summary: 'Grupos de produtos repetidos (mesmo nome), por nível de confiança',
+        querystring: duplicateListQuerySchema,
+        response: { 200: duplicateListResponseSchema },
+      },
+    },
+    listDuplicatesController
+  );
+  app.get(
+    '/duplicates/summary',
+    {
+      ...read,
+      schema: {
+        tags,
+        summary: 'Quantos grupos de duplicados há em cada nível',
+        response: { 200: duplicateSummaryResponseSchema },
+      },
+    },
+    duplicateSummaryController
+  );
+  app.post(
+    '/duplicates/merge',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary:
+          'Mescla duplicatas num SKU: transfere o estoque e arquiva a duplicata (mantém o código do ERP)',
+        body: duplicateMergeBodySchema,
+        response: { 200: duplicateMergeResponseSchema },
+      },
+    },
+    mergeDuplicatesController
+  );
+  app.post(
+    '/duplicates/merge-certain',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary: 'Mescla todos os grupos "certeza" (com dry_run só mostra o que seria feito)',
+        body: duplicateMergeCertainBodySchema,
+        response: { 200: duplicateMergeCertainResponseSchema },
+      },
+    },
+    mergeCertainDuplicatesController
+  );
+  app.post(
+    '/duplicates/dismiss',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary: 'Marca o grupo como "são produtos diferentes": deixa de ser sugerido (204)',
+        body: duplicateDismissBodySchema,
+      },
+    },
+    dismissDuplicatesController
   );
 
   // ── Marcas ───────────────────────────────────────────────────────────────────

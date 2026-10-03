@@ -140,28 +140,34 @@ model Product {
 
 // Unidade vendável (RF-CAT-02). Preço, estoque, anúncio e item de pedido apontam para cá.
 model Sku {
-  sku_id            String    @id @default(uuid(7)) @db.Uuid
-  product_id        String    @db.Uuid
-  code              String    @unique @db.VarChar(64) // imutável: o service rejeita alteração
-  ean               String?   @db.VarChar(14)
-  weight_g          Int?
-  length_mm         Int?
-  width_mm          Int?
-  height_mm         Int?
-  ncm               String?   @db.VarChar(8)
+  sku_id             String    @id @default(uuid(7)) @db.Uuid
+  product_id         String    @db.Uuid
+  code               String    @unique @db.VarChar(64) // imutável: o service rejeita alteração
+  ean                String?   @db.VarChar(14)
+  weight_g           Int?
+  length_mm          Int?
+  width_mm           Int?
+  height_mm          Int?
+  ncm                String?   @db.VarChar(8)
   // Código do fabricante (MPN): os marketplaces e o Google Merchant pedem junto da marca.
-  manufacturer_code String?   @db.VarChar(60)
-  cost_cents        Int?
-  status            SkuStatus @default(active)
+  manufacturer_code  String?   @db.VarChar(60)
+  cost_cents         Int?
+  status             SkuStatus @default(active)
   // Código do item no sistema de origem (ERP): chave da importação, que a torna repetível, e elo
   // de conferência com a base antiga. Anulável: SKUs criados no admin não têm legado.
-  legacy_code       String?   @unique @db.VarChar(32)
+  legacy_code        String?   @unique @db.VarChar(32)
   // Linha original do ERP (campos sem coluna própria), para auditoria da migração.
-  legacy_data       Json?
-  created_at        DateTime  @default(now())
-  updated_at        DateTime  @updatedAt
+  legacy_data        Json?
+  // Preenchido quando este SKU era duplicata de outro e foi mesclado: o estoque foi transferido para
+  // `merged_into` e este fica inativo, mas conserva o `legacy_code` (a integração e a reimportação
+  // do ERP continuam reconhecendo o código antigo).
+  merged_into_sku_id String?   @db.Uuid
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
 
   product          Product             @relation(fields: [product_id], references: [product_id])
+  merged_into      Sku?                @relation("SkuMerge", fields: [merged_into_sku_id], references: [sku_id])
+  merged_from      Sku[]               @relation("SkuMerge")
   media            Media[]
   stock_levels     StockLevel[]
   movements        StockMovement[]
@@ -171,6 +177,7 @@ model Sku {
 
   @@index([product_id])
   @@index([ean])
+  @@index([merged_into_sku_id])
   @@map("sku")
 }
 
@@ -443,4 +450,15 @@ model Brand {
   products Product[]
 
   @@map("brand")
+}
+
+// Grupos de possíveis duplicados que o operador marcou como "são produtos diferentes". A chave é o
+// hash dos SKUs do grupo: se entrar um item novo, o grupo muda de chave e volta a ser sugerido.
+model DuplicateDismissal {
+  duplicate_dismissal_id String   @id @default(uuid(7)) @db.Uuid
+  group_key              String   @unique @db.VarChar(64)
+  user_id                String?  @db.Uuid
+  created_at             DateTime @default(now())
+
+  @@map("duplicate_dismissal")
 }
