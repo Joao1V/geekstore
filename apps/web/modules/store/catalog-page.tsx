@@ -27,6 +27,9 @@ const FILTER_INPUT =
   'h-[42px] w-full rounded-[7px] border border-border bg-surface-secondary px-3 text-sm text-foreground';
 const VISIBLE_BRANDS = 8;
 // Ramificação da árvore: o cotovelo curvo liga o item à linha vertical, que segue até o último irmão.
+// Trecho até o item escolhido: cotovelo dele e a vertical dos irmãos acima ficam na cor da marca.
+const BRANCH_ELBOW_ACTIVE = 'before:z-10 before:border-geek-yellow';
+const BRANCH_LINE_ACTIVE = 'not-last:after:border-geek-yellow';
 const BRANCH =
   'relative before:absolute before:top-0 before:left-0 before:h-[19px] before:w-3 before:rounded-bl-lg before:border-b before:border-l before:border-border not-last:after:absolute not-last:after:top-0 not-last:after:bottom-0 not-last:after:left-0 not-last:after:border-l not-last:after:border-border';
 
@@ -52,19 +55,28 @@ function CategoryFilter({
     openIds.add(cursor.category_id);
   }
 
-  const render = (parent: string | null, depth: number) =>
-    (byParent.get(parent) ?? []).map((category) => {
+  const render = (parent: string | null, depth: number) => {
+    const siblings = byParent.get(parent) ?? [];
+    const selectedIndex = siblings.findIndex((item) => item.slug === state.categoria);
+    return siblings.map((category, index) => {
       const isSelected = category.slug === state.categoria;
+      const branch = [
+        BRANCH,
+        isSelected ? BRANCH_ELBOW_ACTIVE : '',
+        selectedIndex !== -1 && index < selectedIndex ? BRANCH_LINE_ACTIVE : '',
+      ].join(' ');
       return (
-        <li key={category.category_id} className={depth > 0 ? BRANCH : undefined}>
+        <li key={category.category_id} className={depth > 0 ? branch : undefined}>
           <Link
             href={catalogHref(state, { categoria: category.slug })}
             aria-current={isSelected ? 'page' : undefined}
-            className={`${FILTER_LINK} ${isSelected ? 'bg-geek-yellow font-extrabold text-ink hover:bg-geek-yellow' : ''}`}
+            className={`${FILTER_LINK} ${isSelected ? 'font-extrabold underline decoration-geek-yellow decoration-2 underline-offset-[6px]' : ''}`}
             style={{ paddingLeft: depth > 0 ? '1.25rem' : '0.625rem' }}
           >
             <span className="truncate">{category.name}</span>
-            <span className={`text-xs tabular-nums ${isSelected ? '' : 'text-muted'}`}>
+            <span
+              className={`text-xs tabular-nums ${isSelected ? 'font-extrabold' : 'text-muted'}`}
+            >
               {category.product_count}
             </span>
           </Link>
@@ -74,6 +86,7 @@ function CategoryFilter({
         </li>
       );
     });
+  };
 
   return (
     <ul className="grid gap-0.5">
