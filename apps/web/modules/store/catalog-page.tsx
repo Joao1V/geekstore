@@ -70,10 +70,14 @@ function CategoryFilter({
           <Link
             href={catalogHref(state, { categoria: category.slug })}
             aria-current={isSelected ? 'page' : undefined}
-            className={`${FILTER_LINK} ${isSelected ? 'font-extrabold underline decoration-geek-yellow decoration-2 underline-offset-[6px]' : ''}`}
+            className={`${FILTER_LINK} ${isSelected ? 'font-extrabold' : ''}`}
             style={{ paddingLeft: depth > 0 ? '1.25rem' : '0.625rem' }}
           >
-            <span className="truncate">{category.name}</span>
+            <span
+              className={`truncate ${isSelected ? 'underline decoration-geek-yellow decoration-2 underline-offset-[6px]' : ''}`}
+            >
+              {category.name}
+            </span>
             <span
               className={`text-xs tabular-nums ${isSelected ? 'font-extrabold' : 'text-muted'}`}
             >
