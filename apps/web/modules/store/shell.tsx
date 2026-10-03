@@ -143,14 +143,14 @@ export function Shell({
       <header
         ref={headerRef}
         className={`fixed inset-x-0 top-0 z-50 border-b text-white transition-[box-shadow,background-color] duration-200 ${
-          store.headerStyle === 'glass'
+          store.headerStyle === 'glass' && scrolled
             ? 'border-white/10 bg-night/60 backdrop-blur-xl backdrop-saturate-150'
             : 'border-white/12 bg-night'
         } ${scrolled ? '[box-shadow:0_8px_24px_#00000059]' : ''}`}
       >
         <div className="wrap flex h-[78px] items-center gap-6 max-tablet:gap-[15px] max-md:grid max-md:h-28 max-md:grid-cols-[1fr_auto] max-md:gap-2 max-md:py-2">
           <Link
-            className="w-[165px] shrink-0 rounded-xl bg-night px-3 py-[5px] max-tablet:w-[140px] max-md:w-[127px] max-md:px-2 max-md:py-0.5"
+            className="w-[165px] shrink-0 px-3 py-[5px] max-tablet:w-[140px] max-md:w-[127px] max-md:px-2 max-md:py-0.5"
             href="/"
             aria-label="GeekStore, início"
           >
