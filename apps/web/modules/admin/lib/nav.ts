@@ -1,5 +1,6 @@
 import type { Permission } from '@geekstore/shared';
 import {
+  Copy,
   FolderTree,
   Home,
   Layers,
@@ -41,6 +42,13 @@ export const ADMIN_NAV: AdminNavItem[] = [
     label: 'Coleções',
     description: 'Franquias e curadorias',
     icon: Layers,
+    permission: 'catalog:read',
+  },
+  {
+    href: '/admin/duplicados/',
+    label: 'Duplicados',
+    description: 'Produtos repetidos: mesclar e somar o estoque',
+    icon: Copy,
     permission: 'catalog:read',
   },
   {

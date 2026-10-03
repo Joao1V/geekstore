@@ -14,6 +14,9 @@ import type {
   CollectionBody,
   CollectionProductsBody,
   CollectionUpdateBody,
+  DuplicateMergeBody,
+  DuplicateMergeCertainResult,
+  DuplicateMergeResult,
   Media,
   MediaBody,
   MediaUpdateBody,
@@ -248,5 +251,52 @@ export function useUpdateBrand() {
       queryClient.invalidateQueries({ queryKey: adminKeys.brands });
       queryClient.invalidateQueries({ queryKey: adminKeys.products });
     },
+  });
+}
+
+// ── Duplicados ─────────────────────────────────────────────────────────────────
+function useInvalidateAfterMerge() {
+  const queryClient = useQueryClient();
+  return () => {
+    for (const key of [
+      adminKeys.duplicates,
+      adminKeys.products,
+      adminKeys.skuGrid,
+      adminKeys.dashboard,
+    ]) {
+      queryClient.invalidateQueries({ queryKey: key });
+    }
+  };
+}
+
+export function useMergeDuplicates() {
+  const invalidate = useInvalidateAfterMerge();
+  return useMutation({
+    mutationFn: (body: DuplicateMergeBody) =>
+      adminApi.post<DuplicateMergeResult>(`${CATALOG}/duplicates/merge`, body),
+    onSuccess: invalidate,
+  });
+}
+
+export function useMergeCertainDuplicates() {
+  const invalidate = useInvalidateAfterMerge();
+  return useMutation({
+    mutationFn: (dryRun: boolean) =>
+      adminApi.post<DuplicateMergeCertainResult>(`${CATALOG}/duplicates/merge-certain`, {
+        dry_run: dryRun,
+      }),
+    // A prévia (dry run) não muda nada: só a execução real atualiza as telas.
+    onSuccess: (result) => {
+      if (!result.dry_run) invalidate();
+    },
+  });
+}
+
+export function useDismissDuplicates() {
+  const invalidate = useInvalidateAfterMerge();
+  return useMutation({
+    mutationFn: (skuIds: string[]) =>
+      adminApi.post<void>(`${CATALOG}/duplicates/dismiss`, { sku_ids: skuIds }),
+    onSuccess: invalidate,
   });
 }

@@ -1,13 +1,16 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, Boxes, PackageCheck, Tags, Wallet } from 'lucide-react';
+import { ArrowRight, Boxes, Copy, PackageCheck, Tags, Wallet } from 'lucide-react';
 import Link from 'next/link';
 
 import { getErrorMessage } from '../lib/errors';
 import { formatBRLCompact, formatInteger } from '../lib/format';
 import { ADMIN_NAV } from '../lib/nav';
-import { catalogDashboardQueryOptions } from '../services/catalog/queries';
+import {
+  catalogDashboardQueryOptions,
+  duplicateSummaryQueryOptions,
+} from '../services/catalog/queries';
 import { useAdminAuthStore } from '../state/auth-store';
 import { PageHeader } from '../ui/page-header';
 import { CatalogHealth } from './catalog-health';
@@ -34,6 +37,11 @@ export function AdminHome() {
     ...catalogDashboardQueryOptions(),
     enabled: canReadCatalog,
   });
+  const { data: duplicates } = useQuery({
+    ...duplicateSummaryQueryOptions(),
+    enabled: canReadCatalog,
+  });
+  const duplicateGroups = duplicates ? duplicates.certain + duplicates.likely : 0;
   const shortcuts = ADMIN_NAV.filter(
     (item) =>
       item.href !== '/admin/' && (!item.permission || user?.permissions.includes(item.permission))
@@ -76,6 +84,29 @@ export function AdminHome() {
               hint="a preço de vitrine"
             />
           </div>
+          {duplicateGroups > 0 && duplicates && (
+            <Link
+              href="/admin/duplicados/"
+              className="surface group flex flex-wrap items-center gap-4 border-geek-yellow p-5"
+            >
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-geek-yellow text-ink">
+                <Copy size={21} aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <strong className="block text-lg">
+                  {formatInteger(duplicateGroups)} grupos de produtos repetidos
+                </strong>
+                <span className="muted text-sm">
+                  {formatInteger(duplicates.certain)} com certeza (mesmo nome, EAN e preço): dá para
+                  resolver todos de uma vez.
+                </span>
+              </span>
+              <span className="flex items-center gap-1.5 text-sm font-extrabold">
+                Resolver{' '}
+                <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
+              </span>
+            </Link>
+          )}
           <div className="grid grid-cols-[2fr_1fr] items-start gap-4 max-tablet:grid-cols-1">
             <CatalogHealth data={data} />
             <CategoryBars categories={data.by_category} />

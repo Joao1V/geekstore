@@ -5,6 +5,9 @@ import type {
   Category,
   CategoryAttribute,
   Collection,
+  DuplicateGroup,
+  DuplicateListQuery,
+  DuplicateSummary,
   Product,
   ProductDetail,
   ProductListItem,
@@ -31,6 +34,19 @@ export const catalogDashboardQueryOptions = () =>
     queryKey: adminKeys.dashboard,
     queryFn: () => adminApi.get<CatalogDashboard>('/api/catalog/dashboard'),
     staleTime: 60_000,
+  });
+
+export const duplicateSummaryQueryOptions = () =>
+  queryOptions({
+    queryKey: [...adminKeys.duplicates, 'summary'],
+    queryFn: () => adminApi.get<DuplicateSummary>('/api/catalog/duplicates/summary'),
+    staleTime: 60_000,
+  });
+
+export const duplicateGroupsQueryOptions = (params: Partial<DuplicateListQuery>) =>
+  queryOptions({
+    queryKey: [...adminKeys.duplicates, 'list', params],
+    queryFn: () => adminApi.paginate<DuplicateGroup>('/api/catalog/duplicates', params),
   });
 
 export const brandsQueryOptions = () =>
