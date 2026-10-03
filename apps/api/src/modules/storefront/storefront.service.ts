@@ -1,4 +1,4 @@
-import { Prisma, prisma } from '@geekstore/db';
+import { FALLBACK_CATEGORY_SLUG, Prisma, prisma } from '@geekstore/db';
 import type {
   Paginated,
   StoreBrand,
@@ -228,10 +228,13 @@ export async function listStoreCategories(): Promise<StoreCategory[]> {
     (direct.get(id) ?? 0) +
     (children.get(id) ?? []).reduce((sum, child) => sum + total(child.category_id), 0);
 
-  return categories
-    .map((category) => ({ ...category, product_count: total(category.category_id) }))
-    .filter((category) => category.product_count > 0)
-    .sort((a, b) => a.position - b.position || a.name.localeCompare(b.name, 'pt-BR'));
+  return (
+    categories
+      .map((category) => ({ ...category, product_count: total(category.category_id) }))
+      // "A classificar" é a fila de trabalho do admin, não uma categoria para o cliente.
+      .filter((category) => category.slug !== FALLBACK_CATEGORY_SLUG && category.product_count > 0)
+      .sort((a, b) => a.position - b.position || a.name.localeCompare(b.name, 'pt-BR'))
+  );
 }
 
 async function topBrands(): Promise<StoreBrand[]> {

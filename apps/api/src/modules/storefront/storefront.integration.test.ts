@@ -271,6 +271,9 @@ describe('storefront (integration — requires a live DATABASE_URL)', () => {
       3
     );
 
+    // A fila interna "A classificar" nunca aparece como categoria da loja.
+    expect(categories.map((c: { slug: string }) => c.slug)).not.toContain('a-classificar');
+
     const home = (await get('/api/store/home')).body.data;
     expect(Array.isArray(home.new_arrivals)).toBe(true);
     for (const card of home.new_arrivals) {
