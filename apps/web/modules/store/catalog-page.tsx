@@ -74,7 +74,7 @@ function CategoryFilter({
             style={{ paddingLeft: depth > 0 ? '1.25rem' : '0.625rem' }}
           >
             <span
-              className={`truncate ${isSelected ? 'underline decoration-geek-yellow decoration-2 underline-offset-[6px]' : ''}`}
+              className={`truncate ${isSelected ? 'pb-1 underline decoration-geek-yellow decoration-2 underline-offset-4' : ''}`}
             >
               {category.name}
             </span>
