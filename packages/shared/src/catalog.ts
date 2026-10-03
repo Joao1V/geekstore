@@ -270,6 +270,30 @@ export const productListQuerySchema = paginationQuerySchema.extend({
 });
 export type ProductListQuery = z.infer<typeof productListQuerySchema>;
 
+/** Os filtros da lista de produtos que valem para "mover tudo o que está listado". */
+const productMoveFilterSchema = z.object({
+  q: z.string().min(1).optional(),
+  status: productStatusSchema.optional(),
+  category_id: z.string().uuid().optional(),
+  issue: productIssueSchema.optional(),
+});
+
+/**
+ * Move produtos para uma categoria: os escolhidos (`product_ids`) OU tudo o que um filtro da lista
+ * mostra (`filter`). Um dos dois, nunca os dois.
+ */
+export const productMoveBodySchema = z
+  .object({
+    category_id: z.string().uuid(),
+    product_ids: z.array(z.string().uuid()).min(1).max(500).optional(),
+    filter: productMoveFilterSchema.optional(),
+  })
+  .refine((body) => Boolean(body.product_ids) !== Boolean(body.filter), {
+    message: 'Informe product_ids OU filter.',
+  });
+export type ProductMoveBody = z.infer<typeof productMoveBodySchema>;
+export const productMoveResponseSchema = dataResponse(z.object({ moved: z.number().int() }));
+
 /**
  * Item da listagem: o produto com o que se confere num relance (primeira foto, códigos de SKU,
  * preço vigente do site e saldo disponível), já agregado, para a tela não buscar nada linha a linha.
@@ -401,6 +425,10 @@ export const catalogDashboardSchema = z.object({
     no_description: z.number().int(),
     no_weight: z.number().int(),
   }),
+  /** A fila "A classificar" (produtos sem categoria certa), ou `null` se não existe. */
+  unclassified: z
+    .object({ category_id: z.string().uuid(), product_count: z.number().int() })
+    .nullable(),
   /** Categorias raiz com o total de produtos (incluindo as subcategorias). */
   by_category: z.array(
     z.object({ category_id: z.string().uuid(), name: z.string(), product_count: z.number().int() })

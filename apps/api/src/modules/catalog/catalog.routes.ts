@@ -44,6 +44,8 @@ import {
   productDetailResponseSchema,
   productListQuerySchema,
   productListResponseSchema,
+  productMoveBodySchema,
+  productMoveResponseSchema,
   productParamsSchema,
   productSummaryResponseSchema,
   productUpdateBodySchema,
@@ -86,6 +88,7 @@ import {
   listSkuGridController,
   mergeCertainDuplicatesController,
   mergeDuplicatesController,
+  moveProductsController,
   productSummaryController,
   replaceCollectionProductsController,
   setCategoryAttributesController,
@@ -376,6 +379,20 @@ export async function catalogRoutes(fastify: FastifyInstance): Promise<void> {
       },
     },
     listProductsController
+  );
+  app.post(
+    '/products/move',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary:
+          'Move produtos de categoria: os escolhidos (product_ids) ou tudo o que um filtro da lista mostra',
+        body: productMoveBodySchema,
+        response: { 200: productMoveResponseSchema },
+      },
+    },
+    moveProductsController
   );
   app.get(
     '/products/summary',

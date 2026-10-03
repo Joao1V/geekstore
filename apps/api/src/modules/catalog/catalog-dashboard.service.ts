@@ -1,4 +1,4 @@
-import { prisma } from '@geekstore/db';
+import { FALLBACK_CATEGORY_SLUG, prisma } from '@geekstore/db';
 import type { CatalogDashboard } from '@geekstore/shared';
 
 import { utcNow } from '../../core/db/sql';
@@ -9,7 +9,7 @@ type Counts = CatalogDashboard['products'] & CatalogDashboard['health'];
 
 /** Painel do catálogo: totais, pendências e estoque, com as mesmas condições dos filtros da lista. */
 export async function getCatalogDashboard(): Promise<CatalogDashboard> {
-  const [counts, skuRows, stockRows, categories] = await Promise.all([
+  const [counts, skuRows, stockRows, categories, queue] = await Promise.all([
     prisma.$queryRaw<Counts[]>`
       SELECT COUNT(*)::int AS total,
              COUNT(*) FILTER (WHERE p.status = 'active')::int AS active,
@@ -52,6 +52,10 @@ export async function getCatalogDashboard(): Promise<CatalogDashboard> {
         _count: { select: { products: true } },
       },
     }),
+    prisma.category.findUnique({
+      where: { slug: FALLBACK_CATEGORY_SLUG },
+      select: { category_id: true, _count: { select: { products: true } } },
+    }),
   ]);
 
   const c = counts[0];
@@ -73,6 +77,9 @@ export async function getCatalogDashboard(): Promise<CatalogDashboard> {
       no_description: c?.no_description ?? 0,
       no_weight: c?.no_weight ?? 0,
     },
+    unclassified: queue
+      ? { category_id: queue.category_id, product_count: queue._count.products }
+      : null,
     by_category: rootCategoryTotals(categories),
   };
 }

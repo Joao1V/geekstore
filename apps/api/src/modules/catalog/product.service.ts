@@ -5,12 +5,13 @@ import {
   type ProductDetail,
   type ProductListItem,
   type ProductListQuery,
+  type ProductMoveBody,
   type ProductUpdateBody,
   productSortFields,
 } from '@geekstore/shared';
 
 import { BadRequestError, ConflictError, NotFoundError } from '../../core/_errors';
-import { writeAuditLog } from '../../core/audit';
+import { writeAuditLog, writeAuditLogs } from '../../core/audit';
 import { buildMeta, parseSort, skipTake } from '../../core/http/pagination';
 import { toProductDetail, toProductListItem, toSku } from './catalog.mappers';
 import { categoryScope } from './category.service';
@@ -255,4 +256,70 @@ export async function archiveProduct(actorId: string, productId: string): Promis
       after,
     });
   });
+}
+
+const MAX_MOVE_FILTER = 20_000;
+const MOVE_CHUNK = 2_000;
+
+/**
+ * Move produtos para outra categoria, de uma vez e com auditoria de cada um (antes e depois). Vale
+ * para os produtos escolhidos ou para tudo o que um filtro da lista mostra (até 20 mil). Tudo ou nada.
+ */
+export async function moveProducts(
+  actorId: string,
+  body: ProductMoveBody
+): Promise<{ moved: number }> {
+  const target = await prisma.category.findUnique({ where: { category_id: body.category_id } });
+  if (!target) throw new NotFoundError('Categoria de destino não encontrada.');
+
+  const ids = body.product_ids ?? (await idsMatchingFilter(body.filter ?? {}));
+  if (ids.length === 0) return { moved: 0 };
+
+  return prisma.$transaction(
+    async (tx) => {
+      const before = await tx.product.findMany({
+        where: { product_id: { in: ids }, NOT: { category_id: target.category_id } },
+        select: { product_id: true, category_id: true },
+      });
+      for (let start = 0; start < before.length; start += MOVE_CHUNK) {
+        const chunk = before.slice(start, start + MOVE_CHUNK).map((row) => row.product_id);
+        await tx.product.updateMany({
+          where: { product_id: { in: chunk } },
+          data: { category_id: target.category_id },
+        });
+      }
+      await writeAuditLogs(
+        tx,
+        before.map((row) => ({
+          userId: actorId,
+          entity: 'product',
+          entityId: row.product_id,
+          action: 'update' as const,
+          before: { category_id: row.category_id },
+          after: { category_id: target.category_id },
+        }))
+      );
+      return { moved: before.length };
+    },
+    { timeout: 60_000 }
+  );
+}
+
+async function idsMatchingFilter(
+  filter: NonNullable<ProductMoveBody['filter']>
+): Promise<string[]> {
+  const categoryIds = filter.category_id ? await categoryScope(filter.category_id) : undefined;
+  const query = { ...filter, page: 1, page_size: MAX_MOVE_FILTER } as ProductListQuery;
+  const { ids, total } = await findProductIds(
+    query,
+    { field: 'created_at', direction: 'desc' },
+    { skip: 0, take: MAX_MOVE_FILTER },
+    categoryIds
+  );
+  if (total > MAX_MOVE_FILTER) {
+    throw new BadRequestError(
+      `O filtro tem ${total} produtos (o máximo por vez é ${MAX_MOVE_FILTER}). Refine o filtro.`
+    );
+  }
+  return ids;
 }

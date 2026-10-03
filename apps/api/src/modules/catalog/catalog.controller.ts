@@ -22,6 +22,7 @@ import type {
   MediaUploadUrlBody,
   ProductBody,
   ProductListQuery,
+  ProductMoveBody,
   ProductParams,
   ProductUpdateBody,
   SkuBody,
@@ -61,6 +62,7 @@ import {
   createProduct,
   getProductDetail,
   listProducts,
+  moveProducts,
   updateProduct,
 } from './product.service';
 import { getProductSummary } from './product-summary';
@@ -316,4 +318,8 @@ export async function dismissDuplicatesController(
 ) {
   await dismissDuplicates(request.user.sub, request.body.sku_ids);
   return reply.code(204).send();
+}
+
+export async function moveProductsController(request: Req<{ Body: ProductMoveBody }>) {
+  return { data: await moveProducts(request.user.sub, request.body) };
 }
