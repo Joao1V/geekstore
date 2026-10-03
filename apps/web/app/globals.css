@@ -141,6 +141,18 @@ a svg {
   }
 }
 /* Classes compartilhadas por várias páginas (padrão visual da marca). */
+/* Container largo (catálogo): aproveita as laterais em telas grandes; as demais páginas seguem em `wrap`. */
+@utility wrap-wide {
+  width: min(1640px, calc(100% - 56px));
+  margin-inline: auto;
+  @media (max-width: 1050px) {
+    width: calc(100% - 40px);
+  }
+  @media (max-width: 767px) {
+    width: calc(100% - 32px);
+  }
+}
+
 @utility wrap {
   width: min(1240px, calc(100% - 64px));
   margin-inline: auto;

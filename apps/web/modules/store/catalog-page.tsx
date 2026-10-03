@@ -227,7 +227,7 @@ export async function CatalogPage({ state }: { state: CatalogState }) {
   );
 
   return (
-    <section className="wrap section">
+    <section className="wrap-wide section">
       <nav aria-label="Você está em" className="mb-4 flex items-center gap-2 text-sm text-muted">
         <Link href="/">Início</Link>
         <ChevronRight size={14} aria-hidden="true" />
@@ -243,7 +243,7 @@ export async function CatalogPage({ state }: { state: CatalogState }) {
       </nav>
       <p className="eyebrow orange">Encontre sua próxima história</p>
       <h1 className="section-title">{title}</h1>
-      <div className="mt-6 grid grid-cols-[260px_1fr] items-start gap-9 max-tablet:grid-cols-1 max-tablet:gap-5">
+      <div className="mt-6 grid grid-cols-[250px_1fr] items-start gap-8 max-tablet:grid-cols-1 max-tablet:gap-5">
         <aside className="max-tablet:hidden">{filterPanel}</aside>
         <details className="rounded-[14px] border border-border bg-surface p-4 tablet:hidden">
           <summary className="flex cursor-pointer items-center gap-2 text-sm font-extrabold">

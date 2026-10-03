@@ -31,7 +31,7 @@ describe('cleanGroupName', () => {
   it('drops the trailing # the ERP appends to groups', () => {
     expect(cleanGroupName('JOGOS DE TABULEIRO #')).toBe('Jogos de Tabuleiro');
     expect(cleanGroupName('COLECIONÁVEL #')).toBe('Colecionável');
-    expect(cleanGroupName('ACESSÓRIOS/EXPANÇÕES #')).toBe('Acessórios/Expanções');
+    expect(cleanGroupName('ACESSÓRIOS/EXPANÇÕES #')).toBe('Acessórios/Expansões'); // o ERP escreve EXPANÇÕES (erro de digitação)
   });
 });
 
@@ -59,5 +59,16 @@ describe('cleanDescription', () => {
   it('returns null for empty input', () => {
     expect(cleanDescription(null)).toBeNull();
     expect(cleanDescription('  <br> ')).toBeNull();
+  });
+});
+
+describe('cleanGroupName: ERP typos', () => {
+  it('fixes the known misspellings of the ERP group names', () => {
+    expect(cleanGroupName('ACESSÓRIOS/EXPANÇÕES #')).toBe('Acessórios/Expansões');
+    expect(cleanGroupName('UTENCÍLIOS DE BEBIDAS #')).toBe('Utensílios de Bebidas');
+  });
+
+  it('leaves correct names untouched', () => {
+    expect(cleanGroupName('UTENSÍLIOS PARA ALIMENTAÇÃO #')).toBe('Utensílios para Alimentação');
   });
 });

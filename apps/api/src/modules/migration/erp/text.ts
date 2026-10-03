@@ -94,9 +94,19 @@ export function normalizeName(name: string): string {
     .replace(WORD_PATTERN, (word) => normalizeWord(word, index++ === 0));
 }
 
-/** "JOGOS DE TABULEIRO #" -> "Jogos de Tabuleiro". */
+// Erros de digitação do cadastro do ERP nos nomes de grupo, corrigidos para a vitrine.
+const GROUP_NAME_FIXES: readonly [RegExp, string][] = [
+  [/\bEXPANÇÕES\b/gi, 'EXPANSÕES'],
+  [/\bUTENCÍLIOS\b/gi, 'UTENSÍLIOS'],
+];
+
+/** "JOGOS DE TABULEIRO #" -> "Jogos de Tabuleiro" (e corrige erros de digitação conhecidos do ERP). */
 export function cleanGroupName(name: string): string {
-  return normalizeName(name.replace(/#/g, ' '));
+  const fixed = GROUP_NAME_FIXES.reduce(
+    (text, [pattern, replacement]) => text.replace(pattern, replacement),
+    name.replace(/#/g, ' ')
+  );
+  return normalizeName(fixed);
 }
 
 const MAX_SLUG_LENGTH = 200;

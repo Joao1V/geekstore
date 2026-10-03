@@ -9,7 +9,7 @@ import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { Action, Dialog, FieldInput, Price, Quantity } from '@/components/ui';
-import { discountPercent, formatBRL, INSTALLMENTS, pixCents } from './lib/money';
+import { discountPercent, formatBRL, installmentPlan, pixCents } from './lib/money';
 import { ProductImage } from './product-image';
 import { useCartStore } from './state/cart-store';
 
@@ -185,6 +185,7 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
   };
 
   const onSale = compareAt !== null && compareAt > priceCents;
+  const plan = installmentPlan(priceCents);
 
   return (
     <>
@@ -260,13 +261,15 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
               </del>
             )}
             {fromPrice && <span className="mb-1 block text-xs text-muted">A partir de</span>}
-            <Price size="lg" value={pixCents(priceCents) / 100} />
-            <p className="pix">no Pix com 5% de desconto*</p>
-            <p className="mt-2.5 text-sm text-muted">
-              ou {formatBRL(priceCents)} em{' '}
-              <strong>
-                {INSTALLMENTS}x de {formatBRL(Math.round(priceCents / INSTALLMENTS))} sem juros*
-              </strong>
+            <Price size="lg" value={priceCents / 100} />
+            {plan && (
+              <p className="mt-2.5 text-base font-extrabold text-status-success">
+                em {plan.count}x {formatBRL(plan.valueCents)} sem juros*
+              </p>
+            )}
+            <p className="mt-2 text-sm text-muted">
+              ou <strong className="text-foreground">{formatBRL(pixCents(priceCents))}</strong> no
+              Pix (5% de desconto*)
             </p>
           </div>
           {product.options.map((option) => (
@@ -352,7 +355,7 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
       </div>
       {/* "mobile-buy" é marcador: o StoreAlert sobe quando ele existe (in-has-[.mobile-buy]). */}
       <div className="mobile-buy fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-border bg-surface px-4 py-2.5 [box-shadow:0_-5px_20px_#0001] max-md:flex">
-        <Price value={pixCents(priceCents) / 100} />
+        <Price value={priceCents / 100} />
         <Action
           className="max-md:min-h-[42px] max-md:px-4 max-md:py-2.5 max-md:text-sm"
           onPress={() => submit(true)}

@@ -1,6 +1,7 @@
 'use client';
 
 const SIZES = {
+  sm: 'text-2xl',
   md: 'text-3xl max-tablet:text-2xl',
   lg: 'text-5xl max-md:text-4xl',
 };
@@ -11,7 +12,7 @@ export function Price({ value, size = 'md' }: { value: number; size?: keyof type
     <span
       className={`${SIZES[size]} leading-[1.2] font-extrabold tracking-[-0.045em] whitespace-nowrap`}
     >
-      <span className="sr-only">{`R$ ${whole},${cents}`}</span>
+      <span className="sr-only">{`R$ ${Number(whole).toLocaleString('pt-BR')},${cents}`}</span>
       <span aria-hidden="true">
         <small className="text-[0.52em] font-semibold tracking-normal">R$</small>{' '}
         {Number(whole).toLocaleString('pt-BR')}

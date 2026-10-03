@@ -13,11 +13,14 @@ export function ProductImage({
   alt,
   className = '',
   priority = false,
+  fit = 'cover',
 }: {
   src: string | null;
   alt: string;
   className?: string;
   priority?: boolean;
+  /** `contain` mostra o produto inteiro (fotos de caixa com fundo branco); `cover` preenche o quadro. */
+  fit?: 'cover' | 'contain';
 }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) {
@@ -39,7 +42,7 @@ export function ProductImage({
       loading={priority ? 'eager' : 'lazy'}
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
-      className={`size-full object-cover ${className}`}
+      className={`size-full ${fit === 'contain' ? 'bg-white object-contain p-3' : 'object-cover'} ${className}`}
     />
   );
 }
