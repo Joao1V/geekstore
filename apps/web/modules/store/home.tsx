@@ -1,13 +1,16 @@
 import {
   ArrowRight,
+  Blocks,
   BookOpen,
   ChevronRight,
   Cookie,
-  Gamepad2,
+  Dices,
+  Headphones,
   Lamp,
   type LucideIcon,
   Luggage,
   Package,
+  Pencil,
   Shirt,
 } from 'lucide-react';
 import Image from 'next/image';
@@ -28,13 +31,16 @@ const NEW_ARRIVALS_SHOWN = 8;
 
 // Ícone por categoria raiz (pelo endereço); categoria nova sem ícone cai em "pacote".
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
-  brinquedos: Gamepad2,
-  colecionavel: Package,
-  literatura: BookOpen,
-  vestuario: Shirt,
-  bagagem: Luggage,
-  decoracao: Lamp,
-  'alimentos-e-bebidas': Cookie,
+  'jogos-e-cartas': Dices,
+  colecionaveis: Package,
+  'lego-e-blocos': Blocks,
+  'hqs-mangas-e-livros': BookOpen,
+  'moda-geek': Shirt,
+  'casa-e-utensilios': Lamp,
+  'bolsas-e-mochilas': Luggage,
+  'papelaria-e-escritorio': Pencil,
+  'eletronicos-e-gadgets': Headphones,
+  'alimentos-e-guloseimas': Cookie,
 };
 
 export async function Home() {

@@ -43,7 +43,10 @@ export type PlannedItem = {
   name: string;
   slug: string;
   description: string | null;
+  /** Endereço (slug) da categoria da NOSSA taxonomia onde o item foi classificado. */
   categoryKey: string;
+  /** Como foi classificado: pelo nome, pela categoria do ERP, ou sem pista ("A classificar"). */
+  categoryHow: 'name' | 'erp' | 'none';
   productStatus: 'active' | 'draft';
   skuStatus: 'active' | 'inactive';
   ean: string | null;
@@ -88,6 +91,4 @@ export type PlanOptions = {
   takenSkuCodes?: ReadonlySet<string>;
   /** Códigos de produto já em uso no banco. */
   takenProductCodes?: ReadonlySet<string>;
-  /** Slugs de categoria já em uso no banco. */
-  takenCategorySlugs?: ReadonlySet<string>;
 };

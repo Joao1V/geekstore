@@ -1,9 +1,10 @@
+import { categoryNode } from '@geekstore/db';
 import type { ErpRow } from './erp-row';
-import { categoryKeyFor, planCategories } from './plan-categories';
+import { planCategories } from './plan-categories';
 import { planRow } from './plan-item';
 import type { CatalogPlan, Issue, PlannedItem, PlanOptions } from './plan-types';
 import { groupVariants, type ProductGroup } from './plan-variants';
-import { familyPrefix, groupPrefix, MAX_PREFIX_WORDS, variantCode } from './sku-code';
+import { familyPrefix, MAX_PREFIX_WORDS, variantCode } from './sku-code';
 import { slugify } from './text';
 
 type Built = { items: PlannedItem[]; issues: Issue[] };
@@ -59,11 +60,13 @@ function buildGroup(group: ProductGroup, used: Used): Built {
   const productStatus = hasActiveSku && photos.length > 0 ? 'active' : 'draft';
   const description = skus.map((sku) => sku.description).find(Boolean) ?? null;
   const brandName = skus.map((sku) => sku.brandName).find(Boolean) ?? null;
-  const categoryKey = categoryKeyFor({ groupName: first.groupName, subName: first.subName });
-  const prefix = isFamily ? uniquePrefix(name, used.prefixes) : groupPrefix(first.groupName);
+  const categoryKey = first.categorySlug;
+  const prefix = isFamily
+    ? uniquePrefix(name, used.prefixes)
+    : (categoryNode(categoryKey).prefix ?? 'GEN');
 
   const items = group.members.map(({ draft, attributes }): PlannedItem => {
-    const { baseSlug: _slug, groupName: _group, subName: _sub, ...rest } = draft.item;
+    const { baseSlug: _slug, categorySlug: _category, ...rest } = draft.item;
     const code = isFamily ? variantCode(prefix, attributes) : `${prefix}-${rest.legacyCode}`;
     const skuCode = uniqueCode(code, used.skuCodes);
     return {
@@ -112,10 +115,6 @@ export function buildPlan(rows: ErpRow[], options: PlanOptions): CatalogPlan {
   const skipped = results.flatMap((result) => ('skipped' in result ? [result.skipped] : []));
   const drafts = results.flatMap((result) => ('draft' in result ? [result.draft] : []));
 
-  const categories = planCategories(
-    drafts.map(({ item }) => ({ groupName: item.groupName, subName: item.subName })),
-    options.takenCategorySlugs
-  );
   const used: Used = {
     slugs: new Set(options.takenSlugs),
     skuCodes: new Set(options.takenSkuCodes),
@@ -123,6 +122,7 @@ export function buildPlan(rows: ErpRow[], options: PlanOptions): CatalogPlan {
   };
   const built = groupVariants(drafts).map((group) => buildGroup(group, used));
   const items = built.flatMap((b) => b.items);
+  const categories = planCategories(items);
   const duplicateEans = findDuplicateEans(items);
   const duplicateIssues = duplicateEans.flatMap(({ ean, legacyCodes }) =>
     legacyCodes.map(

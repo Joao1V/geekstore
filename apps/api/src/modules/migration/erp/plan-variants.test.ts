@@ -61,12 +61,12 @@ describe('buildPlan: variations', () => {
     expect(items[3]?.skuStatus).toBe('inactive');
   });
 
-  it('keeps unrelated items as simple products, with GROUP-ERPCODE SKUs', () => {
+  it('keeps unrelated items as simple products, with CATEGORYPREFIX-ERPCODE SKUs', () => {
     const { items } = plan([
       shirt(10, 'CAMISETA SEM TAMANHO'),
       shirt(11, 'CAMISETA NARUTO PRETO P'),
     ]);
-    expect(items.map((i) => i.skuCode)).toEqual(['VES-10', 'VES-11']);
+    expect(items.map((i) => i.skuCode)).toEqual(['CAM-10', 'CAM-11']);
     expect(items.every((i) => Object.keys(i.attributes).length === 0)).toBe(true);
   });
 
@@ -80,10 +80,8 @@ describe('buildPlan: variations', () => {
   });
 
   it('keeps SKU codes and prefixes unique across families and against the database', () => {
-    const rowsB = [
-      shirt(30, 'CAMISETA NARUTO PRETO P', { subgrupo: 'OUTRA #' }),
-      shirt(31, 'CAMISETA NARUTO PRETO M', { subgrupo: 'OUTRA #' }),
-    ];
+    // "Camisa Naruto" e "Camiseta Naruto" são famílias diferentes que dariam o mesmo prefixo (NAR).
+    const rowsB = [shirt(30, 'CAMISA NARUTO PRETO P'), shirt(31, 'CAMISA NARUTO PRETO M')];
     const result = buildPlan([...rows, ...rowsB], {
       now: NOW,
       takenSkuCodes: new Set(['NAR-PT-GG']),

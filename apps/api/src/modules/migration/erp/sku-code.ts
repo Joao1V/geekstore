@@ -40,11 +40,6 @@ export function familyPrefix(baseName: string, wordCount = PREFIX_WORDS): string
 
 export { MAX_PREFIX_WORDS };
 
-/** "Jogos de Tabuleiro" -> "JOG": prefixo do SKU de produto simples. */
-export function groupPrefix(groupName: string): string {
-  return plain(groupName).slice(0, LETTERS) || FALLBACK_PREFIX;
-}
-
 // Ordem dos sufixos no SKU: cor primeiro, depois o que mede (tamanho, numeração, peso...).
 const SUFFIX_ORDER = [
   'cor',

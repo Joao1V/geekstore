@@ -38,6 +38,8 @@ function summary(plan: CatalogPlan, source: ErpSource, now: Date) {
     com_peso: items.filter((i) => i.weightG !== null).length,
     com_dimensoes: items.filter((i) => i.lengthMm !== null).length,
     com_ncm_valido: items.filter((i) => i.ncm).length,
+    classificacao: countBy(items, (i) => i.categoryHow),
+    a_classificar: items.filter((i) => i.categoryKey === 'a-classificar').length,
     com_marca: items.filter((i) => i.brandName).length,
     com_codigo_fabricante: items.filter((i) => i.manufacturerCode).length,
     com_descricao: items.filter((i) => i.description).length,
@@ -145,6 +147,26 @@ export function buildReport(plan: CatalogPlan, source: ErpSource, now: Date): Re
           i.attributes.tamanho ?? '',
           i.legacyCode,
           i.erpName,
+        ])
+      ),
+    },
+    {
+      name: 'categorizacao.csv',
+      content: toCsv(
+        ['codigo_erp', 'nome_no_erp', 'categoria_nova', 'como', 'grupo_erp', 'subgrupo_erp'],
+        plan.items.map((i) => [
+          i.legacyCode,
+          i.erpName,
+          categoryName.get(i.categoryKey) ?? i.categoryKey,
+          { name: 'pelo nome', erp: 'pela categoria do ERP', none: 'sem pista (revisar)' }[
+            i.categoryHow
+          ],
+          String((i.legacyData as { grupo?: string }).grupo ?? '')
+            .replace('#', '')
+            .trim(),
+          String((i.legacyData as { subgrupo?: string }).subgrupo ?? '')
+            .replace('#', '')
+            .trim(),
         ])
       ),
     },

@@ -1,4 +1,10 @@
-import { ensureAttributeCatalog, prisma, suffixFor, valueCodeOf } from '@geekstore/db';
+import {
+  categoryNode,
+  ensureAttributeCatalog,
+  prisma,
+  suffixFor,
+  valueCodeOf,
+} from '@geekstore/db';
 import { v7 as uuidv7 } from 'uuid';
 
 import type { CatalogPlan } from './plan-types';
@@ -85,21 +91,10 @@ export async function linkCategoryAttributes(
   categoryIds: ReadonlyMap<string, string>,
   attributeIds: AttributeValueIds
 ): Promise<void> {
-  const parentOf = new Map(plan.categories.map((c) => [c.key, c.parentKey]));
-  const rootOf = (key: string): string => {
-    let current = key;
-    for (let guard = 0; guard < 5; guard++) {
-      const parent = parentOf.get(current);
-      if (!parent) return current;
-      current = parent;
-    }
-    return current;
-  };
-
   const byRoot = new Map<string, Set<string>>();
   for (const item of plan.items) {
     for (const attribute of Object.keys(item.attributes)) {
-      const root = rootOf(item.categoryKey);
+      const root = categoryNode(item.categoryKey).rootSlug;
       byRoot.set(root, (byRoot.get(root) ?? new Set()).add(attribute));
     }
   }
@@ -111,15 +106,14 @@ export async function linkCategoryAttributes(
   for (const [rootKey, codes] of byRoot) {
     const categoryId = categoryIds.get(rootKey);
     if (!categoryId) continue;
-    for (const code of codes) {
+    const data = [...codes].flatMap((code) => {
       const attributeId = attributeIdByCode.get(code);
-      if (!attributeId) continue;
-      await prisma.categoryAttribute.upsert({
-        where: { category_id_attribute_id: { category_id: categoryId, attribute_id: attributeId } },
-        update: {},
-        create: { category_id: categoryId, attribute_id: attributeId, is_required: false },
-      });
-    }
+      return attributeId
+        ? [{ category_id: categoryId, attribute_id: attributeId, is_required: false }]
+        : [];
+    });
+    // createMany + skipDuplicates (e não upsert): execuções simultâneas não brigam pela mesma linha.
+    if (data.length > 0) await prisma.categoryAttribute.createMany({ data, skipDuplicates: true });
   }
 }
 
@@ -133,10 +127,13 @@ export async function ensureBrands(plan: CatalogPlan): Promise<BrandIds> {
   const ids = new Map<string, string>();
   for (const name of names) {
     const slug = valueCodeOf(name);
-    const brand = await prisma.brand.upsert({
+    // createMany + skipDuplicates (e não upsert): execuções simultâneas não brigam pela mesma linha.
+    await prisma.brand.createMany({
+      data: [{ brand_id: uuidv7(), name, slug }],
+      skipDuplicates: true,
+    });
+    const brand = await prisma.brand.findUniqueOrThrow({
       where: { slug },
-      update: {},
-      create: { brand_id: uuidv7(), name, slug },
       select: { brand_id: true },
     });
     ids.set(name, brand.brand_id);

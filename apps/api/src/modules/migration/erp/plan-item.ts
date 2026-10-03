@@ -1,4 +1,5 @@
 import { detectBrand } from './brand-detect';
+import { classifyItem } from './classify';
 import type { ErpRow } from './erp-row';
 import { isValidGtin } from './gtin';
 import { normalizeMeasures } from './measures';
@@ -13,16 +14,29 @@ const NCM_PATTERN = /^\d{8}$/;
 export type RowDraft = {
   item: Omit<
     PlannedItem,
-    'slug' | 'categoryKey' | 'skuCode' | 'productKey' | 'productCode' | 'attributes' | 'erpName'
+    | 'slug'
+    | 'categoryKey'
+    | 'categoryHow'
+    | 'skuCode'
+    | 'productKey'
+    | 'productCode'
+    | 'attributes'
+    | 'erpName'
   > & {
     baseSlug: string;
-    groupName: string;
-    subName: string | null;
+    /** Categoria da taxonomia nossa (resultado do classificador). */
+    categorySlug: string;
+    categoryHow: PlannedItem['categoryHow'];
   };
   issues: Issue[];
 };
 
 export type RowResult = { skipped: Skipped } | { draft: RowDraft };
+
+const categoryOf = (name: string, row: ErpRow) => {
+  const { slug, how } = classifyItem({ name, erpGroup: row.grupo, erpSub: row.subgrupo });
+  return { categorySlug: slug, categoryHow: how };
+};
 
 const toCents = (reais: number): number => Math.round(reais * 100);
 
@@ -128,8 +142,7 @@ export function planRow(row: ErpRow, now: Date): RowResult {
         name,
         baseSlug: slugify(name) || `produto-${legacyCode}`,
         description: cleanDescription(row.descricao_detalhada),
-        groupName: cleanGroupName(row.grupo),
-        subName: row.subgrupo ? cleanGroupName(row.subgrupo) : null,
+        ...categoryOf(name, row),
         // Só publica o que tem estoque (SKU ativo) e foto; o resto fica em rascunho para revisão.
         productStatus: skuStatus === 'active' && photos.photos.length > 0 ? 'active' : 'draft',
         skuStatus,

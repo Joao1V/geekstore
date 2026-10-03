@@ -1,10 +1,12 @@
+import { categoryNode } from '@geekstore/db';
+
 import type { RowDraft } from './plan-item';
 
 // Vestuário tem tamanho e numeração no nome (PP, GG, 33/35...). Nos demais grupos só se agrupa
 // quando a palavra que muda é de um tipo conhecido (cor, sabor, medida, tamanho por extenso):
 // "Spy X Family Vol 07" e "Vol 11" são produtos diferentes, não variações.
-const CLOTHING_GROUP = 'Vestuário';
-const FLAVOR_GROUP = 'Alimentos e Bebidas';
+const CLOTHING_ROOT = 'moda-geek';
+const FLAVOR_ROOT = 'alimentos-e-guloseimas';
 const FLAVORS = new Set([
   'MORANGO',
   'UVA',
@@ -128,7 +130,7 @@ const titleCase = (word: string): string =>
   word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 
 /** Fora do vestuário: cor, sabor, medida ("325ML") e tamanho por extenso ("Grande"). */
-function parseGeneric(tokens: string[], groupName: string): ParsedVariant | null {
+function parseGeneric(tokens: string[], rootSlug: string): ParsedVariant | null {
   const found: Record<string, string> = {};
   let rest = tokens;
 
@@ -148,7 +150,7 @@ function parseGeneric(tokens: string[], groupName: string): ParsedVariant | null
     rest = rest.filter((token) => token !== named);
   }
   const flavor =
-    groupName === FLAVOR_GROUP ? rest.find((token) => FLAVORS.has(token.toUpperCase())) : undefined;
+    rootSlug === FLAVOR_ROOT ? rest.find((token) => FLAVORS.has(token.toUpperCase())) : undefined;
   if (flavor) {
     found.sabor = titleCase(flavor);
     rest = rest.filter((token) => token !== flavor);
@@ -161,9 +163,9 @@ function parseGeneric(tokens: string[], groupName: string): ParsedVariant | null
 }
 
 /** "Camiseta Naruto Kunai Preto GG" -> base "Camiseta Naruto Kunai", cor Preto, tamanho GG. */
-export function parseVariant(name: string, groupName: string): ParsedVariant | null {
+export function parseVariant(name: string, rootSlug: string): ParsedVariant | null {
   const tokens = name.replace(/#\d+/g, '').split(/\s+/).filter(Boolean);
-  if (groupName !== CLOTHING_GROUP) return parseGeneric(tokens, groupName);
+  if (rootSlug !== CLOTHING_ROOT) return parseGeneric(tokens, rootSlug);
   const isKids = tokens.some((token) => token.toUpperCase() === 'INF');
   const sizeTokens = tokens.filter((token) => isSize(token, isKids));
   if (sizeTokens.length === 0) return null;
@@ -209,12 +211,12 @@ export function groupVariants(drafts: RowDraft[]): ProductGroup[] {
   const singles: ProductGroup[] = [];
 
   for (const draft of drafts) {
-    const parsed = parseVariant(draft.item.name, draft.item.groupName);
+    const parsed = parseVariant(draft.item.name, categoryNode(draft.item.categorySlug).rootSlug);
     if (!parsed) {
       singles.push(single(draft, false));
       continue;
     }
-    const key = `${draft.item.groupName}|${draft.item.subName ?? ''}|${parsed.baseName.toLowerCase()}`;
+    const key = `${draft.item.categorySlug}|${parsed.baseName.toLowerCase()}`;
     const family = families.get(key) ?? { baseName: parsed.baseName, members: [] };
     family.members.push({ draft, attributes: parsed.attributes });
     families.set(key, family);
@@ -225,7 +227,7 @@ export function groupVariants(drafts: RowDraft[]): ProductGroup[] {
     const distinct = new Set(family.members.map((m) => attributesKey(m.attributes)));
     if (family.members.length < 2) {
       singles.push(single(family.members[0]!.draft, false));
-    } else if (!key.startsWith(`${CLOTHING_GROUP}|`) && !sameKinds(family.members)) {
+    } else if (!isClothing(key) && !sameKinds(family.members)) {
       // Fora do vestuário, um com cor e outro sem não é variação clara: fica como produtos simples.
       singles.push(...family.members.map((m) => single(m.draft, false)));
     } else if (distinct.size < family.members.length) {
@@ -260,3 +262,7 @@ const kindsOf = (attributes: Record<string, string>) => Object.keys(attributes).
 function sameKinds(members: ProductGroup['members']): boolean {
   return new Set(members.map((m) => kindsOf(m.attributes))).size === 1;
 }
+
+/** A chave da família começa pela categoria; roupa é tudo o que está sob "Moda Geek". */
+const isClothing = (familyKey: string): boolean =>
+  categoryNode(familyKey.split('|')[0] ?? '').rootSlug === CLOTHING_ROOT;

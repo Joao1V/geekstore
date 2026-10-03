@@ -28,7 +28,7 @@ describe('buildPlan: item rules', () => {
     const [item] = plan([row()]).items;
     expect(item).toMatchObject({
       legacyCode: '3',
-      skuCode: 'BRI-3',
+      skuCode: 'JTB-3',
       name: 'Jogo de Tabuleiro Roll Camera',
       slug: 'jogo-de-tabuleiro-roll-camera',
       priceCents: 34999,
@@ -153,40 +153,65 @@ describe('buildPlan: slugs', () => {
   });
 });
 
-describe('buildPlan: categories', () => {
-  it('builds a two-level tree with clean names', () => {
-    const { categories, items } = plan([row()]);
-    expect(
-      categories.map((c) => [c.name, c.slug, c.parentKey === null ? 'raiz' : 'filho'])
-    ).toEqual([
-      ['Brinquedos', 'brinquedos', 'raiz'],
-      ['Jogos de Tabuleiro', 'jogos-de-tabuleiro', 'filho'],
-    ]);
-    expect(items[0]?.categoryKey).toBe('s:Brinquedos/Jogos de Tabuleiro');
+describe('buildPlan: categories (our taxonomy, not the ERP one)', () => {
+  const classify = (overrides: Record<string, unknown>) =>
+    plan([row({ codigo: 90, ...overrides })]).items[0];
+
+  it('classifies by the product type that starts the ERP name', () => {
+    expect(classify({ nome: 'MANGA NARUTO GOLD VOL 03' })?.categoryKey).toBe('mangas');
+    expect(classify({ nome: 'CANECA RICK E MORTY 325ML' })?.categoryKey).toBe('canecas');
+    expect(classify({ nome: 'PROTETOR DE CARTAS GAMEGENIC 100' })?.categoryKey).toBe(
+      'acessorios-de-jogo'
+    );
+    expect(classify({ nome: 'BONECO FUNKO POP STAR WARS' })).toMatchObject({
+      categoryKey: 'funko',
+      categoryHow: 'name',
+    });
   });
 
-  it('does not create a second level when the subgroup equals the group', () => {
-    const { categories, items } = plan([
-      row({ grupo: 'ALIMENTOS E BEBIDAS #', subgrupo: 'ALIMENTOS E BEBIDAS #' }),
-    ]);
-    expect(categories).toHaveLength(1);
-    expect(items[0]?.categoryKey).toBe('g:Alimentos e Bebidas');
+  it('lets the product type beat the brand or theme in the name', () => {
+    expect(classify({ nome: 'CAMISETA LEGO NINJAGO PRETA M' })?.categoryKey).toBe('camisetas');
+    expect(classify({ nome: 'ESTOJO HOT WHEELS AZUL' })?.categoryKey).toBe(
+      'papelaria-e-escritorio'
+    );
+    expect(classify({ nome: 'MOCHILA FUNKO POP' })?.categoryKey).toBe('mochilas');
+    expect(classify({ nome: 'KIT ONE PIECE CARD GAME DECK' })?.categoryKey).toBe(
+      'cartas-e-baralhos'
+    );
+    expect(classify({ nome: 'PORTA RETRATO BEATLES' })?.categoryKey).toBe('decoracao-e-iluminacao');
+    expect(classify({ nome: 'JOGO POWER GRID CARD GAME' })?.categoryKey).toBe('jogos-de-tabuleiro');
   });
 
-  it('prefixes the group in the slug when the same subgroup name exists in two groups', () => {
+  it('falls back to the ERP subgroup, then to "A classificar" when there is no clue', () => {
+    expect(classify({ nome: 'ITEM SEM TIPO', subgrupo: 'JOGOS DE CARTAS #' })).toMatchObject({
+      categoryKey: 'cartas-e-baralhos',
+      categoryHow: 'erp',
+    });
+    expect(classify({ nome: 'ITEM SEM TIPO', subgrupo: 'OUTRA COISA #' })).toMatchObject({
+      categoryKey: 'a-classificar',
+      categoryHow: 'none',
+    });
+  });
+
+  it('plans the whole taxonomy tree with the product count of each category', () => {
     const { categories } = plan([
-      row({ codigo: 20, grupo: 'COLECIONÁVEL #', subgrupo: 'BONECO #' }),
-      row({ codigo: 21, grupo: 'BRINQUEDOS #', subgrupo: 'BONECO #' }),
+      row({ codigo: 30, nome: 'JOGO DE TABULEIRO A' }),
+      row({ codigo: 31, nome: 'JOGO DE TABULEIRO B' }),
+      row({ codigo: 32, nome: 'MANGA C' }),
     ]);
-    const slugs = categories
-      .filter((c) => c.parentKey)
-      .map((c) => c.slug)
-      .sort();
-    expect(slugs).toEqual(['brinquedos-boneco', 'colecionavel-boneco']);
+    const count = (key: string) => categories.find((c) => c.key === key)?.productCount;
+    expect(count('jogos-de-tabuleiro')).toBe(2);
+    expect(count('mangas')).toBe(1);
+    expect(count('canecas')).toBe(0);
+    const root = categories.find((c) => c.key === 'jogos-e-cartas');
+    expect(root).toMatchObject({ name: 'Jogos e Cartas', parentKey: null });
+    expect(categories.find((c) => c.key === 'jogos-de-tabuleiro')?.parentKey).toBe(
+      'jogos-e-cartas'
+    );
   });
 
-  it('counts the products of each category', () => {
-    const { categories } = plan([row({ codigo: 30 }), row({ codigo: 31, nome: 'OUTRO' })]);
-    expect(categories.find((c) => c.key.startsWith('s:'))?.productCount).toBe(2);
+  it('uses the category prefix for the SKU of a simple product', () => {
+    expect(classify({ nome: 'MANGA NARUTO GOLD VOL 03' })?.skuCode).toBe('MNG-90');
+    expect(classify({ nome: 'ITEM SEM TIPO', subgrupo: 'OUTRA #' })?.skuCode).toBe('GEN-90');
   });
 });
