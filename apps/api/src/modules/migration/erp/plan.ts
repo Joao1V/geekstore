@@ -67,7 +67,10 @@ function buildGroup(group: ProductGroup, used: Used): Built {
 
   const items = group.members.map(({ draft, attributes }): PlannedItem => {
     const { baseSlug: _slug, categorySlug: _category, ...rest } = draft.item;
-    const code = isFamily ? variantCode(prefix, attributes) : `${prefix}-${rest.legacyCode}`;
+    // Simples: categoria + o que o nome diz (cor, capacidade...) + número do ERP, que garante a unicidade.
+    const code = isFamily
+      ? variantCode(prefix, attributes)
+      : `${variantCode(prefix, attributes)}-${rest.legacyCode}`;
     const skuCode = uniqueCode(code, used.skuCodes);
     return {
       ...rest,

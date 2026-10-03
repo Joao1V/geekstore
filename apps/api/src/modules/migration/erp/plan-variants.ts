@@ -226,12 +226,12 @@ export function groupVariants(drafts: RowDraft[]): ProductGroup[] {
   for (const [key, family] of families) {
     const distinct = new Set(family.members.map((m) => attributesKey(m.attributes)));
     if (family.members.length < 2) {
-      singles.push(single(family.members[0]!.draft, false));
+      singles.push(single(family.members[0]!.draft, false, family.members[0]!.attributes));
     } else if (!isClothing(key) && !sameKinds(family.members)) {
       // Fora do vestuário, um com cor e outro sem não é variação clara: fica como produtos simples.
-      singles.push(...family.members.map((m) => single(m.draft, false)));
+      singles.push(...family.members.map((m) => single(m.draft, false, m.attributes)));
     } else if (distinct.size < family.members.length) {
-      singles.push(...family.members.map((m) => single(m.draft, true)));
+      singles.push(...family.members.map((m) => single(m.draft, true, m.attributes)));
     } else {
       grouped.push({
         key: `family:${key}`,
@@ -248,11 +248,16 @@ export function groupVariants(drafts: RowDraft[]): ProductGroup[] {
   );
 }
 
-function single(draft: RowDraft, ambiguous: boolean): ProductGroup {
+/** Produto simples: sem variações, mas guarda o que o nome diz (cor, capacidade...) como atributo. */
+function single(
+  draft: RowDraft,
+  ambiguous: boolean,
+  attributes: Record<string, string> = {}
+): ProductGroup {
   return {
     key: `item:${draft.item.legacyCode}`,
     baseName: null,
-    members: [{ draft, attributes: {} }],
+    members: [{ draft, attributes }],
     ambiguous,
   };
 }

@@ -61,13 +61,14 @@ describe('buildPlan: variations', () => {
     expect(items[3]?.skuStatus).toBe('inactive');
   });
 
-  it('keeps unrelated items as simple products, with CATEGORYPREFIX-ERPCODE SKUs', () => {
+  it('keeps lone items as simple products, with what the name says in the SKU before the ERP code', () => {
     const { items } = plan([
       shirt(10, 'CAMISETA SEM TAMANHO'),
       shirt(11, 'CAMISETA NARUTO PRETO P'),
     ]);
-    expect(items.map((i) => i.skuCode)).toEqual(['CAM-10', 'CAM-11']);
-    expect(items.every((i) => Object.keys(i.attributes).length === 0)).toBe(true);
+    expect(items.map((i) => i.skuCode)).toEqual(['CAM-10', 'CAM-PT-P-11']);
+    expect(items[0]?.attributes).toEqual({});
+    expect(items[1]?.attributes).toEqual({ cor: 'Preto', tamanho: 'P' });
   });
 
   it('does not group a family with two identical variants; it reports it for review', () => {
