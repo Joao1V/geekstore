@@ -249,21 +249,25 @@ export async function CatalogPage({ state }: { state: CatalogState }) {
 
   return (
     <section className="wrap-wide section">
-      <nav aria-label="Você está em" className="mb-4 flex items-center gap-2 text-sm text-muted">
-        <Link href="/">Início</Link>
-        <ChevronRight size={14} aria-hidden="true" />
-        {category ? (
-          <>
-            <Link href="/catalogo/">Catálogo</Link>
-            <ChevronRight size={14} aria-hidden="true" />
-            <span aria-current="page">{category.name}</span>
-          </>
-        ) : (
-          <span aria-current="page">Catálogo</span>
-        )}
-      </nav>
-      <p className="eyebrow orange">Encontre sua próxima história</p>
-      <h1 className="section-title">{title}</h1>
+      <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
+        <nav aria-label="Você está em" className="flex items-center gap-2 text-sm text-muted">
+          <Link href="/">Início</Link>
+          <ChevronRight size={14} aria-hidden="true" />
+          {category ? (
+            <>
+              <Link href="/catalogo/">Catálogo</Link>
+              <ChevronRight size={14} aria-hidden="true" />
+              <span aria-current="page">{category.name}</span>
+            </>
+          ) : (
+            <span aria-current="page">Catálogo</span>
+          )}
+        </nav>
+        <div className="text-right max-md:text-left">
+          <p className="eyebrow orange">Encontre sua próxima história</p>
+          <h1 className="section-title">{title}</h1>
+        </div>
+      </div>
       <div className="mt-6 grid grid-cols-[250px_1fr] items-start gap-8 max-tablet:grid-cols-1 max-tablet:gap-5">
         {/* Fixo logo abaixo do cabeçalho (a altura dele é publicada pelo Shell) e com rolagem própria. */}
         <aside className="sticky top-[calc(var(--store-header-h,120px)+16px)] max-h-[calc(100dvh-var(--store-header-h,120px)-32px)] self-start overflow-y-auto overscroll-contain pr-2 transition-[top,max-height] duration-300 [scrollbar-width:thin] max-tablet:hidden">
