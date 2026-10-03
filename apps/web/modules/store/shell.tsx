@@ -4,6 +4,7 @@ import { Button } from '@heroui/react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
+  Droplets,
   Heart,
   Menu,
   Moon,
@@ -18,7 +19,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Dialog, Quantity } from '@/components/ui';
 import { getMascot } from '@/lib/mascot';
@@ -28,6 +29,9 @@ import { storeProductsQuery } from './services/catalog/queries';
 import { useCartStore } from './state/cart-store';
 import { StoreAlert } from './store-alert';
 
+// Barra de categorias do cabeçalho: some ao descer mais que o limiar e volta ao subir.
+const NAV_SCROLL_THRESHOLD = 8;
+const NAV_ALWAYS_VISIBLE_Y = 80;
 const SUGGESTIONS = 4;
 const SEARCH_DEBOUNCE_MS = 250;
 const MIN_SEARCH_LENGTH = 2;
@@ -80,16 +84,39 @@ export function Shell({
   const [menu, setMenu] = useState(false);
   const [focused, setFocused] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [navHidden, setNavHidden] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     document.documentElement.dataset.theme = store.theme;
   }, [store.theme]);
 
+  // A barra de categorias some ao rolar para baixo e volta ao rolar para cima (ou no topo da página).
   useEffect(() => {
-    const handle = () => setScrolled(window.scrollY > 20);
+    const handle = () => {
+      const y = window.scrollY;
+      const delta = y - lastScrollY.current;
+      setScrolled(y > 20);
+      if (y < NAV_ALWAYS_VISIBLE_Y || delta < -NAV_SCROLL_THRESHOLD) setNavHidden(false);
+      else if (delta > NAV_SCROLL_THRESHOLD) setNavHidden(true);
+      if (Math.abs(delta) > NAV_SCROLL_THRESHOLD) lastScrollY.current = y;
+    };
     handle();
     window.addEventListener('scroll', handle, { passive: true });
     return () => window.removeEventListener('scroll', handle);
+  }, []);
+
+  // Publica a altura atual do cabeçalho: o que "gruda" abaixo dele (filtros do catálogo) acompanha.
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const publish = () =>
+      document.documentElement.style.setProperty('--store-header-h', `${header.offsetHeight}px`);
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(header);
+    return () => observer.disconnect();
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: path isn't read here, it's only the trigger to close menu/search on route change.
@@ -114,7 +141,12 @@ export function Shell({
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-50 border-b border-white/12 bg-night text-white transition-shadow duration-200 ${scrolled ? '[box-shadow:0_8px_24px_#00000059]' : ''}`}
+        ref={headerRef}
+        className={`fixed inset-x-0 top-0 z-50 border-b text-white transition-[box-shadow,background-color] duration-200 ${
+          store.headerStyle === 'glass'
+            ? 'border-white/10 bg-night/60 backdrop-blur-xl backdrop-saturate-150'
+            : 'border-white/12 bg-night'
+        } ${scrolled ? '[box-shadow:0_8px_24px_#00000059]' : ''}`}
       >
         <div className="wrap flex h-[78px] items-center gap-6 max-tablet:gap-[15px] max-md:grid max-md:h-28 max-md:grid-cols-[1fr_auto] max-md:gap-2 max-md:py-2">
           <Link
@@ -225,6 +257,16 @@ export function Shell({
                 {count}
               </span>
             </Button>
+            {/* Temporário, para comparar os dois estilos de cabeçalho (vidro x preto sólido). */}
+            <Button
+              isIconOnly
+              className={`${ICON_BTN} grid bg-transparent max-md:hidden`}
+              aria-label={`Cabeçalho ${store.headerStyle === 'glass' ? 'vidro' : 'sólido'}: alternar`}
+              aria-pressed={store.headerStyle === 'glass'}
+              onPress={store.toggleHeaderStyle}
+            >
+              <Droplets size={20} />
+            </Button>
             <Button
               isIconOnly
               className={`${ICON_BTN} grid bg-transparent`}
@@ -243,24 +285,32 @@ export function Shell({
             </Button>
           </div>
         </div>
-        <div className="wrap flex h-10 items-center justify-between text-sm text-night-fg">
-          <nav className="flex gap-[27px] font-bold max-md:w-full max-md:gap-[22px] max-md:overflow-x-auto max-md:text-xs max-md:whitespace-nowrap">
-            {categories.map((category) => (
-              <Link
-                key={category.slug}
-                href={`/catalogo/?categoria=${category.slug}`}
-                className={NAV_LINK}
-              >
-                {category.name}
+        <div
+          className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-out ${
+            navHidden ? 'max-h-0 opacity-0' : 'max-h-10 opacity-100'
+          }`}
+          aria-hidden={navHidden}
+          inert={navHidden}
+        >
+          <div className="wrap flex h-10 items-center justify-between text-sm text-night-fg">
+            <nav className="flex gap-[27px] font-bold max-md:w-full max-md:gap-[22px] max-md:overflow-x-auto max-md:text-xs max-md:whitespace-nowrap">
+              {categories.map((category) => (
+                <Link
+                  key={category.slug}
+                  href={`/catalogo/?categoria=${category.slug}`}
+                  className={NAV_LINK}
+                >
+                  {category.name}
+                </Link>
+              ))}
+              <Link href="/catalogo/?ordem=newest" className={`${NAV_LINK} text-geek-yellow`}>
+                Novidades
               </Link>
-            ))}
-            <Link href="/catalogo/?ordem=newest" className={`${NAV_LINK} text-geek-yellow`}>
-              Novidades
-            </Link>
-          </nav>
-          <span className="flex items-center gap-2 max-md:hidden">
-            <Truck size={15} /> Seu próximo drop está aqui
-          </span>
+            </nav>
+            <span className="flex items-center gap-2 max-md:hidden">
+              <Truck size={15} /> Seu próximo drop está aqui
+            </span>
+          </div>
         </div>
         {menu && (
           <nav className="hidden gap-[15px] bg-night-raised px-5 py-[15px] text-sm max-md:flex max-md:flex-col">

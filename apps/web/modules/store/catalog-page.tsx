@@ -244,7 +244,10 @@ export async function CatalogPage({ state }: { state: CatalogState }) {
       <p className="eyebrow orange">Encontre sua próxima história</p>
       <h1 className="section-title">{title}</h1>
       <div className="mt-6 grid grid-cols-[250px_1fr] items-start gap-8 max-tablet:grid-cols-1 max-tablet:gap-5">
-        <aside className="max-tablet:hidden">{filterPanel}</aside>
+        {/* Fixo logo abaixo do cabeçalho (a altura dele é publicada pelo Shell) e com rolagem própria. */}
+        <aside className="sticky top-[calc(var(--store-header-h,120px)+16px)] max-h-[calc(100dvh-var(--store-header-h,120px)-32px)] self-start overflow-y-auto overscroll-contain pr-2 transition-[top,max-height] duration-300 [scrollbar-width:thin] max-tablet:hidden">
+          {filterPanel}
+        </aside>
         <details className="rounded-[14px] border border-border bg-surface p-4 tablet:hidden">
           <summary className="flex cursor-pointer items-center gap-2 text-sm font-extrabold">
             <SlidersHorizontal size={16} aria-hidden="true" /> Filtros

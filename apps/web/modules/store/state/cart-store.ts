@@ -22,6 +22,8 @@ type CartState = {
   /** product_id dos favoritos. */
   favorites: string[];
   theme: 'light' | 'dark';
+  /** Cabeçalho preto sólido ou "vidro" (translúcido com desfoque). Em avaliação: ver StoreHeader. */
+  headerStyle: 'solid' | 'glass';
   cartOpen: boolean;
   toast: ToastNotice | null;
   hasHydrated: boolean;
@@ -30,6 +32,7 @@ type CartState = {
   clear: () => void;
   favorite: (productId: string) => void;
   toggleTheme: () => void;
+  toggleHeaderStyle: () => void;
   setCartOpen: (open: boolean) => void;
   notify: (message: string) => void;
   dismissToast: () => void;
@@ -44,6 +47,7 @@ export const useCartStore = create<CartState>()(
       lines: [],
       favorites: [],
       theme: 'light',
+      headerStyle: 'glass',
       cartOpen: false,
       toast: null,
       hasHydrated: false,
@@ -86,6 +90,8 @@ export const useCartStore = create<CartState>()(
             : [...state.favorites, productId],
         })),
       toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+      toggleHeaderStyle: () =>
+        set((state) => ({ headerStyle: state.headerStyle === 'glass' ? 'solid' : 'glass' })),
       setCartOpen: (open) => set({ cartOpen: open }),
       notify: (message) => set({ toast: { message, kind: 'info', id: Date.now() } }),
       dismissToast: () => set({ toast: null }),
@@ -96,15 +102,23 @@ export const useCartStore = create<CartState>()(
       version: STORAGE_VERSION,
       // Versão 1 guardava ids numéricos do catálogo de demonstração: carrinho e favoritos antigos
       // não valem mais; o tema continua.
-      migrate: (persisted) => ({
-        theme: (persisted as { theme?: 'light' | 'dark' } | null)?.theme ?? 'light',
-        lines: [],
-        favorites: [],
-      }),
+      migrate: (persisted) => {
+        const previous = persisted as {
+          theme?: 'light' | 'dark';
+          headerStyle?: 'solid' | 'glass';
+        } | null;
+        return {
+          theme: previous?.theme ?? 'light',
+          headerStyle: previous?.headerStyle ?? 'glass',
+          lines: [],
+          favorites: [],
+        };
+      },
       partialize: (state) => ({
         lines: state.lines,
         favorites: state.favorites,
         theme: state.theme,
+        headerStyle: state.headerStyle,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
