@@ -14,6 +14,12 @@ describe('restoreAccents', () => {
     expect(restoreAccents('LEGO 600 PECAS')).toBe('LEGO 600 PEÇAS');
   });
 
+  it('does not trip on words that are also object properties', () => {
+    expect(restoreAccents('Constructor toString valueOf Hasownproperty')).toBe(
+      'Constructor toString valueOf Hasownproperty'
+    );
+  });
+
   it('leaves unknown words and already accented words alone', () => {
     expect(restoreAccents('Boneco Funko Pop Hulk')).toBe('Boneco Funko Pop Hulk');
     expect(restoreAccents('Peças Mágicas')).toBe('Peças Mágicas');

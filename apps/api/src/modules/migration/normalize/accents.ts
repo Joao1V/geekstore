@@ -100,7 +100,8 @@ function matchCase(original: string, accented: string): string {
 /** "Mundo Magico Harry Potter Pocao" -> "Mundo Mágico Harry Potter Poção" (só palavras da lista). */
 export function restoreAccents(text: string): string {
   return text.replace(WORD, (word) => {
-    const accented = ACCENTED[word.toLowerCase()];
-    return accented ? matchCase(word, accented) : word;
+    const key = word.toLowerCase();
+    // hasOwn: "constructor" ou "toString" num nome não podem casar com o protótipo do objeto.
+    return Object.hasOwn(ACCENTED, key) ? matchCase(word, ACCENTED[key] as string) : word;
   });
 }
