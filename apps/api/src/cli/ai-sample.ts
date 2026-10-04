@@ -10,6 +10,7 @@ import { prisma } from '@geekstore/db';
 
 import { createCompleter } from '../core/ai/complete';
 import { cleanupBatches } from '../modules/ai/name-cleanup';
+import { renderReport } from '../modules/ai/sample-report';
 
 const DEFAULT_SAMPLE = 200;
 const MAX_SAMPLE = 2_000;
@@ -76,6 +77,7 @@ async function main() {
       .map(csvCell)
       .join(';')
   );
+  writeFileSync(resolve(out, 'ia-amostra.html'), renderReport(rows, new Date()));
   writeFileSync(resolve(out, 'ia-amostra.csv'), `﻿${[header, ...lines].join('\n')}`);
 
   const renamed = rows.filter((row) => row.current_name !== row.suggested_name).length;
