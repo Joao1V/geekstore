@@ -7,6 +7,8 @@ export const permissions = [
   'stock:write',
   'pricing:read',
   'pricing:write',
+  'orders:read',
+  'orders:write',
   'audit:read',
   'users:read',
   'users:write',
@@ -19,7 +21,7 @@ export const roleCodes = ['owner', 'manager', 'stock', 'support', 'viewer'] as c
 export const roleCodeSchema = z.enum(roleCodes);
 export type RoleCode = z.infer<typeof roleCodeSchema>;
 
-const readOnly: Permission[] = ['catalog:read', 'stock:read', 'pricing:read'];
+const readOnly: Permission[] = ['catalog:read', 'stock:read', 'pricing:read', 'orders:read'];
 
 /** Perfil -> permissões (RF-PLA-03). A tabela `role` guarda só a identidade; o mapa vive aqui. */
 export const rolePermissions: Record<RoleCode, readonly Permission[]> = {
@@ -31,11 +33,20 @@ export const rolePermissions: Record<RoleCode, readonly Permission[]> = {
     'stock:write',
     'pricing:read',
     'pricing:write',
+    'orders:read',
+    'orders:write',
     'audit:read',
     'users:read',
     'queues:read',
   ],
-  stock: ['catalog:read', 'stock:read', 'stock:write', 'pricing:read'],
+  stock: [
+    'catalog:read',
+    'stock:read',
+    'stock:write',
+    'pricing:read',
+    'orders:read',
+    'orders:write',
+  ],
   support: readOnly,
   viewer: readOnly,
 };

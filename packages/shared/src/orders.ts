@@ -179,3 +179,32 @@ export const couponCheckSchema = z.object({
 });
 export type CouponCheck = z.infer<typeof couponCheckSchema>;
 export const couponCheckResponseSchema = dataResponse(couponCheckSchema);
+
+// ── Admin ──────────────────────────────────────────────────────────────────────
+export const adminOrderListQuerySchema = paginationQuerySchema.extend({
+  status: displayStatusSchema.optional(),
+  /** Número do pedido, nome, e-mail ou código de SKU. */
+  q: z.string().trim().min(1).max(120).optional(),
+});
+export type AdminOrderListQuery = z.infer<typeof adminOrderListQuerySchema>;
+
+export const adminOrderSummarySchema = orderSummarySchema.extend({
+  contact_name: z.string(),
+  contact_email: z.string(),
+  payment_method: paymentMethodSchema.nullable(),
+  payment_status: paymentStatusSchema,
+});
+export type AdminOrderSummary = z.infer<typeof adminOrderSummarySchema>;
+export const adminOrderListResponseSchema = paginatedResponse(adminOrderSummarySchema);
+
+export const orderShipBodySchema = z.object({
+  carrier: z.string().trim().min(2).max(60),
+  service: z.string().trim().max(80).optional(),
+  tracking_code: z.string().trim().max(60).optional(),
+});
+export type OrderShipBody = z.infer<typeof orderShipBodySchema>;
+
+export const orderCancelBodySchema = z.object({
+  reason: z.string().trim().min(3, 'Diga o motivo').max(255),
+});
+export type OrderCancelBody = z.infer<typeof orderCancelBodySchema>;

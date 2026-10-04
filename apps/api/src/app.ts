@@ -20,6 +20,7 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { catalogRoutes } from './modules/catalog/catalog.routes';
 import { customerRoutes } from './modules/customers/customer.routes';
 import { healthPlugin } from './modules/health/health.plugin';
+import { adminOrderRoutes } from './modules/orders/admin-orders.routes';
 import {
   customerOrderRoutes,
   storeOrderRoutes,
@@ -91,6 +92,7 @@ export function buildApp() {
   app.register(storeOrderRoutes, { prefix: '/api/store' });
   app.register(customerOrderRoutes, { prefix: '/api/customer/orders' });
   app.register(webhookRoutes, { prefix: '/api/webhooks' });
+  app.register(adminOrderRoutes, { prefix: '/api/orders' });
   app.register(pricingRoutes, { prefix: '/api/pricing' });
   app.register(usersRoutes, { prefix: '/api/users' });
   app.register(storefrontRoutes, { prefix: '/api/store' });
