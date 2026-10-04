@@ -23,6 +23,7 @@ export type RowDraft = {
     | 'attributes'
     | 'erpName'
     | 'ownPhotos'
+    | 'hasVariants'
   > & {
     baseSlug: string;
     /** Categoria da taxonomia nossa (resultado do classificador). */

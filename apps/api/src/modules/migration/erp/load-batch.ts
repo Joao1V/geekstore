@@ -4,6 +4,15 @@ import { v7 as uuidv7 } from 'uuid';
 import { type AttributeValueIds, attributeKey } from './load-attributes';
 import type { PlannedItem } from './plan-types';
 
+/** Item pronto para gravar. Vem do plano do ERP ou do arquivo normalizado (sem vínculo com o ERP). */
+export type LoadItem = Omit<
+  PlannedItem,
+  'legacyCode' | 'legacyData' | 'erpName' | 'categoryHow'
+> & {
+  legacyCode: string | null;
+  legacyData: Record<string, unknown> | null;
+};
+
 export const BATCH_SIZE = 500;
 export const STOCK_REASON = 'Carga inicial do ERP';
 export const STOCK_REFERENCE = 'erp_import';
@@ -18,10 +27,12 @@ export type BatchContext = {
   warehouseId: string;
   now: Date;
   importMeta: { run_id: string; source_sha256: string; imported_at: string };
+  /** Motivo e referência da entrada inicial no livro-razão (padrão: carga do ERP). */
+  stock?: { reason: string; reference: string };
 };
 
 /** Todas as linhas de um lote de itens, com ids UUID v7 já gerados (nada depende de leitura do banco). */
-export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
+export function buildBatchRows(items: LoadItem[], ctx: BatchContext) {
   const rows = {
     products: [] as Prisma.ProductCreateManyInput[],
     skus: [] as Prisma.SkuCreateManyInput[],
@@ -58,7 +69,7 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
     if (!categoryId)
       throw new Error(`Categoria sem id para o item ${item.legacyCode}: ${item.categoryKey}`);
     const skuId = uuidv7();
-    const isFamily = item.productKey.startsWith('family:');
+    const isFamily = item.hasVariants;
     // Variações do mesmo produto compartilham a linha de produto e as fotos.
     const known = productIds.get(item.productKey);
     const productId = known ?? uuidv7();
@@ -91,7 +102,9 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
       manufacturer_code: item.manufacturerCode,
       status: item.skuStatus,
       legacy_code: item.legacyCode,
-      legacy_data: { ...item.legacyData, import: ctx.importMeta } as Prisma.InputJsonValue,
+      legacy_data: item.legacyData
+        ? ({ ...item.legacyData, import: ctx.importMeta } as Prisma.InputJsonValue)
+        : undefined,
     });
     for (const [attribute, label] of Object.entries(item.attributes)) {
       const ids = ctx.attributeValueIds.get(attributeKey(attribute, label));
@@ -136,8 +149,8 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
         location_id: ctx.warehouseId,
         type: 'inbound',
         quantity: item.stock,
-        reason: STOCK_REASON,
-        reference_type: STOCK_REFERENCE,
+        reason: ctx.stock?.reason ?? STOCK_REASON,
+        reference_type: ctx.stock?.reference ?? STOCK_REFERENCE,
       });
     }
   }
@@ -148,8 +161,8 @@ export function buildBatchRows(items: PlannedItem[], ctx: BatchContext) {
  * Lotes de ~`size` itens que nunca partem um produto ao meio: as variações de um produto vão
  * juntas (o produto é criado uma vez por lote). Os itens de um produto são contíguos no plano.
  */
-export function chunkByProduct(items: PlannedItem[], size: number): PlannedItem[][] {
-  const batches: PlannedItem[][] = [];
+export function chunkByProduct<T extends { productKey: string }>(items: T[], size: number): T[][] {
+  const batches: T[][] = [];
   for (const item of items) {
     const current = batches.at(-1);
     const startsNewProduct = current?.at(-1)?.productKey !== item.productKey;

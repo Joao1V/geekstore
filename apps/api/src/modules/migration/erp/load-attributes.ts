@@ -7,7 +7,14 @@ import {
 } from '@geekstore/db';
 import { v7 as uuidv7 } from 'uuid';
 
-import type { CatalogPlan } from './plan-types';
+/** O que as funções de carga leem dos itens: cabe tanto no plano do ERP quanto no arquivo normalizado. */
+export type LoadSource = {
+  items: readonly {
+    attributes: Record<string, string>;
+    brandName: string | null;
+    categoryKey: string;
+  }[];
+};
 
 export type AttributeValueIds = ReadonlyMap<string, { attributeId: string; valueId: string }>;
 
@@ -18,7 +25,7 @@ const keyOf = (attribute: string, label: string) => `${attribute}:${label}`;
  * `atributo:rótulo -> ids`. Valor existente é reaproveitado (por código), nunca duplicado; um valor
  * fora do catálogo é criado com sufixo de SKU derivado (único dentro do atributo).
  */
-export async function ensureAttributeValues(plan: CatalogPlan): Promise<AttributeValueIds> {
+export async function ensureAttributeValues(plan: LoadSource): Promise<AttributeValueIds> {
   await ensureAttributeCatalog(prisma);
 
   const wanted = new Map<string, { attribute: string; label: string }>();
@@ -87,7 +94,7 @@ export const attributeKey = keyOf;
  * herdam. Opcionais de propósito: o catálogo importado tem itens sem cor ou sem tamanho.
  */
 export async function linkCategoryAttributes(
-  plan: CatalogPlan,
+  plan: LoadSource,
   categoryIds: ReadonlyMap<string, string>,
   attributeIds: AttributeValueIds
 ): Promise<void> {
@@ -120,7 +127,7 @@ export async function linkCategoryAttributes(
 export type BrandIds = ReadonlyMap<string, string>;
 
 /** Cria (ou reaproveita, pelo endereço) as marcas que o plano usa; devolve `nome -> brand_id`. */
-export async function ensureBrands(plan: CatalogPlan): Promise<BrandIds> {
+export async function ensureBrands(plan: LoadSource): Promise<BrandIds> {
   const names = [
     ...new Set(plan.items.flatMap((item) => (item.brandName ? [item.brandName] : []))),
   ];

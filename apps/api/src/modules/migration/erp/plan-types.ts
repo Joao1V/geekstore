@@ -36,6 +36,8 @@ export type PlannedItem = {
   productKey: string;
   /** Código do produto: o prefixo da família, ou o próprio SKU em produto simples. */
   productCode: string;
+  /** O produto tem várias variações (família de cor/tamanho). */
+  hasVariants: boolean;
   /** Ex.: `{ cor: 'Preto', tamanho: 'GG' }`; vazio em produto simples. */
   attributes: Record<string, string>;
   /** Nome do item no ERP (já normalizado), para o relatório. */

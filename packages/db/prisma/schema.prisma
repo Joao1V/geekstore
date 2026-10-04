@@ -139,6 +139,17 @@ model Product {
 }
 
 // Unidade vendável (RF-CAT-02). Preço, estoque, anúncio e item de pedido apontam para cá.
+// Contador de numeração dos códigos de SKU por tipo (CNC, CAM, FNK...). A numeração só avança: o
+// código nunca é reaproveitado, então dois produtos não podem receber o mesmo número (o UNIQUE de
+// `sku.code` é a trava final).
+model SkuSequence {
+  prefix     String   @id @db.VarChar(8)
+  last_value Int      @default(0)
+  updated_at DateTime @updatedAt
+
+  @@map("sku_sequence")
+}
+
 model Sku {
   sku_id             String    @id @default(uuid(7)) @db.Uuid
   product_id         String    @db.Uuid

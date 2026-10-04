@@ -76,6 +76,7 @@ function buildGroup(group: ProductGroup, used: Used): Built {
       ...rest,
       skuCode,
       productKey: group.key,
+      hasVariants: isFamily,
       productCode: isFamily ? prefix : skuCode,
       attributes,
       erpName: rest.name,

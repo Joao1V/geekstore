@@ -117,6 +117,10 @@ const byWordCount = (list: string[]) =>
 const COLORS = byWordCount(COLOR_WORDS);
 const COLORS_WITH_BRAND = byWordCount([...COLOR_WORDS, ...BRAND_COLOR_WORDS]);
 
+// Código de modelo do fabricante colado ao nome ("MC47566MO-Vm", "BS67383BB-Ra"): muda a cada cor e
+// não faz parte do produto, então fica fora da chave da família.
+const MODEL_CODE = /^[A-Za-z]{1,4}\d{3,}[A-Za-z]*(?:-[A-Za-z0-9]{1,3})?$/;
+
 export type ParsedVariant = {
   baseName: string;
   /** Código do atributo -> rótulo do valor ({ cor: 'Preto', tamanho: 'GG' }). */
@@ -201,7 +205,10 @@ function parseGeneric(tokens: string[], rootSlug: string): ParsedVariant | null 
 
 /** "Camiseta Naruto Kunai Preto GG" -> base "Camiseta Naruto Kunai", cor Preto, tamanho GG. */
 export function parseVariant(name: string, rootSlug: string): ParsedVariant | null {
-  const tokens = name.replace(/#\d+/g, '').split(/\s+/).filter(Boolean);
+  const tokens = name
+    .replace(/#\d+/g, '')
+    .split(/\s+/)
+    .filter((token) => token && !MODEL_CODE.test(token));
   if (rootSlug !== CLOTHING_ROOT) return parseGeneric(tokens, rootSlug);
   const isKids = tokens.some((token) => token.toUpperCase() === 'INF');
   const sizeTokens = tokens.filter((token) => isSize(token, isKids));

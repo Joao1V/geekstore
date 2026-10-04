@@ -7,7 +7,7 @@ import { BATCH_SIZE, type BatchContext, buildBatchRows, chunkByProduct } from '.
 import { buildPlan } from './plan';
 import type { CatalogPlan } from './plan-types';
 
-const TRANSACTION_OPTIONS = { timeout: 120_000, maxWait: 10_000 };
+export const TRANSACTION_OPTIONS = { timeout: 120_000, maxWait: 10_000 };
 
 export type ImportResult = {
   runId: string;
@@ -24,7 +24,10 @@ export type ImportResult = {
   };
 };
 
-async function insertBatch(tx: Prisma.TransactionClient, rows: ReturnType<typeof buildBatchRows>) {
+export async function insertBatch(
+  tx: Prisma.TransactionClient,
+  rows: ReturnType<typeof buildBatchRows>
+) {
   // Ordem das chaves estrangeiras: produto -> sku -> o resto.
   await tx.product.createMany({ data: rows.products });
   await tx.sku.createMany({ data: rows.skus });
@@ -37,7 +40,7 @@ async function insertBatch(tx: Prisma.TransactionClient, rows: ReturnType<typeof
   if (rows.media.length > 0) await tx.media.createMany({ data: rows.media });
 }
 
-async function loadContext(): Promise<Pick<BatchContext, 'siteChannelId' | 'warehouseId'>> {
+export async function loadContext(): Promise<Pick<BatchContext, 'siteChannelId' | 'warehouseId'>> {
   const [channel, location] = await Promise.all([
     prisma.channel.findUniqueOrThrow({ where: { code: 'site' }, select: { channel_id: true } }),
     prisma.location.findFirstOrThrow({

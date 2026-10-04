@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "import:erp": "tsx src/cli/import-erp.ts"
+    "import:erp": "tsx src/cli/import-erp.ts",
+    "normalize:catalog": "tsx src/cli/normalize-catalog.ts",
+    "import:catalog": "tsx src/cli/import-catalog.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1142.0",
