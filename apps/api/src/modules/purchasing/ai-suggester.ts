@@ -1,15 +1,11 @@
-import Anthropic from '@anthropic-ai/sdk';
 import type { SkuSuggestion } from '@geekstore/shared';
 import { z } from 'zod';
 
-import { BadRequestError, ExternalApiError } from '../../core/_errors';
-import { envConfig } from '../../core/config';
+import { type AiComplete, type AiPrompt, createCompleter } from '../../core/ai/complete';
 
 // A IA só ESCOLHE entre SKUs que já existem (candidatos achados por nome): nunca cria SKU nem inventa
 // código. O que sai daqui é uma sugestão; quem liga o item é a pessoa.
-const TIMEOUT_MS = 25_000;
 const MAX_TOKENS = 300;
-const MAX_RETRIES = 1;
 const MAX_REASON = 160;
 
 export type AiItem = {
@@ -18,9 +14,6 @@ export type AiItem = {
   ean: string | null;
   ncm: string | null;
 };
-export type AiPrompt = { system: string; user: string };
-/** Faz a pergunta e devolve o texto da resposta. Separado para os testes não chamarem a rede. */
-export type AiComplete = (prompt: AiPrompt) => Promise<string>;
 
 const SYSTEM = `Você ajuda uma loja de itens geek (colecionáveis, mangás, jogos, canecas, roupas) a dar entrada em notas fiscais de compra.
 Dado o item de uma nota e uma lista numerada de produtos já cadastrados, diga qual deles é EXATAMENTE o mesmo item.
@@ -64,35 +57,6 @@ export function parseAnswer(text: string): AiAnswer | null {
   }
 }
 
-function defaultComplete(): AiComplete {
-  const { API_KEY, MODEL } = envConfig.ai;
-  if (!API_KEY) {
-    throw new BadRequestError(
-      'A IA não está configurada: falta ANTHROPIC_API_KEY no ambiente da API.'
-    );
-  }
-  const client = new Anthropic({ apiKey: API_KEY, timeout: TIMEOUT_MS, maxRetries: MAX_RETRIES });
-  return async ({ system, user }) => {
-    try {
-      const message = await client.messages.create({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        temperature: 0,
-        system,
-        messages: [{ role: 'user', content: user }],
-      });
-      return message.content.map((block) => (block.type === 'text' ? block.text : '')).join('');
-    } catch (error) {
-      if (error instanceof Anthropic.APIError) {
-        throw new ExternalApiError('A IA não respondeu agora. Tente de novo em instantes.', {
-          status: error.status,
-        });
-      }
-      throw error;
-    }
-  };
-}
-
 /**
  * Pergunta à IA qual dos candidatos é o item da nota. Devolve esse candidato marcado como sugestão da
  * IA, ou `null` quando ela não tem certeza. Sem candidatos nem chama a IA (não há o que escolher).
@@ -103,7 +67,9 @@ export async function pickWithAi(
   complete?: AiComplete
 ): Promise<SkuSuggestion | null> {
   if (candidates.length === 0) return null;
-  const answer = parseAnswer(await (complete ?? defaultComplete())(buildPrompt(item, candidates)));
+  const answer = parseAnswer(
+    await (complete ?? createCompleter(MAX_TOKENS))(buildPrompt(item, candidates))
+  );
   if (!answer || answer.choice === null) return null;
   const chosen = candidates[answer.choice - 1];
   if (!chosen) return null; // número fora da lista: a IA se enganou, não vale

@@ -12,7 +12,8 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "import:erp": "tsx src/cli/import-erp.ts",
     "normalize:catalog": "tsx src/cli/normalize-catalog.ts",
-    "import:catalog": "tsx src/cli/import-catalog.ts"
+    "import:catalog": "tsx src/cli/import-catalog.ts",
+    "ai:sample": "tsx src/cli/ai-sample.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
