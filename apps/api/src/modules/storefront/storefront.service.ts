@@ -34,7 +34,7 @@ const FEW_RESULTS = 5;
 // ── Filtros ───────────────────────────────────────────────────────────────────
 
 /** Condições sobre `vis v` e `brand b`. Categoria e marca chegam como slug e viram ids antes. */
-async function buildWhere(filters: StoreFilters, fuzzy = false): Promise<Prisma.Sql | null> {
+async function buildConditions(filters: StoreFilters, fuzzy = false): Promise<Prisma.Sql[] | null> {
   const conditions: Prisma.Sql[] = [];
 
   if (filters.category) {
@@ -80,9 +80,15 @@ async function buildWhere(filters: StoreFilters, fuzzy = false): Promise<Prisma.
     if (ids.length === 0) return null;
     conditions.push(Prisma.sql`v.product_id IN (${Prisma.join(ids.map(asUuid))})`);
   }
-  return conditions.length > 0
-    ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
-    : Prisma.empty;
+  return conditions;
+}
+
+const toWhere = (conditions: Prisma.Sql[]): Prisma.Sql =>
+  conditions.length > 0 ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}` : Prisma.empty;
+
+async function buildWhere(filters: StoreFilters, fuzzy = false): Promise<Prisma.Sql | null> {
+  const conditions = await buildConditions(filters, fuzzy);
+  return conditions === null ? null : toWhere(conditions);
 }
 
 async function countWhere(where: Prisma.Sql): Promise<number> {
@@ -109,8 +115,10 @@ function decisionKey(filters: StoreFilters): string {
  * Lista, filtros da barra lateral e contagem das categorias usam a mesma regra e combinam entre si.
  */
 async function effectiveWhere(filters: StoreFilters): Promise<Prisma.Sql | null> {
-  const exact = await buildWhere(filters);
-  if (exact === null || !filters.q) return exact;
+  const exactConditions = await buildConditions(filters);
+  if (exactConditions === null) return null;
+  const exact = toWhere(exactConditions);
+  if (!filters.q) return exact;
 
   const key = decisionKey(filters);
   const cached = decisions.get(key);
@@ -118,11 +126,21 @@ async function effectiveWhere(filters: StoreFilters): Promise<Prisma.Sql | null>
     return cached.fuzzy ? buildWhere(filters, true) : exact;
   }
 
-  const exactTotal = await countWhere(exact);
+  // Uma consulta só conta os dois jeitos (exato, e exato OU parecido): um cálculo da vitrine, não dois.
+  const fuzzyWhere = await buildWhere(filters, true);
   let fuzzy = false;
-  if (exactTotal < FEW_RESULTS) {
-    const fuzzyWhere = await buildWhere(filters, true);
-    fuzzy = fuzzyWhere !== null && (await countWhere(fuzzyWhere)) > exactTotal;
+  if (fuzzyWhere !== null) {
+    const [totals] = await prisma.$queryRaw<
+      { exact_total: number | bigint; fuzzy_total: number | bigint }[]
+    >`
+      WITH ${VISIBLE_PRODUCTS_ALL}
+      SELECT
+        COUNT(*) FILTER (WHERE ${Prisma.join(exactConditions, ' AND ')}) AS exact_total,
+        COUNT(*) AS fuzzy_total
+      FROM vis v LEFT JOIN brand b ON b.brand_id = v.brand_id
+      ${fuzzyWhere}`;
+    const exactTotal = Number(totals?.exact_total ?? 0);
+    fuzzy = exactTotal < FEW_RESULTS && Number(totals?.fuzzy_total ?? 0) > exactTotal;
   }
   if (decisions.size >= MAX_DECISIONS) decisions.clear();
   decisions.set(key, { fuzzy, expiresAt: Date.now() + DECISION_TTL_MS });
