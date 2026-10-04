@@ -1,8 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { ensureAttributeCatalog, ensureCategoryCatalog, prisma } from '@geekstore/db';
+import { ensureAttributeCatalog, ensureCategoryCatalog, type Prisma, prisma } from '@geekstore/db';
 import { v7 as uuidv7 } from 'uuid';
-import { insertBatch, loadContext, TRANSACTION_OPTIONS } from '../erp/load';
 import {
   ensureAttributeValues,
   ensureBrands,
@@ -23,6 +22,33 @@ import {
 import { FRANCHISES } from './franchise';
 
 const STOCK = { reason: 'Carga inicial do catálogo', reference: 'catalog_import' };
+
+const TRANSACTION_OPTIONS = { timeout: 120_000, maxWait: 10_000 };
+
+async function insertBatch(tx: Prisma.TransactionClient, rows: ReturnType<typeof buildBatchRows>) {
+  // Ordem das chaves estrangeiras: produto -> sku -> o resto.
+  await tx.product.createMany({ data: rows.products });
+  await tx.sku.createMany({ data: rows.skus });
+  if (rows.skuAttributes.length > 0) {
+    await tx.skuAttributeValue.createMany({ data: rows.skuAttributes });
+  }
+  await tx.price.createMany({ data: rows.prices });
+  await tx.stockLevel.createMany({ data: rows.levels });
+  if (rows.movements.length > 0) await tx.stockMovement.createMany({ data: rows.movements });
+  if (rows.media.length > 0) await tx.media.createMany({ data: rows.media });
+}
+
+async function loadContext(): Promise<Pick<BatchContext, 'siteChannelId' | 'warehouseId'>> {
+  const [channel, location] = await Promise.all([
+    prisma.channel.findUniqueOrThrow({ where: { code: 'site' }, select: { channel_id: true } }),
+    prisma.location.findFirstOrThrow({
+      where: { type: 'warehouse' },
+      orderBy: { created_at: 'asc' },
+      select: { location_id: true },
+    }),
+  ]);
+  return { siteChannelId: channel.channel_id, warehouseId: location.location_id };
+}
 
 export function readCatalogFile(path: string): NormalizedCatalog {
   return normalizedCatalogSchema.parse(JSON.parse(readFileSync(path, 'utf8')));

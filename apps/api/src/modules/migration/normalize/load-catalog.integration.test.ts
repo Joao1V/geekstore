@@ -1,7 +1,7 @@
 import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@geekstore/db';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-
+import { reconcileStock } from '../../stock/stock-reconcile.service';
 import type { NormalizedCatalog, NormalizedSku } from './catalog-file';
 import { importCatalog, lastNumbersOf } from './load-catalog';
 
@@ -41,7 +41,7 @@ const catalog: NormalizedCatalog = {
       slug: `caneca-teste-${run}`,
       description: null,
       category: 'canecas',
-      brand: null,
+      brand: `Marca Teste ${run}`,
       collections: ['disney'],
       status: 'active',
       has_variants: true,
@@ -50,6 +50,8 @@ const catalog: NormalizedCatalog = {
         sku(`${code(1)}-PT`, {
           attributes: { cor: 'Preto' },
           photos: [`https://cdn.exemplo.com/${run}/pt.jpg`],
+          price_cents: 9990,
+          promo: { price_cents: 8490, compare_at_cents: 9990, starts_at: null, ends_at: null },
         }),
         sku(`${code(1)}-BC`, {
           attributes: { cor: 'Branco' },
@@ -103,6 +105,7 @@ afterAll(async () => {
   await prisma.skuAttributeValue.deleteMany({ where: { sku_id: { in: skuIds } } });
   await prisma.sku.deleteMany({ where: { sku_id: { in: skuIds } } });
   await prisma.product.deleteMany({ where: { product_id: { in: productIds } } });
+  await prisma.brand.deleteMany({ where: { name: `Marca Teste ${run}` } });
   await prisma.auditLog.deleteMany({
     where: {
       entity: 'catalog_import',
@@ -133,6 +136,44 @@ describe('importCatalog (integration — requires a live DATABASE_URL)', () => {
     expect(black?.product.collection_products.map((c) => c.collection.slug)).toEqual(['disney']);
     const simple = imported.find((s) => s.code === code(2));
     expect(simple?.status).toBe('inactive');
+  });
+
+  it('stores the attributes, the base price and the promotion, and links the brand', async () => {
+    const black = await prisma.sku.findFirstOrThrow({
+      where: { code: `${code(1)}-PT` },
+      include: {
+        attribute_values: { include: { value: true, attribute: true } },
+        prices: true,
+        product: { include: { brand: true } },
+      },
+    });
+    expect(black.attribute_values.map((row) => [row.attribute.code, row.value.code])).toEqual([
+      ['cor', 'preto'],
+    ]);
+    expect(black.product.brand?.name).toBe(`Marca Teste ${run}`);
+    const [base, promo] = [...black.prices].sort(
+      (a, b) => a.starts_at.getTime() - b.starts_at.getTime()
+    );
+    expect(base).toMatchObject({ price_cents: 9990, compare_at_cents: null });
+    expect(promo).toMatchObject({ price_cents: 8490, compare_at_cents: 9990 });
+  });
+
+  it('keeps the stock ledger consistent with the balances', async () => {
+    const ours = (
+      await prisma.sku.findMany({ where: { code: { in: skuCodes } }, select: { sku_id: true } })
+    ).map((sku) => sku.sku_id);
+    const { divergences } = await reconcileStock();
+    expect(divergences.filter((d) => ours.includes(d.sku_id))).toEqual([]);
+    const levels = await prisma.stockLevel.aggregate({
+      where: { sku_id: { in: ours } },
+      _sum: { on_hand: true },
+    });
+    const movements = await prisma.stockMovement.aggregate({
+      where: { sku_id: { in: ours } },
+      _sum: { quantity: true },
+    });
+    expect(movements._sum.quantity).toBe(levels._sum.on_hand);
+    expect(levels._sum.on_hand).toBe(6); // 3 + 3; o terceiro SKU entra com saldo 0
   });
 
   it('is safe to run again: nothing is duplicated', async () => {
