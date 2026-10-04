@@ -2,9 +2,11 @@ import Fastify from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 
 import { errorHandler, notFoundHandler } from '../core/_errors';
+import { cookiePlugin } from '../core/plugins/cookie.plugin';
 import { jwtPlugin } from '../core/plugins/jwt.plugin';
 import { auditRoutes } from '../modules/audit/audit.routes';
 import { catalogRoutes } from '../modules/catalog/catalog.routes';
+import { customerRoutes } from '../modules/customers/customer.routes';
 import { pricingRoutes } from '../modules/pricing/pricing.routes';
 import { purchasingRoutes } from '../modules/purchasing/receipt.routes';
 import { stockRoutes } from '../modules/stock/stock.routes';
@@ -22,10 +24,12 @@ export async function buildTestApp() {
   app.setErrorHandler(errorHandler);
   app.setNotFoundHandler(notFoundHandler);
 
+  await app.register(cookiePlugin);
   await app.register(jwtPlugin);
   await app.register(catalogRoutes, { prefix: '/api/catalog' });
   await app.register(stockRoutes, { prefix: '/api/stock' });
   await app.register(purchasingRoutes, { prefix: '/api/purchasing' });
+  await app.register(customerRoutes, { prefix: '/api/customer' });
   await app.register(pricingRoutes, { prefix: '/api/pricing' });
   await app.register(usersRoutes, { prefix: '/api/users' });
   await app.register(storefrontRoutes, { prefix: '/api/store' });

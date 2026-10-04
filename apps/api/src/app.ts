@@ -18,6 +18,7 @@ import { rateLimitPlugin } from './core/plugins/rate-limit.plugin';
 import { auditRoutes } from './modules/audit/audit.routes';
 import { authRoutes } from './modules/auth/auth.routes';
 import { catalogRoutes } from './modules/catalog/catalog.routes';
+import { customerRoutes } from './modules/customers/customer.routes';
 import { healthPlugin } from './modules/health/health.plugin';
 import { pricingRoutes } from './modules/pricing/pricing.routes';
 import { purchasingRoutes } from './modules/purchasing/receipt.routes';
@@ -79,6 +80,7 @@ export function buildApp() {
   app.register(catalogRoutes, { prefix: '/api/catalog' });
   app.register(stockRoutes, { prefix: '/api/stock' });
   app.register(purchasingRoutes, { prefix: '/api/purchasing' });
+  app.register(customerRoutes, { prefix: '/api/customer' });
   app.register(pricingRoutes, { prefix: '/api/pricing' });
   app.register(usersRoutes, { prefix: '/api/users' });
   app.register(storefrontRoutes, { prefix: '/api/store' });

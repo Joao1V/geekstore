@@ -139,6 +139,247 @@ model Product {
 }
 
 // Unidade vendável (RF-CAT-02). Preço, estoque, anúncio e item de pedido apontam para cá.
+// ---------- Clientes, pedidos e pagamento (F2/F3) ----------
+
+// Cliente da loja: tabela própria, separada de `user` (equipe). Audiência de JWT e cookie também.
+model Customer {
+  customer_id   String   @id @default(uuid(7)) @db.Uuid
+  email         String   @unique @db.VarChar(255)
+  name          String   @db.VarChar(255)
+  password_hash String   @db.VarChar(255)
+  // CPF ou CNPJ, só dígitos.
+  document      String?  @db.VarChar(14)
+  phone         String?  @db.VarChar(20)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  addresses      Address[]
+  refresh_tokens CustomerRefreshToken[]
+  orders         Order[]
+
+  @@map("customer")
+}
+
+model CustomerRefreshToken {
+  customer_refresh_token_id String    @id @default(uuid(7)) @db.Uuid
+  customer_id               String    @db.Uuid
+  token_hash                String    @unique @db.Char(64)
+  expires_at                DateTime
+  revoked_at                DateTime?
+  created_at                DateTime  @default(now())
+
+  customer Customer @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+
+  @@index([customer_id])
+  @@map("customer_refresh_token")
+}
+
+model Address {
+  address_id   String   @id @default(uuid(7)) @db.Uuid
+  customer_id  String   @db.Uuid
+  recipient    String   @db.VarChar(255)
+  // CEP, só dígitos.
+  zip          String   @db.VarChar(8)
+  street       String   @db.VarChar(255)
+  number       String   @db.VarChar(20)
+  complement   String?  @db.VarChar(120)
+  neighborhood String   @db.VarChar(120)
+  city         String   @db.VarChar(120)
+  state        String   @db.VarChar(2)
+  is_default   Boolean  @default(false)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  customer Customer @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+
+  @@index([customer_id])
+  @@map("address")
+}
+
+// Três estados independentes (RF-PED-02): pedido, pagamento e entrega.
+enum OrderStatus {
+  open
+  completed
+  cancelled
+}
+
+enum PaymentStatus {
+  pending
+  approved
+  partially_refunded
+  refunded
+}
+
+enum FulfillmentStatus {
+  not_picked
+  picking
+  partially_shipped
+  shipped
+  delivered
+}
+
+// O pedido congela valores, endereço e nome/código de cada SKU na compra. Único por canal e
+// externalOrderId; a chave de idempotência impede pedido duplicado por clique repetido (RF-PED-08).
+model Order {
+  order_id           String            @id @default(uuid(7)) @db.Uuid
+  // Número legível e sequencial (começa em 1001 pela migração).
+  number             Int               @unique @default(autoincrement())
+  channel_id         String            @db.Uuid
+  external_order_id  String?           @db.VarChar(64)
+  customer_id        String?           @db.Uuid
+  contact_name       String            @db.VarChar(255)
+  contact_email      String            @db.VarChar(255)
+  contact_phone      String?           @db.VarChar(20)
+  contact_document   String?           @db.VarChar(14)
+  status             OrderStatus       @default(open)
+  payment_status     PaymentStatus     @default(pending)
+  fulfillment_status FulfillmentStatus @default(not_picked)
+  subtotal_cents     Int
+  shipping_cents     Int
+  discount_cents     Int               @default(0)
+  total_cents        Int
+  coupon_code        String?           @db.VarChar(40)
+  // Endereço de entrega no momento da compra (não muda se o cliente editar o cadastro).
+  shipping_address   Json
+  shipping_service   String            @db.VarChar(80)
+  idempotency_key    String            @unique @db.VarChar(128)
+  cancel_reason      String?           @db.VarChar(255)
+  cancelled_at       DateTime?
+  created_at         DateTime          @default(now())
+  updated_at         DateTime          @updatedAt
+
+  channel   Channel     @relation(fields: [channel_id], references: [channel_id])
+  customer  Customer?   @relation(fields: [customer_id], references: [customer_id])
+  items     OrderItem[]
+  payments  Payment[]
+  shipments Shipment[]
+
+  @@unique([channel_id, external_order_id])
+  @@index([customer_id, created_at])
+  @@index([status, created_at])
+  @@map("order")
+}
+
+model OrderItem {
+  order_item_id    String  @id @default(uuid(7)) @db.Uuid
+  order_id         String  @db.Uuid
+  sku_id           String  @db.Uuid
+  // Código e nome do SKU no momento da compra: o pedido não muda se o catálogo mudar.
+  sku_code         String  @db.VarChar(64)
+  name             String  @db.VarChar(255)
+  variant          String? @db.VarChar(255)
+  image_url        String? @db.VarChar(500)
+  unit_price_cents Int
+  quantity         Int
+  total_cents      Int
+
+  order Order @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  sku   Sku   @relation(fields: [sku_id], references: [sku_id])
+
+  @@index([order_id])
+  @@index([sku_id])
+  @@map("order_item")
+}
+
+enum PaymentMethod {
+  pix
+  card
+  boleto
+}
+
+enum PaymentAttemptStatus {
+  pending
+  approved
+  declined
+  expired
+}
+
+// Várias tentativas por pedido (RF-PAG-09); o estado de pagamento do pedido muda pela aprovada.
+model Payment {
+  payment_id   String               @id @default(uuid(7)) @db.Uuid
+  order_id     String               @db.Uuid
+  provider     String               @db.VarChar(32)
+  external_id  String               @db.VarChar(100)
+  method       PaymentMethod
+  status       PaymentAttemptStatus @default(pending)
+  amount_cents Int
+  installments Int                  @default(1)
+  // O que a tela precisa mostrar: código Pix, linha do boleto, final do cartão. Nunca dado de cartão.
+  details      Json?
+  expires_at   DateTime?
+  created_at   DateTime             @default(now())
+  updated_at   DateTime             @updatedAt
+
+  order Order @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+
+  @@unique([provider, external_id])
+  @@index([order_id])
+  @@map("payment")
+}
+
+// Recebimento durável de webhook (RF-PAG-08): registrado antes de aplicar, único por provedor e id
+// do evento, então reenvio não repete o efeito (RF-PAG-04).
+model WebhookEvent {
+  webhook_event_id String    @id @default(uuid(7)) @db.Uuid
+  provider         String    @db.VarChar(32)
+  event_id         String    @db.VarChar(100)
+  resource_id      String?   @db.VarChar(100)
+  state            String    @db.VarChar(16)
+  payload          Json
+  error            String?   @db.VarChar(500)
+  created_at       DateTime  @default(now())
+  processed_at     DateTime?
+
+  @@unique([provider, event_id])
+  @@map("webhook_event")
+}
+
+enum ShipmentStatus {
+  pending
+  shipped
+  delivered
+}
+
+model Shipment {
+  shipment_id   String         @id @default(uuid(7)) @db.Uuid
+  order_id      String         @db.Uuid
+  carrier       String         @db.VarChar(60)
+  service       String         @db.VarChar(80)
+  tracking_code String?        @db.VarChar(60)
+  status        ShipmentStatus @default(pending)
+  shipped_at    DateTime?
+  delivered_at  DateTime?
+  created_at    DateTime       @default(now())
+
+  order Order @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+
+  @@index([order_id])
+  @@map("shipment")
+}
+
+enum CouponKind {
+  percent
+  amount
+  free_shipping
+}
+
+model Coupon {
+  coupon_id          String     @id @default(uuid(7)) @db.Uuid
+  code               String     @unique @db.VarChar(40)
+  kind               CouponKind
+  // percent: 1 a 100; amount: centavos; free_shipping: ignorado.
+  value              Int        @default(0)
+  min_subtotal_cents Int        @default(0)
+  max_uses           Int?
+  uses               Int        @default(0)
+  starts_at          DateTime?
+  ends_at            DateTime?
+  is_active          Boolean    @default(true)
+  created_at         DateTime   @default(now())
+
+  @@map("coupon")
+}
+
 // ---------- Compras: nota de entrada (NF-e do fornecedor) que alimenta o estoque ----------
 
 enum PurchaseReceiptStatus {
@@ -281,6 +522,7 @@ model Sku {
   stock_levels     StockLevel[]
   receipt_items    PurchaseReceiptItem[]
   supplier_skus    SupplierSku[]
+  order_items      OrderItem[]
   movements        StockMovement[]
   reservations     StockReservation[]
   prices           Price[]
@@ -456,6 +698,7 @@ model Channel {
   created_at            DateTime @default(now())
 
   prices Price[]
+  orders Order[]
 
   @@map("channel")
 }

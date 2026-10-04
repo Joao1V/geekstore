@@ -94,6 +94,15 @@ async function countWhere(where: Prisma.Sql): Promise<number> {
   return Number(rows[0]?.total ?? 0);
 }
 
+const DECISION_TTL_MS = 30_000;
+const MAX_DECISIONS = 500;
+const decisions = new Map<string, { fuzzy: boolean; expiresAt: number }>();
+
+/** A decisão "exato ou parecido" de cada busca, guardada por alguns segundos: lista, filtros e contagem de categorias dividem o custo. */
+function decisionKey(filters: StoreFilters): string {
+  return JSON.stringify(filters, Object.keys(filters).sort());
+}
+
 /**
  * Os filtros prontos para uso. Sem busca, é o `buildWhere` direto. Com busca que acha poucos produtos,
  * troca para a versão que também aceita palavras parecidas (erro de digitação), se ela achar mais.
@@ -102,11 +111,22 @@ async function countWhere(where: Prisma.Sql): Promise<number> {
 async function effectiveWhere(filters: StoreFilters): Promise<Prisma.Sql | null> {
   const exact = await buildWhere(filters);
   if (exact === null || !filters.q) return exact;
+
+  const key = decisionKey(filters);
+  const cached = decisions.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.fuzzy ? buildWhere(filters, true) : exact;
+  }
+
   const exactTotal = await countWhere(exact);
-  if (exactTotal >= FEW_RESULTS) return exact;
-  const fuzzy = await buildWhere(filters, true);
-  if (!fuzzy) return exact;
-  return (await countWhere(fuzzy)) > exactTotal ? fuzzy : exact;
+  let fuzzy = false;
+  if (exactTotal < FEW_RESULTS) {
+    const fuzzyWhere = await buildWhere(filters, true);
+    fuzzy = fuzzyWhere !== null && (await countWhere(fuzzyWhere)) > exactTotal;
+  }
+  if (decisions.size >= MAX_DECISIONS) decisions.clear();
+  decisions.set(key, { fuzzy, expiresAt: Date.now() + DECISION_TTL_MS });
+  return fuzzy ? buildWhere(filters, true) : exact;
 }
 
 // ── Cartões ───────────────────────────────────────────────────────────────────

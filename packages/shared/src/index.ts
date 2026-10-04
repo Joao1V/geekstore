@@ -4,6 +4,8 @@ export * from './auth';
 export * from './brands';
 export * from './catalog';
 export * from './common';
+export * from './customers';
+export * from './documents';
 export * from './duplicates';
 export * from './grid';
 export * from './money';
