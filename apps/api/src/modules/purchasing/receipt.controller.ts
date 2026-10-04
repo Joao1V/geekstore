@@ -3,6 +3,7 @@ import type {
   ReceiptItemUpdateBody,
   ReceiptListQuery,
   ReceiptManualBody,
+  SkuSuggestionQuery,
 } from '@geekstore/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -53,9 +54,11 @@ export async function updateReceiptItemController(
   return { data: await updateReceiptItem(request.user.sub, receipt_id, item_id, request.body) };
 }
 
-export async function suggestionsController(request: FastifyRequest<{ Params: ItemParams }>) {
+export async function suggestionsController(
+  request: FastifyRequest<{ Params: ItemParams; Querystring: SkuSuggestionQuery }>
+) {
   const { receipt_id, item_id } = request.params;
-  return { data: await suggestForItem(receipt_id, item_id) };
+  return { data: await suggestForItem(receipt_id, item_id, request.query.ai) };
 }
 
 export async function postReceiptController(request: FastifyRequest<{ Params: ReceiptParams }>) {

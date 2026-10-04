@@ -119,6 +119,19 @@ export const skuSuggestionSchema = z.object({
   product_name: z.string(),
   /** 0 a 1: quanto o nome se parece com a descrição da nota. */
   score: z.number(),
+  /** Quem sugeriu: a parecença de nomes ou a IA. */
+  source: z.enum(['name', 'ai']).default('name'),
+  /** Só na IA: o quanto ela confia e o porquê, em uma frase. */
+  confidence: z.enum(['high', 'medium', 'low']).nullable().default(null),
+  reason: z.string().nullable().default(null),
 });
 export type SkuSuggestion = z.infer<typeof skuSuggestionSchema>;
+/** `ai=true` pede também a escolha da IA (custa uma chamada; por isso só a pedido). */
+export const skuSuggestionQuerySchema = z.object({
+  ai: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+});
+export type SkuSuggestionQuery = z.infer<typeof skuSuggestionQuerySchema>;
 export const skuSuggestionListResponseSchema = dataResponse(z.array(skuSuggestionSchema));

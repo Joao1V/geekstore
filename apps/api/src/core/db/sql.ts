@@ -57,35 +57,38 @@ const wordsOf = (column: Prisma.Sql): Prisma.Sql =>
   Prisma.sql`unnest(string_to_array(regexp_replace(lower(unaccent(${column})), '[^a-z0-9]+', ' ', 'g'), ' ')) AS w(word)`;
 
 /**
+ * A palavra (já normalizada por `compactText`) casa com a coluna: como pedaço do texto, ou, se tiver 3+
+ * letras, como palavra parecida (prefixo, ou 1 letra de diferença até 4 letras, 2 acima disso).
+ */
+export function matchesWord(column: Prisma.Sql, token: string): Prisma.Sql {
+  const exact = Prisma.sql`${compactColumn(column)} LIKE ${`%${token}%`}`;
+  if (token.length < MIN_FUZZY_LENGTH) return exact;
+  const distance = token.length <= SHORT_WORD ? SHORT_DISTANCE : LONG_DISTANCE;
+  return Prisma.sql`(${exact} OR EXISTS (
+    SELECT 1 FROM ${wordsOf(column)}
+    WHERE w.word <> '' AND (
+      w.word LIKE ${`${token}%`}
+      OR (abs(length(w.word) - ${asInt(token.length)}) <= ${asInt(LENGTH_SLACK)}
+          AND levenshtein(w.word, ${token}) <= ${asInt(distance)})
+    )
+  ))`;
+}
+
+/**
  * Busca tolerante a erro de digitação, para quando a busca exata não acha nada: cada palavra do termo
- * precisa estar (por prefixo, ou a até 1 letra de distância se tiver até 4 letras, 2 se tiver mais) em
- * alguma palavra de alguma das colunas. "stich peluzia" acha "Pelúcia Disney Stitch". Palavras com menos
- * de 3 letras ficam exatas (distância 1 em 2 letras casaria com qualquer coisa). Precisa de `fuzzystrmatch`.
+ * precisa casar (ver `matchesWord`) com alguma das colunas. "stich peluzia" acha "Pelúcia Disney Stitch".
+ * Palavras com menos de 3 letras ficam exatas (distância 1 em 2 letras casaria com qualquer coisa).
+ * Precisa de `fuzzystrmatch`.
  */
 export function matchesSearchFuzzy(columns: Prisma.Sql[], term: string): Prisma.Sql {
   const tokens = term.split(/\s+/).map(compactText).filter(Boolean);
   if (tokens.length === 0) return Prisma.sql`TRUE`;
-  const perToken = tokens.map((token) => {
-    if (token.length < MIN_FUZZY_LENGTH) {
-      return Prisma.sql`(${Prisma.join(
-        columns.map((column) => Prisma.sql`${compactColumn(column)} LIKE ${`%${token}%`}`),
+  const perToken = tokens.map(
+    (token) =>
+      Prisma.sql`(${Prisma.join(
+        columns.map((column) => matchesWord(column, token)),
         ' OR '
-      )})`;
-    }
-    const distance = token.length <= SHORT_WORD ? SHORT_DISTANCE : LONG_DISTANCE;
-    return Prisma.sql`(${Prisma.join(
-      columns.map(
-        (column) => Prisma.sql`EXISTS (
-          SELECT 1 FROM ${wordsOf(column)}
-          WHERE w.word <> '' AND (
-            w.word LIKE ${`${token}%`}
-            OR (abs(length(w.word) - ${asInt(token.length)}) <= ${asInt(LENGTH_SLACK)}
-                AND levenshtein(w.word, ${token}) <= ${asInt(distance)})
-          )
-        )`
-      ),
-      ' OR '
-    )})`;
-  });
+      )})`
+  );
   return Prisma.sql`(${Prisma.join(perToken, ' AND ')})`;
 }

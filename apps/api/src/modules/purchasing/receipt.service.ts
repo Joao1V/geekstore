@@ -16,10 +16,13 @@ import { writeAuditLog } from '../../core/audit/write-audit-log';
 import { asUuid } from '../../core/db/sql';
 import { buildMeta, skipTake } from '../../core/http/pagination';
 import { addOnHand } from '../stock/stock-ledger';
+import { pickWithAi } from './ai-suggester';
 import { NfeParseError, type ParsedNfe, parseNfe } from './nfe-parser';
 import { suggestSkusByName } from './receipt-matching';
 
 const MAX_SUGGESTIONS = 5;
+// Quantos candidatos por nome a IA recebe para escolher.
+const AI_CANDIDATES = 15;
 const POSTED_REASON = 'Entrada de nota de compra';
 const REFERENCE_TYPE = 'purchase_receipt';
 
@@ -379,13 +382,31 @@ export async function updateReceiptItem(
   });
 }
 
-export async function suggestForItem(receiptId: string, itemId: string): Promise<SkuSuggestion[]> {
+/** Sugestões por nome; com `useAi`, a escolha da IA (entre esses mesmos candidatos) vem na frente. */
+export async function suggestForItem(
+  receiptId: string,
+  itemId: string,
+  useAi = false
+): Promise<SkuSuggestion[]> {
   const item = await prisma.purchaseReceiptItem.findFirst({
     where: { purchase_receipt_item_id: itemId, purchase_receipt_id: receiptId },
-    select: { description: true },
+    select: { description: true, supplier_code: true, ean: true, ncm: true },
   });
   if (!item) throw new NotFoundError('Item da nota não encontrado.');
-  return suggestSkusByName(item.description, MAX_SUGGESTIONS);
+  const byName = await suggestSkusByName(item.description, useAi ? AI_CANDIDATES : MAX_SUGGESTIONS);
+  if (!useAi) return byName;
+
+  const pick = await pickWithAi(
+    {
+      description: item.description,
+      supplierCode: item.supplier_code,
+      ean: item.ean,
+      ncm: item.ncm,
+    },
+    byName
+  );
+  const rest = byName.filter((candidate) => candidate.sku_id !== pick?.sku_id);
+  return [...(pick ? [pick] : []), ...rest].slice(0, MAX_SUGGESTIONS);
 }
 
 /** Custo médio ponderado pelo saldo físico total do SKU (todos os locais). */

@@ -8,6 +8,7 @@ import {
   receiptParamsSchema,
   receiptResponseSchema,
   skuSuggestionListResponseSchema,
+  skuSuggestionQuerySchema,
 } from '@geekstore/shared';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
@@ -107,8 +108,10 @@ export async function purchasingRoutes(fastify: FastifyInstance): Promise<void> 
       ...read,
       schema: {
         tags,
-        summary: 'SKUs parecidos com a descrição do item (sugestão, quem decide é a pessoa)',
+        summary:
+          'SKUs parecidos com a descrição do item; com ai=true a IA escolhe entre eles (sugestão, quem decide é a pessoa)',
         params: receiptItemParamsSchema,
+        querystring: skuSuggestionQuerySchema,
         response: { 200: skuSuggestionListResponseSchema },
       },
     },

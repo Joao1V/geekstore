@@ -23,10 +23,14 @@ export const receiptDetailQueryOptions = (receiptId: string) =>
     queryFn: () => adminApi.get<ReceiptDetail>(`${PURCHASING}/${receiptId}`),
   });
 
-export const receiptSuggestionsQueryOptions = (receiptId: string, itemId: string) =>
+/** Sugestões por nome; com `ai`, a IA escolhe entre elas (uma chamada paga: só a pedido). */
+export const receiptSuggestionsQueryOptions = (receiptId: string, itemId: string, ai = false) =>
   queryOptions({
-    queryKey: adminKeys.receiptSuggestions(receiptId, itemId),
+    queryKey: adminKeys.receiptSuggestions(receiptId, itemId, ai),
     queryFn: () =>
-      adminApi.get<SkuSuggestion[]>(`${PURCHASING}/${receiptId}/items/${itemId}/suggestions`),
+      adminApi.get<SkuSuggestion[]>(
+        `${PURCHASING}/${receiptId}/items/${itemId}/suggestions`,
+        ai ? { ai: 'true' } : undefined
+      ),
     staleTime: 5 * 60_000,
   });

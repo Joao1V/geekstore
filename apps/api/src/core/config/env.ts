@@ -44,6 +44,10 @@ const envSchema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   // URL pública (CDN) de onde as imagens são servidas; vai em `Media.url`.
   S3_PUBLIC_BASE_URL: z.string().url().optional(),
+  // IA que sugere o SKU de um item de nota de compra. Opcional: sem a chave, o botão responde erro claro
+  // e o resto da API sobe normalmente.
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  AI_MODEL: z.string().default('claude-haiku-4-5-20251001'),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -110,5 +114,9 @@ export const envConfig = {
       SECRET_ACCESS_KEY: S3_SECRET_ACCESS_KEY,
       PUBLIC_BASE_URL: S3_PUBLIC_BASE_URL,
     };
+  },
+  get ai() {
+    const { ANTHROPIC_API_KEY, AI_MODEL } = getEnv();
+    return { API_KEY: ANTHROPIC_API_KEY, MODEL: AI_MODEL };
   },
 };
