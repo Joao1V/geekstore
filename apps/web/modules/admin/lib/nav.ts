@@ -8,6 +8,7 @@ import {
   Package,
   ReceiptText,
   ScrollText,
+  ShoppingBag,
   SlidersHorizontal,
   Tag,
   Users,
@@ -24,6 +25,13 @@ export type AdminNavItem = {
 
 export const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin/', label: 'Início', description: 'Atalhos do painel', icon: Home },
+  {
+    href: '/admin/pedidos/',
+    label: 'Pedidos',
+    description: 'Pagamento, separação, envio e rastreio',
+    icon: ShoppingBag,
+    permission: 'orders:read',
+  },
   {
     href: '/admin/produtos/',
     label: 'Produtos',
