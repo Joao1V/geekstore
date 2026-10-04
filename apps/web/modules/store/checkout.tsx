@@ -4,7 +4,7 @@ import { Button } from '@heroui/react';
 import { ArrowLeft, ArrowRight, Check, CreditCard, LockKeyhole, Trash2, Truck } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Action, FieldInput, FieldSelect, Quantity } from '@/components/ui';
 import { getMascot } from '@/lib/mascot';
@@ -83,11 +83,23 @@ export function Checkout() {
     defaultValues: { coupon: '' },
   });
   const [step, setStep] = useState(0);
+  const stepsRef = useRef<HTMLDivElement | null>(null);
+  const firstRender = useRef(true);
   const [applied, setApplied] = useState(false);
   const [couponMessage, setCouponMessage] = useState('');
   const [payment, setPayment] = useState('pix');
   const [shipping, setShipping] = useState('standard');
   const [complete, setComplete] = useState(false);
+
+  // Ao mudar de etapa, volta ao topo do formulário (senão o cliente cai no meio da próxima etapa).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: só a mudança de `step` dispara a rolagem.
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    stepsRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [step]);
 
   const subtotal =
     store.lines.reduce((sum, line) => sum + line.price_cents * line.qty, 0) / CENTS_PER_REAL;
@@ -164,7 +176,7 @@ export function Checkout() {
       </p>
       <div className="mt-[30px] grid grid-cols-[1.35fr_1fr] items-start gap-9 max-tablet:gap-[22px] max-md:grid-cols-1">
         <div>
-          <div className="mb-6 flex gap-7 max-md:gap-[15px]">
+          <div ref={stepsRef} className="mb-6 flex gap-7 max-md:gap-[15px]">
             {CHECKOUT_STEPS.map((title, i) => (
               <button
                 key={title}

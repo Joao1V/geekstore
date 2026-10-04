@@ -20,6 +20,11 @@ export const storeCategorySchema = z.object({
   product_count: z.number().int(),
 });
 export type StoreCategory = z.infer<typeof storeCategorySchema>;
+/** Com `q`, o `product_count` de cada categoria conta só o que combina com a busca. */
+export const storeCategoriesQuerySchema = z.object({
+  q: z.string().trim().min(1).max(120).optional(),
+});
+export type StoreCategoriesQuery = z.infer<typeof storeCategoriesQuerySchema>;
 export const storeCategoriesResponseSchema = dataResponse(z.array(storeCategorySchema));
 
 export const storeBrandSchema = z.object({

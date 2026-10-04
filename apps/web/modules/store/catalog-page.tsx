@@ -110,7 +110,7 @@ function CategoryFilter({
 export async function CatalogPage({ state }: { state: CatalogState }) {
   const client = getQueryClient();
   const filters = toApiFilters(state);
-  const [products, facets, categories] = await Promise.all([
+  const [products, facets, categories, scopedCategories] = await Promise.all([
     client.fetchQuery(
       storeProductsQuery({
         ...filters,
@@ -121,6 +121,8 @@ export async function CatalogPage({ state }: { state: CatalogState }) {
     ),
     client.fetchQuery(storeFacetsQuery(filters)),
     client.fetchQuery(storeCategoriesQuery()),
+    // Na busca, o filtro de categorias mostra quantos resultados há em cada uma (não o total da loja).
+    state.q ? client.fetchQuery(storeCategoriesQuery(state.q)) : null,
   ]);
 
   const category = categories.find((item) => item.slug === state.categoria);
@@ -151,7 +153,7 @@ export async function CatalogPage({ state }: { state: CatalogState }) {
         <h2 id="f-cat" className={FILTER_TITLE}>
           Categorias
         </h2>
-        <CategoryFilter categories={categories} state={state} />
+        <CategoryFilter categories={scopedCategories ?? categories} state={state} />
       </section>
       {facets.brands.length > 0 && (
         <section aria-labelledby="f-brand">
@@ -327,7 +329,24 @@ export async function CatalogPage({ state }: { state: CatalogState }) {
             <div className="empty">
               <Image {...getMascot('search')} width={210} height={240} />
               <h2 className="section-title">Ainda não encontramos.</h2>
-              <p>Tente outra busca ou limpe os filtros.</p>
+              <p>
+                {state.q
+                  ? 'Confira a escrita ou tente outra palavra. Que tal explorar uma categoria?'
+                  : 'Tente outra busca ou limpe os filtros.'}
+              </p>
+              <div className="mb-4 flex flex-wrap justify-center gap-2">
+                {categories
+                  .filter((item) => item.parent_id === null)
+                  .map((item) => (
+                    <Link
+                      key={item.category_id}
+                      href={`/catalogo/?categoria=${item.slug}`}
+                      className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-sm font-extrabold hover:border-ink"
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+              </div>
               {hasActiveFilters(state) && (
                 <Link href="/catalogo/" className="action">
                   Limpar filtros

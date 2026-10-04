@@ -85,6 +85,30 @@ async function buildWhere(filters: StoreFilters, fuzzy = false): Promise<Prisma.
     : Prisma.empty;
 }
 
+async function countWhere(where: Prisma.Sql): Promise<number> {
+  const rows = await prisma.$queryRaw<{ total: number | bigint }[]>`
+    WITH ${VISIBLE_PRODUCTS_ALL}
+    SELECT COUNT(*) AS total
+    FROM vis v LEFT JOIN brand b ON b.brand_id = v.brand_id
+    ${where}`;
+  return Number(rows[0]?.total ?? 0);
+}
+
+/**
+ * Os filtros prontos para uso. Sem busca, é o `buildWhere` direto. Com busca que acha poucos produtos,
+ * troca para a versão que também aceita palavras parecidas (erro de digitação), se ela achar mais.
+ * Lista, filtros da barra lateral e contagem das categorias usam a mesma regra e combinam entre si.
+ */
+async function effectiveWhere(filters: StoreFilters): Promise<Prisma.Sql | null> {
+  const exact = await buildWhere(filters);
+  if (exact === null || !filters.q) return exact;
+  const exactTotal = await countWhere(exact);
+  if (exactTotal >= FEW_RESULTS) return exact;
+  const fuzzy = await buildWhere(filters, true);
+  if (!fuzzy) return exact;
+  return (await countWhere(fuzzy)) > exactTotal ? fuzzy : exact;
+}
+
 // ── Cartões ───────────────────────────────────────────────────────────────────
 
 type CardRow = {
@@ -163,7 +187,7 @@ async function fetchPage(
   where: Prisma.Sql
 ): Promise<{ ids: string[]; total: number }> {
   const { skip, take } = skipTake(query.page, query.page_size);
-  const [rows, totals] = await Promise.all([
+  const [rows, total] = await Promise.all([
     prisma.$queryRaw<{ product_id: string }[]>`
       WITH ${VISIBLE_PRODUCTS_ALL}
       SELECT v.product_id
@@ -171,30 +195,17 @@ async function fetchPage(
       ${where}
       ORDER BY ${SORT_SQL[query.sort]}, v.product_id
       LIMIT ${take} OFFSET ${skip}`,
-    prisma.$queryRaw<{ total: number | bigint }[]>`
-      WITH ${VISIBLE_PRODUCTS_ALL}
-      SELECT COUNT(*) AS total
-      FROM vis v LEFT JOIN brand b ON b.brand_id = v.brand_id
-      ${where}`,
+    countWhere(where),
   ]);
-  return { ids: rows.map((row) => row.product_id), total: Number(totals[0]?.total ?? 0) };
+  return { ids: rows.map((row) => row.product_id), total };
 }
 
 export async function listStoreProducts(
   query: StoreProductsQuery
 ): Promise<Paginated<StoreProductCard>> {
-  const where = await buildWhere(query);
+  const where = await effectiveWhere(query);
   if (where === null) return { data: [], meta: buildMeta(query.page, query.page_size, 0) };
-
-  let found = await fetchPage(query, where);
-  if (found.total < FEW_RESULTS && query.q) {
-    // Poucos resultados (ou nenhum): tenta de novo tolerando erro de digitação, sem perder os exatos.
-    const fuzzyWhere = await buildWhere(query, true);
-    if (fuzzyWhere) {
-      const fuzzyFound = await fetchPage(query, fuzzyWhere);
-      if (fuzzyFound.total > found.total) found = fuzzyFound;
-    }
-  }
+  const found = await fetchPage(query, where);
   const data = await loadCards(found.ids);
   return { data, meta: buildMeta(query.page, query.page_size, found.total) };
 }
@@ -230,28 +241,28 @@ async function queryFacets(where: Prisma.Sql): Promise<Facets> {
 /** Marcas e faixa de preço do que está listado (sem aplicar o próprio filtro de marca e preço). */
 export async function getStoreFacets(filters: StoreFilters): Promise<StoreFacets> {
   const { brand: _brand, price_min: _min, price_max: _max, ...scope } = filters;
-  const where = await buildWhere(scope);
+  const where = await effectiveWhere(scope);
   if (where === null) return { total: 0, brands: [], price_min_cents: null, price_max_cents: null };
-
-  const facets = await queryFacets(where);
-  if (facets.total >= FEW_RESULTS || !scope.q) return facets;
-  // Mesma segunda tentativa da listagem, para a barra lateral combinar com os produtos mostrados.
-  const fuzzyWhere = await buildWhere(scope, true);
-  if (!fuzzyWhere) return facets;
-  const fuzzyFacets = await queryFacets(fuzzyWhere);
-  return fuzzyFacets.total > facets.total ? fuzzyFacets : facets;
+  return queryFacets(where);
 }
 
 // ── Categorias e home ─────────────────────────────────────────────────────────
 
-export async function listStoreCategories(): Promise<StoreCategory[]> {
+/** Com `q`, o total de cada categoria conta só os produtos que combinam com a busca. */
+export async function listStoreCategories(q?: string): Promise<StoreCategory[]> {
+  const where = q ? await effectiveWhere({ q }) : Prisma.empty;
   const [categories, counts] = await Promise.all([
     prisma.category.findMany({
       select: { category_id: true, parent_id: true, name: true, slug: true, position: true },
     }),
-    prisma.$queryRaw<{ category_id: string; count: number | bigint }[]>`
-      WITH ${VISIBLE_PRODUCTS_ALL}
-      SELECT v.category_id, COUNT(*) AS count FROM vis v GROUP BY v.category_id`,
+    where === null
+      ? []
+      : prisma.$queryRaw<{ category_id: string; count: number | bigint }[]>`
+          WITH ${VISIBLE_PRODUCTS_ALL}
+          SELECT v.category_id, COUNT(*) AS count
+          FROM vis v LEFT JOIN brand b ON b.brand_id = v.brand_id
+          ${where}
+          GROUP BY v.category_id`,
   ]);
   const direct = new Map(counts.map((row) => [row.category_id, Number(row.count)]));
   const children = new Map<string | null, typeof categories>();

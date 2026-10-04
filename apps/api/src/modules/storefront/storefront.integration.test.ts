@@ -234,6 +234,17 @@ describe('storefront (integration — requires a live DATABASE_URL)', () => {
     expect(facets.body.data.price_min_cents).toBe(1500);
   });
 
+  it('counts the categories by the search when there is one', async () => {
+    const countOf = async (qs: string) => {
+      const { body } = await get(`/api/store/categories${qs}`);
+      return body.data.find((c: { slug: string }) => c.slug === categorySlug)?.product_count ?? 0;
+    };
+    expect(await countOf('')).toBe(3);
+    expect(await countOf('?q=chaveiro')).toBe(1);
+    expect(await countOf('?q=chaveyro')).toBe(1); // erro de digitação: mesma regra da listagem
+    expect(await countOf('?q=xyzzyqq')).toBe(0);
+  });
+
   it('returns nothing (not an error) for an unknown category', async () => {
     const { status, body } = await get('/api/store/products?category=nao-existe');
     expect(status).toBe(200);

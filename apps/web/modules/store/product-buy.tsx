@@ -154,7 +154,7 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
       const missing = product.options
         .filter((option) => !selection[option.code])
         .map((option) => option.name.toLowerCase());
-      setError(`Escolha ${missing.join(' e ')} antes de continuar.`);
+      setError(`Escolha uma opção de ${missing.join(' e ')} antes de continuar.`);
       return;
     }
     if (!sku || sku.available <= 0) {

@@ -24,10 +24,11 @@ export const storeHomeQuery = () =>
     queryFn: () => api.get<StoreHome>('/api/store/home', undefined, server),
   });
 
-export const storeCategoriesQuery = () =>
+/** Com `q`, o `product_count` de cada categoria conta só o que combina com a busca. */
+export const storeCategoriesQuery = (q?: string) =>
   queryOptions({
-    queryKey: ['store', 'categories'],
-    queryFn: () => api.get<StoreCategory[]>('/api/store/categories', undefined, server),
+    queryKey: ['store', 'categories', q ?? ''],
+    queryFn: () => api.get<StoreCategory[]>('/api/store/categories', q ? { q } : undefined, server),
   });
 
 export const storeProductsQuery = (params: ProductsParams) =>

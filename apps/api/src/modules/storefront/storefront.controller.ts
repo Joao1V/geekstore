@@ -1,4 +1,9 @@
-import type { StoreFilters, StoreProductParams, StoreProductsQuery } from '@geekstore/shared';
+import type {
+  StoreCategoriesQuery,
+  StoreFilters,
+  StoreProductParams,
+  StoreProductsQuery,
+} from '@geekstore/shared';
 import type { FastifyRequest } from 'fastify';
 
 import {
@@ -14,8 +19,10 @@ export async function storeHomeController() {
   return { data: await getStoreHome() };
 }
 
-export async function storeCategoriesController() {
-  return { data: await listStoreCategories() };
+export async function storeCategoriesController(
+  request: FastifyRequest<{ Querystring: StoreCategoriesQuery }>
+) {
+  return { data: await listStoreCategories(request.query.q) };
 }
 
 export async function storeProductsController(

@@ -1,4 +1,5 @@
 import {
+  storeCategoriesQuerySchema,
   storeCategoriesResponseSchema,
   storeFacetsQuerySchema,
   storeFacetsResponseSchema,
@@ -56,6 +57,7 @@ export async function storefrontRoutes(fastify: FastifyInstance): Promise<void> 
         tags,
         summary:
           'Categorias com produtos à venda (lista plana; o cliente monta a árvore por parent_id)',
+        querystring: storeCategoriesQuerySchema,
         response: { 200: storeCategoriesResponseSchema },
       },
     },
