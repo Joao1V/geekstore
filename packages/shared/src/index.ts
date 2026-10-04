@@ -12,6 +12,7 @@ export * from './money';
 export * from './pricing';
 export * from './purchasing';
 export * from './rbac';
+export * from './shipping';
 export * from './stock';
 export * from './storefront';
 export * from './users';

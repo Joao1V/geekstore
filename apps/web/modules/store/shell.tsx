@@ -20,6 +20,8 @@ import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Dialog, Quantity } from '@/components/ui';
 import { getMascot } from '@/lib/mascot';
+import { AccountLinks } from './account-links';
+import { CustomerSessionBootstrap } from './customer-session';
 import { formatBRL } from './lib/money';
 import { ProductImage } from './product-image';
 import { useCartStore } from './state/cart-store';
@@ -131,8 +133,7 @@ export function Shell({
           </Link>
           <StoreSearch />
           <nav className="flex gap-[18px] text-sm font-extrabold whitespace-nowrap max-tablet:gap-2.5 max-md:hidden">
-            <Link href="/entrar/">Entrar</Link>
-            <Link href="/cadastro/">Cadastre-se</Link>
+            <AccountLinks variant="header" />
           </nav>
           <div className="flex items-center gap-[9px] max-md:col-start-2 max-md:row-start-1 max-md:gap-1.5">
             <Link
@@ -210,13 +211,13 @@ export function Shell({
         </div>
         {menu && (
           <nav className="hidden gap-[15px] bg-night-raised px-5 py-[15px] text-sm max-md:flex max-md:flex-col">
-            <Link href="/entrar/">Entrar</Link>
-            <Link href="/cadastro/">Criar conta</Link>
+            <AccountLinks variant="menu" />
             <Link href="/favoritos/">Favoritos</Link>
             <Link href="/catalogo/">Catálogo completo</Link>
           </nav>
         )}
       </header>
+      <CustomerSessionBootstrap />
       <main className="min-h-[70vh] pt-[119px] max-md:pt-[152px]">{children}</main>
       <footer className="bg-night pt-[50px] text-night-muted">
         <div className="wrap grid grid-cols-[1.4fr_1fr_1fr_1.3fr] gap-[50px] max-tablet:gap-[25px] max-md:grid-cols-2 max-md:gap-x-5 max-md:gap-y-7">
@@ -250,12 +251,7 @@ export function Shell({
           </div>
           <div>
             <h3 className={FOOTER_TITLE}>Sua conta</h3>
-            <Link className={FOOTER_LINK} href="/entrar/">
-              Entrar
-            </Link>
-            <Link className={FOOTER_LINK} href="/cadastro/">
-              Cadastre-se
-            </Link>
+            <AccountLinks variant="footer" linkClassName={FOOTER_LINK} />
             <Link className={FOOTER_LINK} href="/ajuda/">
               Atendimento e trocas
             </Link>
