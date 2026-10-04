@@ -2,6 +2,7 @@ import { categoryNode } from '@geekstore/db';
 
 import type { CatalogPlan, PlannedItem } from '../erp/plan-types';
 import { slugify } from '../erp/text';
+import { restoreAccents } from './accents';
 import type { LegacyMapEntry, NormalizedCatalog, NormalizedProduct } from './catalog-file';
 import { detectFranchise } from './franchise';
 import { formatBaseCode, skuCodeOf } from './sku-codes';
@@ -46,6 +47,14 @@ function uniqueSlug(name: string, baseCode: string, used: Set<string>): string {
   used.add(slug);
   return slug;
 }
+
+// "e-Commerce" no fim do nome é marcação interna do ERP (item liberado para a loja), não faz parte do produto.
+const ERP_MARKERS = /\s*[-–]?\s*\be-commerce\b/gi;
+
+export const cleanProductName = (name: string): string =>
+  restoreAccents(name.replace(ERP_MARKERS, ''))
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 
 /** Itens do ERP já planejados (categorias, famílias, atributos) -> catálogo com SKUs sequenciais. */
 export function normalizePlan(plan: CatalogPlan, options: NormalizeOptions): NormalizeResult {
@@ -114,7 +123,7 @@ export function normalizePlan(plan: CatalogPlan, options: NormalizeOptions): Nor
 
     products.push({
       code: baseCode,
-      name: first.name,
+      name: cleanProductName(first.name),
       slug: uniqueSlug(first.name, baseCode, seenSlugs),
       description: first.description,
       category: first.categoryKey,

@@ -30,17 +30,10 @@ import { Thumbnail } from '../ui/thumbnail';
 import { ISSUE_LABELS } from './labels';
 import { type ChipId, chipFromParams, extraIssue, paramsFromChip } from './list-filters';
 import { ProductBulkBar } from './product-bulk-bar';
-import {
-  CategoryCell,
-  LegacyCodeCell,
-  PriceCell,
-  SkuCell,
-  StatusCell,
-  StockCell,
-} from './product-cells';
+import { CategoryCell, PriceCell, SkuCell, StatusCell, StockCell } from './product-cells';
 
 const PAGE_SIZE = 20;
-const COLUMNS = 10;
+const COLUMNS = 9;
 
 type Filters = { category_id: string | null };
 
@@ -173,7 +166,7 @@ export function ProductList() {
       )}
       <div className="mb-5 grid grid-cols-[2fr_1fr] items-start gap-4 max-md:grid-cols-1">
         <SearchBox
-          label="Buscar por nome, SKU ou código legado"
+          label="Buscar por nome ou SKU"
           initialValue={q}
           onSearch={(value) => setParams({ q: value })}
         />
@@ -237,7 +230,6 @@ export function ProductList() {
               onSort={(field) => setParams({ sort: nextSort(sort, field) }, false)}
             />
             <Th>SKU</Th>
-            <Th>Cód. legado</Th>
             <Th>Categoria</Th>
             <Th>Preço</Th>
             <Th>Estoque</Th>
@@ -293,9 +285,6 @@ export function ProductList() {
               </Td>
               <Td>
                 <SkuCell product={product} />
-              </Td>
-              <Td>
-                <LegacyCodeCell product={product} />
               </Td>
               <Td>
                 <CategoryCell label={labels.get(product.category_id)} />

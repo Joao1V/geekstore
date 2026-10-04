@@ -23,19 +23,6 @@ export function SkuCell({ product }: { product: ProductListItem }) {
   );
 }
 
-/** Código do ERP de origem (para a integração e a conferência com o sistema antigo). */
-export function LegacyCodeCell({ product }: { product: ProductListItem }) {
-  const [first] = product.legacy_codes;
-  if (!first) return <span className="muted text-xs">—</span>;
-  const more = product.sku_count - 1;
-  return (
-    <div className="grid justify-items-start gap-1">
-      <code className="font-mono text-xs text-muted">{first}</code>
-      {more > 0 && <span className="muted text-2xs">+{more}</span>}
-    </div>
-  );
-}
-
 /** "R$ 349,99", ou "R$ 59,90 – R$ 79,90" quando as variações têm preços diferentes. */
 export function PriceCell({ product }: { product: ProductListItem }) {
   const { price_min_cents: min, price_max_cents: max } = product;

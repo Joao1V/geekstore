@@ -71,6 +71,18 @@ describe('buildPlan: variations', () => {
     expect(items[1]?.attributes).toEqual({ cor: 'Preto', tamanho: 'P' });
   });
 
+  it('reads baby look sizes and a bare "Marinho" as the navy blue color', () => {
+    const { items } = plan([
+      shirt(50, 'CAMISETA CASAS CORVINAL MARINHO BLP'),
+      shirt(51, 'CAMISETA CASAS CORVINAL MARINHO BLG'),
+    ]);
+    expect(items.map((i) => i.attributes)).toEqual([
+      { cor: 'Azul Marinho', tamanho: 'Baby Look P' },
+      { cor: 'Azul Marinho', tamanho: 'Baby Look G' },
+    ]);
+    expect(new Set(items.map((i) => i.productKey)).size).toBe(1);
+  });
+
   it('does not group a family with two identical variants; it reports it for review', () => {
     const result = plan([
       shirt(20, 'CAMISETA NARUTO PRETO P'),

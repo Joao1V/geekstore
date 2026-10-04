@@ -33,6 +33,7 @@ const VOLUME = /^\d+(?:[.,]\d+)?(?:ML|L|LT|LTS)$/i;
 // Palavras de cor que aparecem no nome (as duas formas de gênero; o valor guardado é uma só).
 const COLOR_WORDS = [
   'AZUL MARINHO',
+  'MARINHO',
   'OFF WHITE',
   'PRETO',
   'PRETA',
@@ -106,8 +107,17 @@ const SIZES = new Set([
   'G1',
   'G2',
   'G3',
+  'BLP',
+  'BLM',
+  'BLG',
 ]);
 // Rótulos que acompanham o tamanho no nome ("... Verde Tamanho P") e não fazem parte do produto.
+// Camiseta baby look: o nome traz BLP/BLM/BLG.
+const BABY_LOOK: Record<string, string> = {
+  BLP: 'Baby Look P',
+  BLM: 'Baby Look M',
+  BLG: 'Baby Look G',
+};
 const SIZE_LABELS = new Set(['TAMANHO', 'TAM', 'TAM.']);
 const RANGE = /^\d{2}\/\d{2}$/;
 const KIDS_SIZE = /^\d{2}$/;
@@ -134,6 +144,7 @@ function isSize(token: string, isKids: boolean): boolean {
 
 // Uma cor só, no masculino: "Preta" e "Preto" são o mesmo valor do atributo.
 const FEMININE_TO_MASCULINE: Record<string, string> = {
+  MARINHO: 'AZUL MARINHO',
   PRETA: 'PRETO',
   BRANCA: 'BRANCO',
   VERMELHA: 'VERMELHO',
@@ -223,7 +234,10 @@ export function parseVariant(name: string, rootSlug: string): ParsedVariant | nu
   const sizes = sizeTokens.map((token) => token.toUpperCase());
   const numeracao = sizes.find((size) => RANGE.test(size));
   const kids = sizes.find((size) => KIDS_SIZE.test(size));
-  const tamanho = sizes.filter((size) => !RANGE.test(size) && !KIDS_SIZE.test(size)).join(' ');
+  const tamanho = sizes
+    .filter((size) => !RANGE.test(size) && !KIDS_SIZE.test(size))
+    .map((size) => BABY_LOOK[size] ?? size)
+    .join(' ');
   return {
     baseName,
     attributes: {
