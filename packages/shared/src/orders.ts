@@ -208,3 +208,15 @@ export const orderCancelBodySchema = z.object({
   reason: z.string().trim().min(3, 'Diga o motivo').max(255),
 });
 export type OrderCancelBody = z.infer<typeof orderCancelBodySchema>;
+
+// ── Conferência do carrinho ────────────────────────────────────────────────────
+export const cartCheckBodySchema = z.object({ items: z.array(cartLineSchema).min(1).max(100) });
+export const cartCheckLineSchema = z.object({
+  sku_id: z.string().uuid(),
+  /** O SKU ainda está à venda (ativo, com preço e produto publicado). */
+  valid: z.boolean(),
+  price_cents: z.number().int().nullable(),
+  available: z.number().int(),
+});
+export type CartCheckLine = z.infer<typeof cartCheckLineSchema>;
+export const cartCheckResponseSchema = dataResponse(z.array(cartCheckLineSchema));

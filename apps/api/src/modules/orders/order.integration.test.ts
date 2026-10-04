@@ -187,7 +187,7 @@ describe('orders (integration — requires a live DATABASE_URL)', () => {
     expect((await webhook(`evt-unknown-${run}`, unknown)).statusCode).toBe(404);
   });
 
-  it('charges a card on the spot: approved goes straight to paid, declined stays pending', async () => {
+  it('charges a card on the spot: approved goes straight to paid, declined creates nothing', async () => {
     await setStock(5);
     const approved = (
       await checkout(
@@ -198,11 +198,21 @@ describe('orders (integration — requires a live DATABASE_URL)', () => {
     expect(approved.payment.details.last4).toBe('4242');
     expect(approved.discount_cents).toBe(0); // desconto de 5% é só do Pix
 
-    const declined = (
-      await checkout(body({ payment: { method: 'card', card_token: 'mock_tok_declined_0002' } }))
-    ).json().data;
-    expect(declined.payment.status).toBe('declined');
-    expect(declined.payment_status).toBe('pending');
+    // Cartão recusado: nada é criado (sem pedido e sem reserva), e a mesma chave serve para tentar de novo.
+    const key = randomUUID();
+    const declined = await checkout(
+      body({ payment: { method: 'card', card_token: 'mock_tok_declined_0002' } }),
+      key
+    );
+    expect(declined.statusCode).toBe(400);
+    expect(declined.json().message).toContain('recusado');
+    expect(await prisma.order.count({ where: { idempotency_key: key } })).toBe(0);
+    expect((await level()).reserved).toBe(1); // só o pedido aprovado acima
+    const retry = await checkout(
+      body({ payment: { method: 'card', card_token: 'mock_tok_approved_4242' } }),
+      key
+    );
+    expect(retry.statusCode).toBe(201);
     expect((await checkout(body({ payment: { method: 'card' } }))).statusCode).toBe(400);
     expect(
       (await checkout(body({ payment: { method: 'card', card_token: '4111111111111111' } })))

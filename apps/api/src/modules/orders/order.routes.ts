@@ -1,4 +1,6 @@
 import {
+  cartCheckBodySchema,
+  cartCheckResponseSchema,
   checkoutBodySchema,
   checkoutHeadersSchema,
   couponCheckBodySchema,
@@ -11,7 +13,6 @@ import {
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-
 import {
   checkoutController,
   couponCheckController,
@@ -21,6 +22,7 @@ import {
   orderByIdController,
   simulatePaymentController,
 } from './order.controller';
+import { checkCart } from './order.service';
 
 const tags = ['Pedidos'];
 const CHECKOUT_RATE_LIMIT = { max: 10, timeWindow: '1 minute' };
@@ -43,6 +45,19 @@ export async function storeOrderRoutes(fastify: FastifyInstance): Promise<void> 
       },
     },
     checkoutController
+  );
+  app.post(
+    '/cart/check',
+    {
+      config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
+      schema: {
+        tags,
+        summary: 'Confere os itens do carrinho: à venda, preço atual e quantidade disponível',
+        body: cartCheckBodySchema,
+        response: { 200: cartCheckResponseSchema },
+      },
+    },
+    async (request) => ({ data: await checkCart(request.body.items) })
   );
   app.get(
     '/orders/:order_id',

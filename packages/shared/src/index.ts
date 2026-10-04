@@ -2,6 +2,7 @@ export * from './attributes';
 export * from './audit';
 export * from './auth';
 export * from './brands';
+export * from './card-token';
 export * from './catalog';
 export * from './common';
 export * from './customers';

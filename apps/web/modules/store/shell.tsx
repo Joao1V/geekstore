@@ -21,6 +21,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Dialog, Quantity } from '@/components/ui';
 import { getMascot } from '@/lib/mascot';
 import { AccountLinks } from './account-links';
+import { useCartSync } from './cart-sync';
 import { CustomerSessionBootstrap } from './customer-session';
 import { formatBRL } from './lib/money';
 import { ProductImage } from './product-image';
@@ -98,6 +99,12 @@ export function Shell({
     observer.observe(header);
     return () => observer.disconnect();
   }, []);
+
+  // Página nova abre no topo (o scroll suave do CSS fazia a nova página aparecer rolada no meio).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: path só dispara a rolagem ao trocar de página.
+  useEffect(() => {
+    if (!window.location.hash) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [path]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: path isn't read here, it's only the trigger to close menu/search on route change.
   useEffect(() => {
@@ -306,6 +313,7 @@ export function ShippingProgress({ total }: { total: number }) {
 
 export function CartDialog() {
   const store = useCartStore();
+  useCartSync(store.cartOpen);
   const totalCents = store.lines.reduce((sum, line) => sum + line.price_cents * line.qty, 0);
   return (
     <Dialog open={store.cartOpen} onChange={store.setCartOpen} title="Seu carrinho">

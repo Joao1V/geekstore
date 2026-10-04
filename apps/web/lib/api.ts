@@ -18,6 +18,8 @@ export type ApiParams = Record<string, ParamValue | ParamValue[]>;
 export type ApiRequestOptions = {
   params?: ApiParams;
   accessToken?: string | null;
+  /** Cabeçalhos extras (ex.: `Idempotency-Key` do checkout). */
+  headers?: Record<string, string>;
 } & Pick<RequestInit, 'cache' | 'next' | 'signal'>;
 
 type ApiErrorBody = {
@@ -97,8 +99,8 @@ async function request(
   body?: unknown,
   options: ApiRequestOptions = {}
 ): Promise<unknown> {
-  const { params, accessToken, ...init } = options;
-  const headers = new Headers();
+  const { params, accessToken, headers: extraHeaders, ...init } = options;
+  const headers = new Headers(extraHeaders);
   // Content-Type só com corpo: o Fastify rejeita JSON declarado com body vazio (ex.: /refresh).
   if (body !== undefined) headers.set('Content-Type', 'application/json');
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);

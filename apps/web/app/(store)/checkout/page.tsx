@@ -1,4 +1,4 @@
-import { Checkout } from '@/modules/store/checkout';
+import { Checkout } from '@/modules/store/checkout/checkout';
 
 export const metadata = { title: 'Checkout', robots: { index: false, follow: false } };
 

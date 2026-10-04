@@ -1,3 +1,4 @@
+import type { CartCheckLine } from '@geekstore/shared';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -31,6 +32,8 @@ type CartState = {
   hasHydrated: boolean;
   add: (item: CartItem, qty?: number) => boolean;
   quantity: (skuId: string, qty: number) => void;
+  /** Acerta o carrinho com o que o servidor diz (item sumiu, preço mudou, estoque caiu). Devolve o que mudou. */
+  reconcile: (checks: CartCheckLine[]) => { removed: number; adjusted: number };
   clear: () => void;
   favorite: (productId: string) => void;
   addRecentSearch: (term: string) => void;
@@ -89,6 +92,26 @@ export const useCartStore = create<CartState>()(
             ),
           };
         }),
+      reconcile: (checks) => {
+        const byId = new Map(checks.map((check) => [check.sku_id, check]));
+        let removed = 0;
+        let adjusted = 0;
+        const lines = get().lines.flatMap((line) => {
+          const check = byId.get(line.sku_id);
+          if (!check) return [line];
+          if (!check.valid || check.available <= 0) {
+            removed += 1;
+            return [];
+          }
+          const qty = Math.min(line.qty, check.available);
+          const price = check.price_cents ?? line.price_cents;
+          if (qty !== line.qty || price !== line.price_cents || check.available !== line.max)
+            adjusted += 1;
+          return [{ ...line, qty, price_cents: price, max: check.available }];
+        });
+        if (removed > 0 || adjusted > 0) set({ lines });
+        return { removed, adjusted };
+      },
       clear: () => set({ lines: [] }),
       favorite: (productId) =>
         set((state) => ({

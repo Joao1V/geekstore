@@ -1,5 +1,10 @@
 import { Prisma, prisma } from '@geekstore/db';
-import { type CheckoutBody, type Order, PIX_DISCOUNT_PERCENT } from '@geekstore/shared';
+import {
+  type CartCheckLine,
+  type CheckoutBody,
+  type Order,
+  PIX_DISCOUNT_PERCENT,
+} from '@geekstore/shared';
 
 import { BadRequestError, ConflictError, NotFoundError } from '../../core/_errors';
 import { paymentProvider, ttlMinutesOf } from '../payments/payment-provider';
@@ -154,6 +159,12 @@ export async function createOrder({
         installments: payment.installments,
         cardToken: payment.card_token,
       });
+      // Cartão recusado: a compra inteira é desfeita (sem pedido, sem reserva); o cliente tenta de novo.
+      if (charge.status === 'declined') {
+        throw new BadRequestError(
+          'Pagamento recusado. Confira os dados do cartão ou escolha outra forma de pagamento.'
+        );
+      }
       const created = await tx.payment.create({
         data: {
           order_id: order.order_id,
@@ -180,6 +191,20 @@ export async function createOrder({
     }
     throw error;
   }
+}
+
+/** Confere cada item do carrinho: ainda está à venda, por quanto e quantos há. Nunca falha por item ruim. */
+export async function checkCart(items: readonly { sku_id: string }[]): Promise<CartCheckLine[]> {
+  const skus = await loadCartSkus(items.map((item) => item.sku_id));
+  return items.map(({ sku_id }) => {
+    const sku = skus.get(sku_id);
+    return {
+      sku_id,
+      valid: Boolean(sku),
+      price_cents: sku?.price_cents ?? null,
+      available: sku?.available ?? 0,
+    };
+  });
 }
 
 /** Pedido pelo identificador (o UUID é o "segredo" de quem comprou sem conta). */
