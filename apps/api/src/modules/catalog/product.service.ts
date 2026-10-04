@@ -9,10 +9,10 @@ import {
   type ProductUpdateBody,
   productSortFields,
 } from '@geekstore/shared';
-
 import { BadRequestError, ConflictError, NotFoundError } from '../../core/_errors';
 import { writeAuditLog, writeAuditLogs } from '../../core/audit';
 import { buildMeta, parseSort, skipTake } from '../../core/http/pagination';
+import { allocateProductCode, skuSuffix, withSuffix } from './auto-codes';
 import { toProductDetail, toProductListItem, toSku } from './catalog.mappers';
 import { categoryScope } from './category.service';
 import { findProductIds, needsSqlQuery } from './product-list-query';
@@ -146,25 +146,28 @@ export async function assertSkuCodesAvailable(
 
 /** Cria produto + SKUs numa só transação (RF-CAT-04), com auditoria de cada entidade. */
 export async function createProduct(actorId: string, body: ProductBody): Promise<ProductDetail> {
-  const { skus, ...productData } = body;
+  const { skus, code: givenCode, ...productData } = body;
 
   return prisma.$transaction(async (tx) => {
     await assertCategoryExists(tx, productData.category_id);
     await assertSlugAvailable(tx, productData.slug);
-    await assertProductCodeAvailable(tx, productData.code);
-    await assertSkuCodesAvailable(
-      tx,
-      skus.map((sku) => sku.code)
-    );
+    // Sem código informado, o servidor numera: produto TIPO-NNNNN e SKUs com o sufixo das variações.
+    const suffixes = await Promise.all(skus.map((sku) => skuSuffix(tx, sku.attributes)));
+    const code = givenCode ?? (await allocateProductCode(tx, productData.category_id, suffixes));
+    const skuCodes = skus.map((sku, index) => sku.code ?? withSuffix(code, suffixes[index] ?? ''));
+    await assertProductCodeAvailable(tx, code);
+    await assertSkuCodesAvailable(tx, skuCodes);
 
     const resolvedBySku = await Promise.all(
       skus.map((sku) => resolveAttributes(tx, productData.category_id, sku.attributes))
     );
-    const product = await tx.product.create({ data: productData });
+    const product = await tx.product.create({ data: { ...productData, code } });
     const initialContext = await loadInitialContext(tx);
     for (const [index, sku] of skus.entries()) {
-      const { attributes: _attributes, price_cents, initial_stock, ...fields } = sku;
-      const row = await tx.sku.create({ data: { ...fields, product_id: product.product_id } });
+      const { attributes: _attributes, price_cents, initial_stock, code: _code, ...fields } = sku;
+      const row = await tx.sku.create({
+        data: { ...fields, code: skuCodes[index] as string, product_id: product.product_id },
+      });
       await replaceSkuAttributes(tx, row.sku_id, resolvedBySku[index] ?? []);
       await applyInitialValues(
         tx,

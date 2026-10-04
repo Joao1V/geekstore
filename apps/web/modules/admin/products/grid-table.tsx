@@ -112,7 +112,9 @@ function GridRow({
                 fieldState={fieldState}
                 label="Código do SKU"
                 hideLabel
+                required={false}
                 disabled={isExisting}
+                placeholder={isExisting ? undefined : 'Automático'}
                 maxLength={64}
               />
             )}

@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
-
+import {
+  formatBaseCode,
+  numberOfBaseCode,
+  skuCodeOf,
+  variantSuffix,
+} from '../../catalog/sku-codes';
 import { type ErpRow, erpRowSchema } from '../erp/erp-row';
 import { buildPlan } from '../erp/plan';
 import { normalizedCatalogSchema } from './catalog-file';
 import { detectFranchise } from './franchise';
 import { normalizePlan } from './normalize';
-import { formatBaseCode, numberOfBaseCode, skuCodeOf, variantSuffix } from './sku-codes';
 import { plainUpper } from './text';
 
 const NOW = new Date('2026-10-04T12:00:00Z');

@@ -15,7 +15,7 @@ export function numberOfBaseCode(type: string, code: string): number | null {
 }
 
 // Ordem dos sufixos: cor primeiro, depois o que mede (tamanho, numeração, peso...).
-const SUFFIX_ORDER = [
+export const SUFFIX_ORDER = [
   'cor',
   'edicao',
   'tamanho',
@@ -40,3 +40,13 @@ export const skuCodeOf = (baseCode: string, attributes: Record<string, string>):
   const suffix = variantSuffix(attributes);
   return suffix ? `${baseCode}-${suffix}` : baseCode;
 };
+
+/** Junta sufixos já conhecidos (do banco) na ordem padrão; atributo fora da lista vai depois, em ordem alfabética. */
+export function joinSuffixes(suffixes: Readonly<Record<string, string>>): string {
+  const known = SUFFIX_ORDER.flatMap((code) => (suffixes[code] ? [sizePart(suffixes[code])] : []));
+  const rest = Object.keys(suffixes)
+    .filter((code) => !(SUFFIX_ORDER as readonly string[]).includes(code))
+    .sort()
+    .map((code) => sizePart(suffixes[code] as string));
+  return [...known, ...rest].join('-');
+}

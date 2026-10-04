@@ -116,6 +116,8 @@ const skuInitialFields = {
 export const skuBodySchema = z.object({
   ...skuFields,
   ...skuInitialFields,
+  /** Opcional: sem código, a API usa o código do produto mais o sufixo das variações. */
+  code: skuFields.code.optional(),
   ean: skuFields.ean.default(null),
   manufacturer_code: skuFields.manufacturer_code.default(null),
   attributes: skuFields.attributes.default({}),
@@ -233,7 +235,8 @@ const productFields = {
 
 export const productBodySchema = z.object({
   ...productFields,
-  code: productCodeSchema,
+  /** Opcional: sem código, a API gera o próximo da sequência do tipo (CNC-00042). */
+  code: productCodeSchema.optional(),
   description: productFields.description.default(null),
   brand_id: productFields.brand_id.default(null),
   status: productFields.status.default('draft'),

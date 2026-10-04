@@ -6,7 +6,6 @@ import {
   combinations,
   type GridAttributeDefinition,
   mergeGrid,
-  suggestProductCode,
   suggestSkuCode,
 } from './grid';
 
@@ -128,19 +127,5 @@ describe('axesFromSkus', () => {
       { attribute: 'tamanho', values: ['m', 'g'] },
     ]);
     expect(axesFromSkus([{ attributes: {} }])).toEqual([]);
-  });
-});
-
-describe('suggestProductCode', () => {
-  it('takes 3 letters from the first two meaningful words', () => {
-    expect(suggestProductCode('Camiseta Naruto Kunai')).toBe('CAM-NAR');
-    expect(suggestProductCode('Funko Pop! Pokémon Pikachu')).toBe('FUN-POP');
-    expect(suggestProductCode('Jogo de Tabuleiro Catan')).toBe('JOG-TAB');
-  });
-
-  it('copes with short, empty and accented names', () => {
-    expect(suggestProductCode('Uno')).toBe('UNO');
-    expect(suggestProductCode('   ')).toBe('');
-    expect(suggestProductCode('Ação & Aventura')).toBe('ACA-AVE');
   });
 });

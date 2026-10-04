@@ -1,11 +1,12 @@
 import { categoryNode } from '@geekstore/db';
 
+import { formatBaseCode, skuCodeOf } from '../../catalog/sku-codes';
 import type { CatalogPlan, PlannedItem } from '../erp/plan-types';
 import { slugify } from '../erp/text';
 import { restoreAccents } from './accents';
 import type { LegacyMapEntry, NormalizedCatalog, NormalizedProduct } from './catalog-file';
 import { detectFranchise } from './franchise';
-import { formatBaseCode, skuCodeOf } from './sku-codes';
+
 import { plainUpper } from './text';
 
 export type NormalizeOptions = {

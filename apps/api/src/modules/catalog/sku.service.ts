@@ -1,8 +1,8 @@
 import { type Prisma, prisma } from '@geekstore/db';
 import type { Sku, SkuBody } from '@geekstore/shared';
-
 import { BadRequestError, NotFoundError } from '../../core/_errors';
 import { writeAuditLog } from '../../core/audit';
+import { skuSuffix, withSuffix } from './auto-codes';
 import { toSku } from './catalog.mappers';
 import { assertSkuCodesAvailable } from './product.service';
 import type { SkuUpdateRequest } from './schemas/sku-update';
@@ -13,11 +13,12 @@ export async function createSku(actorId: string, productId: string, body: SkuBod
   return prisma.$transaction(async (tx) => {
     const product = await tx.product.findUnique({ where: { product_id: productId } });
     if (!product) throw new NotFoundError('Produto não encontrado.');
-    await assertSkuCodesAvailable(tx, [body.code]);
+    const code = body.code ?? withSuffix(product.code, await skuSuffix(tx, body.attributes));
+    await assertSkuCodesAvailable(tx, [code]);
     const { attributes, price_cents, initial_stock, ...fields } = body;
     const resolved = await resolveAttributes(tx, product.category_id, attributes);
 
-    const created = await tx.sku.create({ data: { ...fields, product_id: productId } });
+    const created = await tx.sku.create({ data: { ...fields, code, product_id: productId } });
     await replaceSkuAttributes(tx, created.sku_id, resolved);
     await applyInitialValues(
       tx,

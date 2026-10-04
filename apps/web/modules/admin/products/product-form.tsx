@@ -1,6 +1,6 @@
 'use client';
 
-import { type ProductDetail, suggestProductCode } from '@geekstore/shared';
+import type { ProductDetail } from '@geekstore/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { Archive, Save } from 'lucide-react';
@@ -152,11 +152,6 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
                     if (!isEditing && !dirtyFields.slug) {
                       setValue('slug', slugify(event.target.value), { shouldValidate: false });
                     }
-                    if (!isEditing && !dirtyFields.code) {
-                      setValue('code', suggestProductCode(event.target.value), {
-                        shouldValidate: false,
-                      });
-                    }
                   },
                 }}
                 fieldState={fieldState}
@@ -176,9 +171,11 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
                   description={
                     isEditing
                       ? 'O código é imutável.'
-                      : 'Base do SKU das variações. Ex.: CAM-NARUTO'
+                      : 'Deixe em branco: o sistema gera o próximo (ex.: CNC-00042).'
                   }
+                  required={false}
                   disabled={isEditing}
+                  placeholder={isEditing ? undefined : 'Automático'}
                   maxLength={40}
                 />
               )}

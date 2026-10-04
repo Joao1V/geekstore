@@ -58,6 +58,8 @@ export function suggestSkuCode(
       ?.values.find((candidate) => candidate.code === value)?.sku_suffix;
     return [toCodePart(suffix ?? value)];
   });
+  // Sem código do produto não há o que sugerir: o servidor gera o código do SKU junto com o do produto.
+  if (!productCode.trim()) return '';
   return [productCode.trim().toUpperCase(), ...parts].filter(Boolean).join('-');
 }
 
@@ -97,36 +99,4 @@ export function axesFromSkus(skus: readonly { attributes: GridCombination }[]): 
     }
   }
   return [...axes].map(([attribute, values]) => ({ attribute, values }));
-}
-
-const CODE_STOP_WORDS = new Set([
-  'A',
-  'O',
-  'AS',
-  'OS',
-  'E',
-  'DE',
-  'DA',
-  'DO',
-  'DAS',
-  'DOS',
-  'COM',
-  'PARA',
-  'EM',
-]);
-const CODE_WORDS = 2;
-const CODE_LETTERS = 3;
-
-/** "Camiseta Naruto Kunai" -> "CAM-NAR": 3 letras das duas primeiras palavras. Só uma sugestão. */
-export function suggestProductCode(name: string): string {
-  return name
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase()
-    .split(/\s+/)
-    .map((word) => word.replace(/[^A-Z0-9]/g, ''))
-    .filter((word) => word && !CODE_STOP_WORDS.has(word))
-    .slice(0, CODE_WORDS)
-    .map((word) => word.slice(0, CODE_LETTERS))
-    .join('-');
 }

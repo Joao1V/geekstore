@@ -28,7 +28,8 @@ const dimension = z
 const skuFormSchema = z.object({
   // null = SKU novo; o `code` de um SKU existente é imutável.
   sku_id: z.string().nullable(),
-  code: z.string().trim().min(1, 'Informe o código do SKU').max(64, 'No máximo 64 caracteres'),
+  // Vazio = o servidor gera (código do produto + sufixo das variações).
+  code: z.string().trim().max(64, 'No máximo 64 caracteres'),
   ean: z.string().regex(/^(\d{8,14})?$/, 'EAN/GTIN com 8 a 14 dígitos'),
   ncm: z.string().regex(/^(\d{8})?$/, 'NCM com 8 dígitos'),
   manufacturer_code: z.string().max(60, 'No máximo 60 caracteres'),
@@ -47,13 +48,16 @@ const skuFormSchema = z.object({
 
 export const productFormSchema = z
   .object({
+    // Vazio = o servidor numera (ex.: CNC-00042).
     code: z
       .string()
       .trim()
       .toUpperCase()
-      .min(1, 'Informe o código')
       .max(40, 'No máximo 40 caracteres')
-      .regex(CODE_PATTERN, 'Letras, números e hífen (ex.: CAM-NARUTO)'),
+      .refine(
+        (value) => value === '' || CODE_PATTERN.test(value),
+        'Letras, números e hífen (ex.: CAM-00042)'
+      ),
     name: z.string().trim().min(1, 'Informe o nome').max(255),
     slug: z.string().regex(SLUG_PATTERN, 'Use minúsculas, números e hífens'),
     category_id: z.string().min(1, 'Escolha a categoria'),
@@ -75,7 +79,7 @@ export const productFormSchema = z
   .superRefine((product, ctx) => {
     const codes = product.skus.map((sku) => sku.code.trim());
     product.skus.forEach((sku, index) => {
-      if (codes.indexOf(sku.code.trim()) !== index) {
+      if (sku.code.trim() !== '' && codes.indexOf(sku.code.trim()) !== index) {
         ctx.addIssue({
           code: 'custom',
           path: ['skus', index, 'code'],
@@ -178,7 +182,7 @@ function toSkuUpdateBody(sku: SkuFormValues): SkuUpdateBody {
 function toSkuBody(sku: SkuFormValues): SkuBody {
   const update = toSkuUpdateBody(sku);
   return {
-    code: sku.code.trim(),
+    code: sku.code.trim() || undefined,
     ean: update.ean ?? null,
     ncm: update.ncm ?? null,
     manufacturer_code: update.manufacturer_code ?? null,
@@ -211,7 +215,7 @@ export function toProductUpdateBody(values: ProductFormValues): ProductUpdateBod
 export function toProductBody(values: ProductFormValues): ProductBody {
   const base = toProductUpdateBody(values);
   return {
-    code: values.code.trim().toUpperCase(),
+    code: values.code.trim().toUpperCase() || undefined,
     category_id: values.category_id,
     name: values.name.trim(),
     slug: values.slug,
