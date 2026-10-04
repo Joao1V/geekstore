@@ -6,6 +6,7 @@ import { jwtPlugin } from '../core/plugins/jwt.plugin';
 import { auditRoutes } from '../modules/audit/audit.routes';
 import { catalogRoutes } from '../modules/catalog/catalog.routes';
 import { pricingRoutes } from '../modules/pricing/pricing.routes';
+import { purchasingRoutes } from '../modules/purchasing/receipt.routes';
 import { stockRoutes } from '../modules/stock/stock.routes';
 import { storefrontRoutes } from '../modules/storefront/storefront.routes';
 import { usersRoutes } from '../modules/users/users.routes';
@@ -24,6 +25,7 @@ export async function buildTestApp() {
   await app.register(jwtPlugin);
   await app.register(catalogRoutes, { prefix: '/api/catalog' });
   await app.register(stockRoutes, { prefix: '/api/stock' });
+  await app.register(purchasingRoutes, { prefix: '/api/purchasing' });
   await app.register(pricingRoutes, { prefix: '/api/pricing' });
   await app.register(usersRoutes, { prefix: '/api/users' });
   await app.register(storefrontRoutes, { prefix: '/api/store' });

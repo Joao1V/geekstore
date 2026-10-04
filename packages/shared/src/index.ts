@@ -8,6 +8,7 @@ export * from './duplicates';
 export * from './grid';
 export * from './money';
 export * from './pricing';
+export * from './purchasing';
 export * from './rbac';
 export * from './stock';
 export * from './storefront';

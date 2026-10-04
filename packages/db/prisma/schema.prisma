@@ -139,6 +139,104 @@ model Product {
 }
 
 // Unidade vendável (RF-CAT-02). Preço, estoque, anúncio e item de pedido apontam para cá.
+// ---------- Compras: nota de entrada (NF-e do fornecedor) que alimenta o estoque ----------
+
+enum PurchaseReceiptStatus {
+  draft
+  posted
+}
+
+enum ReceiptMatchMethod {
+  mapping
+  ean
+  manual
+}
+
+// Fornecedor (quem emite a nota de compra). O CNPJ, só dígitos, identifica.
+model Supplier {
+  supplier_id String   @id @default(uuid(7)) @db.Uuid
+  name        String   @db.VarChar(255)
+  document    String?  @unique @db.VarChar(14)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  receipts      PurchaseReceipt[]
+  supplier_skus SupplierSku[]
+
+  @@map("supplier")
+}
+
+// Nota de entrada. A chave de acesso (44 dígitos) é única: a mesma nota nunca é lançada duas vezes.
+// Rascunho não mexe no estoque; só `posted` (lançada) gera as entradas no livro-razão.
+model PurchaseReceipt {
+  purchase_receipt_id String                @id @default(uuid(7)) @db.Uuid
+  supplier_id         String?               @db.Uuid
+  number              String?               @db.VarChar(20)
+  series              String?               @db.VarChar(5)
+  access_key          String?               @unique @db.VarChar(44)
+  issued_at           DateTime?
+  total_cents         Int
+  location_id         String                @db.Uuid
+  status              PurchaseReceiptStatus @default(draft)
+  notes               String?               @db.Text
+  // XML original da NF-e, guardado para auditoria e reprocessamento.
+  xml                 String?               @db.Text
+  posted_at           DateTime?
+  posted_by           String?               @db.Uuid
+  created_by          String?               @db.Uuid
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+
+  supplier Supplier?             @relation(fields: [supplier_id], references: [supplier_id])
+  location Location              @relation(fields: [location_id], references: [location_id])
+  items    PurchaseReceiptItem[]
+
+  @@index([supplier_id])
+  @@index([status, created_at])
+  @@map("purchase_receipt")
+}
+
+model PurchaseReceiptItem {
+  purchase_receipt_item_id String              @id @default(uuid(7)) @db.Uuid
+  purchase_receipt_id      String              @db.Uuid
+  line                     Int
+  supplier_code            String?             @db.VarChar(60)
+  description              String              @db.VarChar(500)
+  ean                      String?             @db.VarChar(14)
+  ncm                      String?             @db.VarChar(8)
+  quantity                 Int
+  unit_cost_cents          Int
+  total_cost_cents         Int
+  sku_id                   String?             @db.Uuid
+  match_method             ReceiptMatchMethod?
+  // Item que não entra no estoque (frete, brinde, embalagem).
+  ignored                  Boolean             @default(false)
+
+  receipt PurchaseReceipt @relation(fields: [purchase_receipt_id], references: [purchase_receipt_id], onDelete: Cascade)
+  sku     Sku?            @relation(fields: [sku_id], references: [sku_id])
+
+  @@unique([purchase_receipt_id, line])
+  @@index([sku_id])
+  @@map("purchase_receipt_item")
+}
+
+// Memória do que já foi ligado: o código do fornecedor aponta para um SKU nosso, então a próxima nota
+// do mesmo fornecedor já vem casada.
+model SupplierSku {
+  supplier_sku_id String   @id @default(uuid(7)) @db.Uuid
+  supplier_id     String   @db.Uuid
+  supplier_code   String   @db.VarChar(60)
+  sku_id          String   @db.Uuid
+  created_at      DateTime @default(now())
+
+  supplier Supplier @relation(fields: [supplier_id], references: [supplier_id], onDelete: Cascade)
+  sku      Sku      @relation(fields: [sku_id], references: [sku_id], onDelete: Cascade)
+
+  @@unique([supplier_id, supplier_code])
+  @@index([sku_id])
+  @@map("supplier_sku")
+}
+
 // Contador de numeração dos códigos de SKU por tipo (CNC, CAM, FNK...). A numeração só avança: o
 // código nunca é reaproveitado, então dois produtos não podem receber o mesmo número (o UNIQUE de
 // `sku.code` é a trava final).
@@ -176,11 +274,13 @@ model Sku {
   created_at         DateTime  @default(now())
   updated_at         DateTime  @updatedAt
 
-  product          Product             @relation(fields: [product_id], references: [product_id])
-  merged_into      Sku?                @relation("SkuMerge", fields: [merged_into_sku_id], references: [sku_id])
-  merged_from      Sku[]               @relation("SkuMerge")
+  product          Product               @relation(fields: [product_id], references: [product_id])
+  merged_into      Sku?                  @relation("SkuMerge", fields: [merged_into_sku_id], references: [sku_id])
+  merged_from      Sku[]                 @relation("SkuMerge")
   media            Media[]
   stock_levels     StockLevel[]
+  receipt_items    PurchaseReceiptItem[]
+  supplier_skus    SupplierSku[]
   movements        StockMovement[]
   reservations     StockReservation[]
   prices           Price[]
@@ -262,6 +362,7 @@ model Location {
   stock_levels StockLevel[]
   movements    StockMovement[]
   reservations StockReservation[]
+  receipts     PurchaseReceipt[]
 
   @@map("location")
 }
