@@ -13,7 +13,7 @@ import type {
 } from '@geekstore/shared';
 
 import { NotFoundError } from '../../core/_errors';
-import { asUuid, matchesSearch } from '../../core/db/sql';
+import { asUuid, matchesSearch, matchesSearchFuzzy } from '../../core/db/sql';
 import { buildMeta, skipTake } from '../../core/http/pagination';
 import { categoryScope } from '../catalog/category.service';
 import {
@@ -28,11 +28,13 @@ const NEW_ARRIVALS = 12;
 const TOP_BRANDS = 10;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_IDS = 60;
+// Com menos resultados que isso, a busca também tenta palavras parecidas (erro de digitação).
+const FEW_RESULTS = 5;
 
 // ── Filtros ───────────────────────────────────────────────────────────────────
 
 /** Condições sobre `vis v` e `brand b`. Categoria e marca chegam como slug e viram ids antes. */
-async function buildWhere(filters: StoreFilters): Promise<Prisma.Sql | null> {
+async function buildWhere(filters: StoreFilters, fuzzy = false): Promise<Prisma.Sql | null> {
   const conditions: Prisma.Sql[] = [];
 
   if (filters.category) {
@@ -49,14 +51,20 @@ async function buildWhere(filters: StoreFilters): Promise<Prisma.Sql | null> {
     if (slugs.length > 0) conditions.push(Prisma.sql`b.slug IN (${Prisma.join(slugs)})`);
   }
   if (filters.q) {
-    conditions.push(Prisma.sql`(
+    const exact = Prisma.sql`(
       ${matchesSearch([Prisma.sql`v.name`, Prisma.sql`b.name`, Prisma.sql`v.code`], filters.q)}
       OR EXISTS (
         SELECT 1 FROM sku s
         WHERE s.product_id = v.product_id AND s.status = 'active'
           AND ${matchesSearch([Prisma.sql`s.code`], filters.q)}
       )
-    )`);
+    )`;
+    // Segunda tentativa: o exato OU palavras parecidas no nome ou na marca ("stich" -> "Stitch").
+    conditions.push(
+      fuzzy
+        ? Prisma.sql`(${exact} OR ${matchesSearchFuzzy([Prisma.sql`v.name`, Prisma.sql`b.name`], filters.q)})`
+        : exact
+    );
   }
   if (filters.price_min !== undefined)
     conditions.push(Prisma.sql`v.price_max >= ${filters.price_min}`);
@@ -150,13 +158,11 @@ async function loadCards(ids: string[]): Promise<StoreProductCard[]> {
   return ids.flatMap((id) => byId.get(id) ?? []);
 }
 
-export async function listStoreProducts(
-  query: StoreProductsQuery
-): Promise<Paginated<StoreProductCard>> {
-  const where = await buildWhere(query);
+async function fetchPage(
+  query: StoreProductsQuery,
+  where: Prisma.Sql
+): Promise<{ ids: string[]; total: number }> {
   const { skip, take } = skipTake(query.page, query.page_size);
-  if (where === null) return { data: [], meta: buildMeta(query.page, query.page_size, 0) };
-
   const [rows, totals] = await Promise.all([
     prisma.$queryRaw<{ product_id: string }[]>`
       WITH ${VISIBLE_PRODUCTS_ALL}
@@ -171,20 +177,33 @@ export async function listStoreProducts(
       FROM vis v LEFT JOIN brand b ON b.brand_id = v.brand_id
       ${where}`,
   ]);
+  return { ids: rows.map((row) => row.product_id), total: Number(totals[0]?.total ?? 0) };
+}
 
-  const total = Number(totals[0]?.total ?? 0);
-  const data = await loadCards(rows.map((row) => row.product_id));
-  return { data, meta: buildMeta(query.page, query.page_size, total) };
+export async function listStoreProducts(
+  query: StoreProductsQuery
+): Promise<Paginated<StoreProductCard>> {
+  const where = await buildWhere(query);
+  if (where === null) return { data: [], meta: buildMeta(query.page, query.page_size, 0) };
+
+  let found = await fetchPage(query, where);
+  if (found.total < FEW_RESULTS && query.q) {
+    // Poucos resultados (ou nenhum): tenta de novo tolerando erro de digitação, sem perder os exatos.
+    const fuzzyWhere = await buildWhere(query, true);
+    if (fuzzyWhere) {
+      const fuzzyFound = await fetchPage(query, fuzzyWhere);
+      if (fuzzyFound.total > found.total) found = fuzzyFound;
+    }
+  }
+  const data = await loadCards(found.ids);
+  return { data, meta: buildMeta(query.page, query.page_size, found.total) };
 }
 
 // ── Filtros da barra lateral ──────────────────────────────────────────────────
 
-/** Marcas e faixa de preço do que está listado (sem aplicar o próprio filtro de marca e preço). */
-export async function getStoreFacets(filters: StoreFilters): Promise<StoreFacets> {
-  const { brand: _brand, price_min: _min, price_max: _max, ...scope } = filters;
-  const where = await buildWhere(scope);
-  if (where === null) return { total: 0, brands: [], price_min_cents: null, price_max_cents: null };
+type Facets = StoreFacets;
 
+async function queryFacets(where: Prisma.Sql): Promise<Facets> {
   const [brands, range] = await Promise.all([
     prisma.$queryRaw<{ slug: string; name: string; product_count: number | bigint }[]>`
       WITH ${VISIBLE_PRODUCTS_ALL}
@@ -206,6 +225,21 @@ export async function getStoreFacets(filters: StoreFilters): Promise<StoreFacets
     price_min_cents: range[0]?.min ?? null,
     price_max_cents: range[0]?.max ?? null,
   };
+}
+
+/** Marcas e faixa de preço do que está listado (sem aplicar o próprio filtro de marca e preço). */
+export async function getStoreFacets(filters: StoreFilters): Promise<StoreFacets> {
+  const { brand: _brand, price_min: _min, price_max: _max, ...scope } = filters;
+  const where = await buildWhere(scope);
+  if (where === null) return { total: 0, brands: [], price_min_cents: null, price_max_cents: null };
+
+  const facets = await queryFacets(where);
+  if (facets.total >= FEW_RESULTS || !scope.q) return facets;
+  // Mesma segunda tentativa da listagem, para a barra lateral combinar com os produtos mostrados.
+  const fuzzyWhere = await buildWhere(scope, true);
+  if (!fuzzyWhere) return facets;
+  const fuzzyFacets = await queryFacets(fuzzyWhere);
+  return fuzzyFacets.total > facets.total ? fuzzyFacets : facets;
 }
 
 // ── Categorias e home ─────────────────────────────────────────────────────────

@@ -45,3 +45,47 @@ export function matchesSearch(columns: Prisma.Sql[], term: string): Prisma.Sql {
   });
   return Prisma.sql`(${Prisma.join(perToken, ' AND ')})`;
 }
+
+const MIN_FUZZY_LENGTH = 3;
+const SHORT_WORD = 4;
+const LENGTH_SLACK = 2;
+const SHORT_DISTANCE = 1;
+const LONG_DISTANCE = 2;
+
+/** As palavras de uma coluna, sem acento e em minúsculas: "Pelúcia Stitch 25cm" -> {pelucia, stitch, 25cm}. */
+const wordsOf = (column: Prisma.Sql): Prisma.Sql =>
+  Prisma.sql`unnest(string_to_array(regexp_replace(lower(unaccent(${column})), '[^a-z0-9]+', ' ', 'g'), ' ')) AS w(word)`;
+
+/**
+ * Busca tolerante a erro de digitação, para quando a busca exata não acha nada: cada palavra do termo
+ * precisa estar (por prefixo, ou a até 1 letra de distância se tiver até 4 letras, 2 se tiver mais) em
+ * alguma palavra de alguma das colunas. "stich peluzia" acha "Pelúcia Disney Stitch". Palavras com menos
+ * de 3 letras ficam exatas (distância 1 em 2 letras casaria com qualquer coisa). Precisa de `fuzzystrmatch`.
+ */
+export function matchesSearchFuzzy(columns: Prisma.Sql[], term: string): Prisma.Sql {
+  const tokens = term.split(/\s+/).map(compactText).filter(Boolean);
+  if (tokens.length === 0) return Prisma.sql`TRUE`;
+  const perToken = tokens.map((token) => {
+    if (token.length < MIN_FUZZY_LENGTH) {
+      return Prisma.sql`(${Prisma.join(
+        columns.map((column) => Prisma.sql`${compactColumn(column)} LIKE ${`%${token}%`}`),
+        ' OR '
+      )})`;
+    }
+    const distance = token.length <= SHORT_WORD ? SHORT_DISTANCE : LONG_DISTANCE;
+    return Prisma.sql`(${Prisma.join(
+      columns.map(
+        (column) => Prisma.sql`EXISTS (
+          SELECT 1 FROM ${wordsOf(column)}
+          WHERE w.word <> '' AND (
+            w.word LIKE ${`${token}%`}
+            OR (abs(length(w.word) - ${asInt(token.length)}) <= ${asInt(LENGTH_SLACK)}
+                AND levenshtein(w.word, ${token}) <= ${asInt(distance)})
+          )
+        )`
+      ),
+      ' OR '
+    )})`;
+  });
+  return Prisma.sql`(${Prisma.join(perToken, ' AND ')})`;
+}

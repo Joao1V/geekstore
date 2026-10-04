@@ -218,6 +218,22 @@ describe('storefront (integration — requires a live DATABASE_URL)', () => {
     expect(await names('q=naoexiste')).toEqual([]);
   });
 
+  it('forgives typos when the exact search finds nothing, in the list and in the facets', async () => {
+    const base = `/api/store/products?category=${categorySlug}`;
+    const slugs = async (qs: string) =>
+      (await get(`${base}&${qs}`)).body.data.map((p: { slug: string }) =>
+        p.slug.replace(`-${fx.suffix}`, '')
+      );
+    expect(await slugs('q=chaveyro')).toEqual(['st-barato']); // 1 letra trocada
+    expect(await slugs('q=chaveyro%20barto')).toEqual(['st-barato']); // as duas palavras com erro
+    expect(await slugs('q=xyzzyqq')).toEqual([]); // sem parecido nenhum
+    expect(await slugs('q=zz')).toEqual([]); // palavra curta continua exata
+
+    const facets = await get(`/api/store/products/facets?category=${categorySlug}&q=chaveyro`);
+    expect(facets.body.data.total).toBe(1);
+    expect(facets.body.data.price_min_cents).toBe(1500);
+  });
+
   it('returns nothing (not an error) for an unknown category', async () => {
     const { status, body } = await get('/api/store/products?category=nao-existe');
     expect(status).toBe(200);
