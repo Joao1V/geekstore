@@ -9,6 +9,7 @@ import { catalogRoutes } from '../modules/catalog/catalog.routes';
 import { customerRoutes } from '../modules/customers/customer.routes';
 import { pricingRoutes } from '../modules/pricing/pricing.routes';
 import { purchasingRoutes } from '../modules/purchasing/receipt.routes';
+import { shippingRoutes } from '../modules/shipping/shipping.routes';
 import { stockRoutes } from '../modules/stock/stock.routes';
 import { storefrontRoutes } from '../modules/storefront/storefront.routes';
 import { usersRoutes } from '../modules/users/users.routes';
@@ -30,6 +31,7 @@ export async function buildTestApp() {
   await app.register(stockRoutes, { prefix: '/api/stock' });
   await app.register(purchasingRoutes, { prefix: '/api/purchasing' });
   await app.register(customerRoutes, { prefix: '/api/customer' });
+  await app.register(shippingRoutes, { prefix: '/api/store/shipping' });
   await app.register(pricingRoutes, { prefix: '/api/pricing' });
   await app.register(usersRoutes, { prefix: '/api/users' });
   await app.register(storefrontRoutes, { prefix: '/api/store' });

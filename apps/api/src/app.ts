@@ -22,6 +22,7 @@ import { customerRoutes } from './modules/customers/customer.routes';
 import { healthPlugin } from './modules/health/health.plugin';
 import { pricingRoutes } from './modules/pricing/pricing.routes';
 import { purchasingRoutes } from './modules/purchasing/receipt.routes';
+import { shippingRoutes } from './modules/shipping/shipping.routes';
 import { stockRoutes } from './modules/stock/stock.routes';
 import { storefrontRoutes } from './modules/storefront/storefront.routes';
 import { usersRoutes } from './modules/users/users.routes';
@@ -81,6 +82,7 @@ export function buildApp() {
   app.register(stockRoutes, { prefix: '/api/stock' });
   app.register(purchasingRoutes, { prefix: '/api/purchasing' });
   app.register(customerRoutes, { prefix: '/api/customer' });
+  app.register(shippingRoutes, { prefix: '/api/store/shipping' });
   app.register(pricingRoutes, { prefix: '/api/pricing' });
   app.register(usersRoutes, { prefix: '/api/users' });
   app.register(storefrontRoutes, { prefix: '/api/store' });
