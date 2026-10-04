@@ -84,6 +84,7 @@ export function normalizePlan(plan: CatalogPlan, options: NormalizeOptions): Nor
     counters.set(type, next);
     const baseCode = formatBaseCode(type, next);
     const franchise = detectFranchise(plainUpper(first.name));
+    const displayName = cleanProductName(first.name);
 
     const skus = group.map((item) => {
       const code = skuCodeOf(baseCode, item.attributes);
@@ -124,8 +125,8 @@ export function normalizePlan(plan: CatalogPlan, options: NormalizeOptions): Nor
 
     products.push({
       code: baseCode,
-      name: cleanProductName(first.name),
-      slug: uniqueSlug(first.name, baseCode, seenSlugs),
+      name: displayName,
+      slug: uniqueSlug(displayName, baseCode, seenSlugs),
       description: first.description,
       category: first.categoryKey,
       brand: first.brandName,

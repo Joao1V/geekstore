@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@heroui/react';
-import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
   Droplets,
@@ -9,7 +8,6 @@ import {
   Menu,
   Moon,
   PackageCheck,
-  Search,
   ShieldCheck,
   ShoppingCart,
   Sun,
@@ -18,23 +16,19 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Dialog, Quantity } from '@/components/ui';
 import { getMascot } from '@/lib/mascot';
 import { formatBRL } from './lib/money';
 import { ProductImage } from './product-image';
-import { storeProductsQuery } from './services/catalog/queries';
 import { useCartStore } from './state/cart-store';
 import { StoreAlert } from './store-alert';
+import { StoreSearch } from './store-search';
 
 // Barra de categorias do cabeçalho: some ao descer mais que o limiar e volta ao subir.
 const NAV_SCROLL_THRESHOLD = 8;
 const NAV_ALWAYS_VISIBLE_Y = 80;
-const SUGGESTIONS = 4;
-const SEARCH_DEBOUNCE_MS = 250;
-const MIN_SEARCH_LENGTH = 2;
 
 export type NavCategory = { name: string; slug: string };
 
@@ -57,18 +51,6 @@ const BENEFITS = [
   },
 ];
 
-type SearchFormValues = { q: string };
-
-/** Valor que só muda depois de `delay` ms sem novas digitações (evita uma chamada por tecla). */
-function useDebounced<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debounced;
-}
-
 export function Shell({
   children,
   categories,
@@ -77,12 +59,8 @@ export function Shell({
   categories: NavCategory[];
 }) {
   const store = useCartStore();
-  const router = useRouter();
   const path = usePathname();
-  const { control, handleSubmit } = useForm<SearchFormValues>({ defaultValues: { q: '' } });
-  const search = useWatch({ control, name: 'q' });
   const [menu, setMenu] = useState(false);
-  const [focused, setFocused] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [navHidden, setNavHidden] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
@@ -122,21 +100,9 @@ export function Shell({
   // biome-ignore lint/correctness/useExhaustiveDependencies: path isn't read here, it's only the trigger to close menu/search on route change.
   useEffect(() => {
     setMenu(false);
-    setFocused(false);
   }, [path]);
 
   const count = store.lines.reduce((sum, line) => sum + line.qty, 0);
-  const term = useDebounced((search ?? '').trim(), SEARCH_DEBOUNCE_MS);
-  const { data: suggestions } = useQuery({
-    ...storeProductsQuery({ q: term, page_size: SUGGESTIONS }),
-    enabled: term.length >= MIN_SEARCH_LENGTH,
-  });
-  const results = suggestions?.data ?? [];
-
-  const submit = ({ q }: SearchFormValues) => {
-    setFocused(false);
-    router.push(`/catalogo/?q=${encodeURIComponent(q)}`);
-  };
 
   return (
     <>
@@ -163,77 +129,7 @@ export function Shell({
               priority
             />
           </Link>
-          <div className="relative min-w-[120px] flex-1 max-md:col-span-full max-md:row-start-2">
-            <form
-              onSubmit={handleSubmit(submit)}
-              className="flex h-[46px] items-center gap-2.5 rounded-[10px] bg-paper py-1 pr-[5px] pl-[15px] text-sm leading-normal font-semibold text-ink max-md:h-[41px]"
-            >
-              <Search size={20} />
-              <Controller
-                control={control}
-                name="q"
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    className="w-full border-0 bg-transparent focus-visible:outline-none!"
-                    aria-label="Buscar produtos"
-                    onFocus={() => setFocused(true)}
-                    onBlur={() => {
-                      field.onBlur();
-                      setTimeout(() => setFocused(false), 180);
-                    }}
-                    placeholder="Qual é o seu próximo universo?"
-                  />
-                )}
-              />
-              <Button
-                isIconOnly
-                type="submit"
-                aria-label="Pesquisar"
-                className="size-9 min-w-9 rounded-lg bg-geek-yellow text-ink"
-              >
-                <ArrowRight size={20} />
-              </Button>
-            </form>
-            {focused && search && (
-              <div className="absolute inset-x-0 top-[54px] z-[51] rounded-xl border border-border bg-surface p-[18px] text-foreground [box-shadow:0_20px_45px_#0003]">
-                <small className="text-xs tracking-[0.12em] text-muted">PRODUTOS</small>
-                {results.length ? (
-                  <>
-                    {results.map((p) => (
-                      <Link
-                        key={p.product_id}
-                        href={`/produto/${p.slug}/`}
-                        onClick={() => setFocused(false)}
-                        className="flex gap-3 border-b border-border py-3 text-sm font-extrabold"
-                      >
-                        <span className="block size-[45px] shrink-0 overflow-hidden rounded-[7px]">
-                          <ProductImage src={p.image_url} alt="" />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="line-clamp-2">{p.name}</span>
-                          <small className="mt-1 block text-xs text-muted">
-                            {formatBRL(p.price_cents)}
-                          </small>
-                        </span>
-                      </Link>
-                    ))}
-                    <Link
-                      href={`/catalogo/?q=${encodeURIComponent(search ?? '')}`}
-                      onClick={() => setFocused(false)}
-                      className="mt-3 block text-sm font-extrabold underline"
-                    >
-                      Ver todos os resultados
-                    </Link>
-                  </>
-                ) : term.length < MIN_SEARCH_LENGTH || !suggestions ? (
-                  <p className="text-sm text-muted">Buscando…</p>
-                ) : (
-                  <p className="text-sm">Nenhum produto. Tente “funko” ou “lego”.</p>
-                )}
-              </div>
-            )}
-          </div>
+          <StoreSearch />
           <nav className="flex gap-[18px] text-sm font-extrabold whitespace-nowrap max-tablet:gap-2.5 max-md:hidden">
             <Link href="/entrar/">Entrar</Link>
             <Link href="/cadastro/">Cadastre-se</Link>

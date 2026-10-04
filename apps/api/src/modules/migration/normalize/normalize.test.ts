@@ -114,6 +114,20 @@ describe('normalizePlan', () => {
     expect(mug?.skus[0]?.code).toBe('CNC-00001-100ML');
   });
 
+  it('keeps the ERP e-commerce marker out of the slug', () => {
+    const marked = [
+      ...rows,
+      row(50, 'CANECA TESTE 300ML E-COMMERCE', 'COLECIONÁVEL #', 'CANECA #'),
+    ];
+    const { catalog } = normalizePlan(buildPlan(marked, { now: NOW }), {
+      now: NOW,
+      sourceSha256: 'abc',
+      scope: ['canecas'],
+    });
+    const slugs = catalog.products.map((product) => product.slug);
+    expect(slugs.some((slug) => slug.includes('commerce'))).toBe(false);
+  });
+
   it('keeps the ERP link in a separate map', () => {
     const { legacyMap } = normalize();
     expect(legacyMap.find((entry) => entry.erp_code === '27176')?.sku_code).toMatch(/^CNC-/);
