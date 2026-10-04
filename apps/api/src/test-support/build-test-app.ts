@@ -7,6 +7,11 @@ import { jwtPlugin } from '../core/plugins/jwt.plugin';
 import { auditRoutes } from '../modules/audit/audit.routes';
 import { catalogRoutes } from '../modules/catalog/catalog.routes';
 import { customerRoutes } from '../modules/customers/customer.routes';
+import {
+  customerOrderRoutes,
+  storeOrderRoutes,
+  webhookRoutes,
+} from '../modules/orders/order.routes';
 import { pricingRoutes } from '../modules/pricing/pricing.routes';
 import { purchasingRoutes } from '../modules/purchasing/receipt.routes';
 import { shippingRoutes } from '../modules/shipping/shipping.routes';
@@ -32,6 +37,9 @@ export async function buildTestApp() {
   await app.register(purchasingRoutes, { prefix: '/api/purchasing' });
   await app.register(customerRoutes, { prefix: '/api/customer' });
   await app.register(shippingRoutes, { prefix: '/api/store/shipping' });
+  await app.register(storeOrderRoutes, { prefix: '/api/store' });
+  await app.register(customerOrderRoutes, { prefix: '/api/customer/orders' });
+  await app.register(webhookRoutes, { prefix: '/api/webhooks' });
   await app.register(pricingRoutes, { prefix: '/api/pricing' });
   await app.register(usersRoutes, { prefix: '/api/users' });
   await app.register(storefrontRoutes, { prefix: '/api/store' });

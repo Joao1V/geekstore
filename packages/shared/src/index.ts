@@ -9,6 +9,7 @@ export * from './documents';
 export * from './duplicates';
 export * from './grid';
 export * from './money';
+export * from './orders';
 export * from './pricing';
 export * from './purchasing';
 export * from './rbac';

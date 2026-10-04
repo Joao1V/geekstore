@@ -43,7 +43,7 @@ const optionalText = (max: number) =>
     .optional();
 
 /** CPF/CNPJ opcional: vazio vira `null`; preenchido precisa ser válido e é guardado só com dígitos. */
-const documentField = z
+export const documentField = z
   .string()
   .trim()
   .transform((value) => onlyDigits(value))
@@ -52,7 +52,7 @@ const documentField = z
   .nullable()
   .optional();
 
-const phoneField = z
+export const phoneField = z
   .string()
   .trim()
   .transform((value) => onlyDigits(value))

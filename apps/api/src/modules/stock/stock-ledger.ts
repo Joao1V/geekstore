@@ -76,3 +76,37 @@ export async function setOnHand(tx: LedgerTx, slot: Slot, target: number): Promi
     throw new ConflictError('O saldo físico não pode ficar abaixo da quantidade reservada.');
   }
 }
+
+/**
+ * Reserva: o disponível (`on_hand - reserved`) tem que cobrir a quantidade, conferido no próprio
+ * UPDATE. Zero linhas afetadas = sem saldo (ou par inexistente) e nada mudou.
+ */
+export async function reserveOnHand(tx: LedgerTx, slot: Slot, quantity: number): Promise<void> {
+  const affected = await tx.$executeRaw`
+    UPDATE stock_level
+    SET reserved = reserved + ${asInt(quantity)}, updated_at = ${utcNow}
+    WHERE sku_id = ${asUuid(slot.skuId)} AND location_id = ${asUuid(slot.locationId)}
+      AND on_hand - reserved >= ${asInt(quantity)}`;
+  if (affected === 0) throw new ConflictError('Saldo disponível insuficiente para reservar.');
+}
+
+/** Libera uma reserva (pedido cancelado ou expirado): `reserved` desce, `on_hand` não muda. */
+export async function releaseReserved(tx: LedgerTx, slot: Slot, quantity: number): Promise<void> {
+  const affected = await tx.$executeRaw`
+    UPDATE stock_level
+    SET reserved = reserved - ${asInt(quantity)}, updated_at = ${utcNow}
+    WHERE sku_id = ${asUuid(slot.skuId)} AND location_id = ${asUuid(slot.locationId)}
+      AND reserved >= ${asInt(quantity)}`;
+  if (affected === 0) throw new ConflictError('A reserva a liberar não existe mais.');
+}
+
+/** Expedição: a unidade sai de verdade (`on_hand` e `reserved` descem juntos). */
+export async function consumeReserved(tx: LedgerTx, slot: Slot, quantity: number): Promise<void> {
+  const affected = await tx.$executeRaw`
+    UPDATE stock_level
+    SET on_hand = on_hand - ${asInt(quantity)}, reserved = reserved - ${asInt(quantity)},
+        updated_at = ${utcNow}
+    WHERE sku_id = ${asUuid(slot.skuId)} AND location_id = ${asUuid(slot.locationId)}
+      AND reserved >= ${asInt(quantity)} AND on_hand >= ${asInt(quantity)}`;
+  if (affected === 0) throw new ConflictError('Não há reserva suficiente para expedir.');
+}

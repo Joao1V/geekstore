@@ -20,6 +20,11 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { catalogRoutes } from './modules/catalog/catalog.routes';
 import { customerRoutes } from './modules/customers/customer.routes';
 import { healthPlugin } from './modules/health/health.plugin';
+import {
+  customerOrderRoutes,
+  storeOrderRoutes,
+  webhookRoutes,
+} from './modules/orders/order.routes';
 import { pricingRoutes } from './modules/pricing/pricing.routes';
 import { purchasingRoutes } from './modules/purchasing/receipt.routes';
 import { shippingRoutes } from './modules/shipping/shipping.routes';
@@ -83,6 +88,9 @@ export function buildApp() {
   app.register(purchasingRoutes, { prefix: '/api/purchasing' });
   app.register(customerRoutes, { prefix: '/api/customer' });
   app.register(shippingRoutes, { prefix: '/api/store/shipping' });
+  app.register(storeOrderRoutes, { prefix: '/api/store' });
+  app.register(customerOrderRoutes, { prefix: '/api/customer/orders' });
+  app.register(webhookRoutes, { prefix: '/api/webhooks' });
   app.register(pricingRoutes, { prefix: '/api/pricing' });
   app.register(usersRoutes, { prefix: '/api/users' });
   app.register(storefrontRoutes, { prefix: '/api/store' });
