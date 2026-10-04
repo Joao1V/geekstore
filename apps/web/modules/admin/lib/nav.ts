@@ -6,6 +6,7 @@ import {
   Layers,
   type LucideIcon,
   Package,
+  ReceiptText,
   ScrollText,
   SlidersHorizontal,
   Tag,
@@ -70,6 +71,13 @@ export const ADMIN_NAV: AdminNavItem[] = [
     label: 'Estoque e preços',
     description: 'Grade de edição rápida e movimentações',
     icon: Warehouse,
+    permission: 'stock:read',
+  },
+  {
+    href: '/admin/notas/',
+    label: 'Notas de entrada',
+    description: 'Notas de compra (XML) que dão entrada no estoque',
+    icon: ReceiptText,
     permission: 'stock:read',
   },
   {
