@@ -75,7 +75,8 @@ async function main() {
 
 main()
   .catch((error: unknown) => {
-    console.error(error instanceof Error ? error.message : error);
+    const reason = (error as { details?: { reason?: string } } | null)?.details?.reason;
+    console.error(error instanceof Error ? error.message : error, reason ?? '');
     process.exitCode = 1;
   })
   .finally(() => prisma.$disconnect());

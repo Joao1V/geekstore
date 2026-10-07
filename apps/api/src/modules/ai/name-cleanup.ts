@@ -111,6 +111,13 @@ export function introducesNewNumber(original: string, suggested: string): boolea
   return [...numbersIn(suggested)].some((digits) => !before.has(digits));
 }
 
+const FATAL_STATUSES = new Set([400, 401, 403]);
+
+function isFatalAiError(error: unknown): boolean {
+  const details = (error as { details?: { status?: number } } | null)?.details;
+  return details?.status !== undefined && FATAL_STATUSES.has(details.status);
+}
+
 export type CleanupProgress = (done: number, total: number) => void;
 
 /**
@@ -131,8 +138,9 @@ export async function cleanupBatches(
   const suggestions: CleanupSuggestion[] = [];
   let skipped = 0;
   let next = 0;
+  let fatal: unknown = null;
   const worker = async () => {
-    while (next < batches.length) {
+    while (next < batches.length && !fatal) {
       const batch = batches[next++] as CleanupInput[];
       try {
         const parsed = parseCleanup(
@@ -143,11 +151,14 @@ export async function cleanupBatches(
         suggestions.push(...parsed);
         skipped += batch.length - parsed.length;
         onBatch?.(parsed);
-      } catch {
+      } catch (error) {
         skipped += batch.length;
+        // Chave inválida, sem crédito ou sem permissão: continuar só queimaria a fila inteira.
+        if (isFatalAiError(error)) fatal = error;
       }
     }
   };
   await Promise.all(Array.from({ length: Math.max(1, concurrency) }, worker));
+  if (fatal) throw fatal;
   return { suggestions, skipped };
 }

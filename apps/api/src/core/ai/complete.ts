@@ -35,6 +35,7 @@ export function createCompleter(maxTokens: number, modelOverride?: string): AiCo
       if (error instanceof Anthropic.APIError) {
         throw new ExternalApiError('A IA não respondeu agora. Tente de novo em instantes.', {
           status: error.status,
+          reason: error.message.slice(0, 300),
         });
       }
       throw error;
