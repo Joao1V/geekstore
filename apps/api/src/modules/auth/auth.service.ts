@@ -4,7 +4,11 @@ import { type AuthUser, roleCodeSchema, rolePermissions } from '@geekstore/share
 import { UnauthorizedError } from '../../core/_errors';
 import { envConfig } from '../../core/config';
 import { verifyPassword } from '../../core/security/password';
-import { generateOpaqueToken, hashOpaqueToken } from '../../core/security/tokens';
+import {
+  generateOpaqueToken,
+  hashOpaqueToken,
+  isWithinReuseGrace,
+} from '../../core/security/tokens';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -71,8 +75,10 @@ export async function rotateRefreshToken(
     throw new UnauthorizedError('Sessão inválida.');
   }
 
-  if (existing.revoked_at) {
-    // Token já revogado sendo apresentado de novo: sinal de reuso/roubo. Revoga tudo do usuário.
+  // Só token TROCADO há pouco tem a janela; revogado por logout ou por reuso não.
+  const withinGrace = existing.rotated_at !== null && isWithinReuseGrace(existing.rotated_at);
+  if (existing.revoked_at && !withinGrace) {
+    // Token revogado apresentado de novo, fora da janela de corrida entre abas: reuso/roubo. Revoga tudo.
     await prisma.refreshToken.updateMany({
       where: { user_id: existing.user_id, revoked_at: null },
       data: { revoked_at: new Date() },
@@ -84,10 +90,13 @@ export async function rotateRefreshToken(
     throw new UnauthorizedError('Sessão expirada.');
   }
 
-  await prisma.refreshToken.update({
-    where: { refresh_token_id: existing.refresh_token_id },
-    data: { revoked_at: new Date() },
-  });
+  if (!existing.revoked_at) {
+    const now = new Date();
+    await prisma.refreshToken.update({
+      where: { refresh_token_id: existing.refresh_token_id },
+      data: { revoked_at: now, rotated_at: now },
+    });
+  }
 
   const issued = await issueRefreshToken(existing.user_id);
   return { ...issued, user: toAuthUser(existing.user) };

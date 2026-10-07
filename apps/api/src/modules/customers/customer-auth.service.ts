@@ -4,7 +4,11 @@ import type { Customer, CustomerLoginBody, CustomerRegisterBody } from '@geeksto
 import { ConflictError, UnauthorizedError } from '../../core/_errors';
 import { envConfig } from '../../core/config';
 import { hashPassword, verifyPassword } from '../../core/security/password';
-import { generateOpaqueToken, hashOpaqueToken } from '../../core/security/tokens';
+import {
+  generateOpaqueToken,
+  hashOpaqueToken,
+  isWithinReuseGrace,
+} from '../../core/security/tokens';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -75,7 +79,9 @@ export async function rotateCustomerRefreshToken(
   });
   if (!existing) throw new UnauthorizedError('Sessão inválida.');
 
-  if (existing.revoked_at) {
+  // Só token TROCADO há pouco tem a janela; revogado por logout ou por reuso não.
+  const withinGrace = existing.rotated_at !== null && isWithinReuseGrace(existing.rotated_at);
+  if (existing.revoked_at && !withinGrace) {
     await prisma.customerRefreshToken.updateMany({
       where: { customer_id: existing.customer_id, revoked_at: null },
       data: { revoked_at: new Date() },
@@ -84,10 +90,13 @@ export async function rotateCustomerRefreshToken(
   }
   if (existing.expires_at < new Date()) throw new UnauthorizedError('Sessão expirada.');
 
-  await prisma.customerRefreshToken.update({
-    where: { customer_refresh_token_id: existing.customer_refresh_token_id },
-    data: { revoked_at: new Date() },
-  });
+  if (!existing.revoked_at) {
+    const now = new Date();
+    await prisma.customerRefreshToken.update({
+      where: { customer_refresh_token_id: existing.customer_refresh_token_id },
+      data: { revoked_at: now, rotated_at: now },
+    });
+  }
   return {
     ...(await issueRefreshToken(existing.customer_id)),
     customer: toCustomer(existing.customer),

@@ -3,6 +3,7 @@ import { prisma } from '@geekstore/db';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { hashOpaqueToken } from '../../core/security/tokens';
 import { buildTestApp } from '../../test-support/build-test-app';
 import { createUser } from '../../test-support/fixtures';
 
@@ -139,7 +140,22 @@ describe('customer account (integration — requires a live DATABASE_URL)', () =
     });
     expect(renewed.statusCode).toBe(200);
     expect(renewed.json().data.access_token).toBeTruthy();
-    // O cookie antigo já foi trocado: usar de novo é recusado (e derruba as sessões).
+    // Duas abas com o mesmo cookie ao mesmo tempo: o cookie recém-trocado ainda renova.
+    const sameMoment = await app.inject({
+      method: 'POST',
+      url: '/api/customer/auth/refresh',
+      headers: { cookie: refreshCookie },
+    });
+    expect(sameMoment.statusCode).toBe(200);
+    // Passada a janela, o cookie antigo é recusado (e derruba as sessões).
+    const token = decodeURIComponent(refreshCookie.split('=')[1] ?? '').split('.')[0] ?? '';
+    await prisma.customerRefreshToken.updateMany({
+      where: { token_hash: hashOpaqueToken(token) },
+      data: {
+        revoked_at: new Date(Date.now() - 60_000),
+        rotated_at: new Date(Date.now() - 60_000),
+      },
+    });
     const reused = await app.inject({
       method: 'POST',
       url: '/api/customer/auth/refresh',

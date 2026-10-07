@@ -30,6 +30,8 @@ model RefreshToken {
   token_hash       String    @unique @db.Char(64)
   expires_at       DateTime
   revoked_at       DateTime?
+  // Quando foi trocado por um novo (rotação). Só um token trocado ganha a janela de corrida entre abas.
+  rotated_at       DateTime?
   created_at       DateTime  @default(now())
 
   user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
@@ -166,6 +168,7 @@ model CustomerRefreshToken {
   token_hash                String    @unique @db.Char(64)
   expires_at                DateTime
   revoked_at                DateTime?
+  rotated_at                DateTime?
   created_at                DateTime  @default(now())
 
   customer Customer @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)

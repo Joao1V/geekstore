@@ -3,6 +3,7 @@ import { prisma } from '@geekstore/db';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { hashPassword } from '../../core/security/password';
+import { hashOpaqueToken } from '../../core/security/tokens';
 import {
   createSession,
   revokeRefreshToken,
@@ -59,7 +60,17 @@ describe('auth.service (integration — requires a live DATABASE_URL)', () => {
     expect(rotated.user.user_id).toBe(userId);
     expect(rotated.user.role).toBe('manager');
 
-    // Reusar o token antigo (já rotacionado) falha...
+    // Duas abas renovando juntas: o token recém-trocado ainda vale por alguns segundos.
+    await expect(rotateRefreshToken(first.token)).resolves.toBeDefined();
+
+    // Passada a janela, reusar o token antigo falha...
+    await prisma.refreshToken.updateMany({
+      where: { token_hash: hashOpaqueToken(first.token) },
+      data: {
+        revoked_at: new Date(Date.now() - 60_000),
+        rotated_at: new Date(Date.now() - 60_000),
+      },
+    });
     await expect(rotateRefreshToken(first.token)).rejects.toThrow();
 
     // ...e revoga em cascata o token novo também (proteção contra roubo/reuso de token).

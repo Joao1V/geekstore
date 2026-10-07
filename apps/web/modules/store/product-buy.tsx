@@ -210,9 +210,9 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
             )}
           </button>
           {images.length > 1 && (
-            <ul className="mt-4 flex flex-wrap gap-2.5">
+            <ul className="mt-4 flex flex-wrap gap-2.5 max-md:flex-nowrap max-md:overflow-x-auto max-md:pb-2">
               {images.map((image, index) => (
-                <li key={image.url}>
+                <li key={image.url} className="shrink-0">
                   <button
                     type="button"
                     aria-label={`Ver foto ${index + 1}`}

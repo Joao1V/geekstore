@@ -263,7 +263,7 @@ export function Account({ register = false }: { register?: boolean }) {
             {...getMascot('welcome')}
             width={400}
             height={475}
-            className="relative -mr-2.5 mt-2 min-h-[260px] w-full flex-1 object-contain object-bottom max-md:absolute max-md:right-0 max-md:-bottom-4 max-md:mt-0 max-md:h-[220px] max-md:min-h-0 max-md:w-[185px] max-md:flex-none"
+            className="relative -mr-2.5 mt-2 min-h-[260px] w-full flex-1 object-contain object-bottom max-md:absolute max-md:right-0 max-md:-bottom-4 max-md:mt-0 max-md:h-[170px] max-md:min-h-0 max-md:w-[140px] max-md:flex-none"
           />
         </div>
         <div className="bg-surface p-[42px] max-md:px-5 max-md:py-[25px]">
