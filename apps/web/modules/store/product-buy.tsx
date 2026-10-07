@@ -8,15 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
-import {
-  Action,
-  Dialog,
-  FieldInput,
-  LOW_STOCK_THRESHOLD,
-  Price,
-  Quantity,
-  ScarcityBadge,
-} from '@/components/ui';
+import { Action, Dialog, FieldInput, Price, Quantity, ScarcityBadge } from '@/components/ui';
 import { discountPercent, formatBRL, installmentPlan, pixCents } from './lib/money';
 import { ProductImage } from './product-image';
 import { useCartStore } from './state/cart-store';
@@ -329,7 +321,7 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
                   : 'Produto esgotado'
                 : available <= 0
                   ? 'Esgotado nesta combinação'
-                  : available <= LOW_STOCK_THRESHOLD
+                  : available === 1
                     ? ''
                     : `${available} disponíveis`}
             </small>
