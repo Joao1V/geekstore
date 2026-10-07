@@ -9,10 +9,22 @@ import type { CleanupInput } from '../modules/ai/name-cleanup';
 import { parseWebAnswer } from '../modules/ai/web-batches';
 
 async function main() {
-  const { values } = parseArgs({ options: { out: { type: 'string', default: '../../.temp' } } });
+  const { values } = parseArgs({
+    options: {
+      out: { type: 'string', default: '../../.temp' },
+      // Quem gerou: as respostas ficam em respostas/<source>/ e as sugestões em ia-resultados-<source>.jsonl
+      // (para comparar dois modelos antes de decidir). Sem --source, vai direto para ia-resultados.jsonl.
+      source: { type: 'string' },
+    },
+  });
   const root = resolve(values.out ?? '../../.temp');
   const dir = resolve(root, 'ia-web');
-  const answers = resolve(dir, 'respostas');
+  const answers = values.source
+    ? resolve(dir, 'respostas', values.source)
+    : resolve(dir, 'respostas');
+  const resultsName = values.source
+    ? `ia-resultados-${values.source}.jsonl`
+    : 'ia-resultados.jsonl';
   const franchises = await prisma.collection.findMany({
     where: { kind: 'franchise' },
     select: { slug: true, name: true },
@@ -36,7 +48,7 @@ async function main() {
       franchises
     );
     appendFileSync(
-      resolve(root, 'ia-resultados.jsonl'),
+      resolve(root, resultsName),
       suggestions.map((row) => `${JSON.stringify(row)}\n`).join('')
     );
     renameSync(resolve(answers, file), resolve(answers, file.replace(/\.txt$/, '.lido')));
@@ -46,7 +58,9 @@ async function main() {
         `${items.length - suggestions.length - unreadable} sem resposta ou recusadas (número inventado ou código que não estava no nome).`
     );
   }
-  console.log(`Total importado: ${total}. Agora rode: pnpm --filter api ai:apply`);
+  console.log(
+    `Total importado: ${total}. ${values.source ? 'Quando tiver os dois modelos: pnpm --filter api ai:compare' : 'Agora rode: pnpm --filter api ai:apply'}`
+  );
 }
 
 main()
