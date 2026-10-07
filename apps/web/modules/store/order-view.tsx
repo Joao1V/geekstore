@@ -1,4 +1,4 @@
-import { displayStatusLabels, type Order } from '@geekstore/shared';
+import { displayStatusLabels, maskPhone, type Order } from '@geekstore/shared';
 
 import { formatBRL } from './lib/money';
 import { ProductImage } from './product-image';
@@ -117,7 +117,7 @@ export function OrderView({ order }: { order: Order }) {
           <h2 className="mb-2 text-lg font-black">Contato</h2>
           <p className="m-0 text-sm">{order.contact.name}</p>
           <p className="m-0 text-sm">{order.contact.email}</p>
-          {order.contact.phone && <p className="m-0 text-sm">{order.contact.phone}</p>}
+          {order.contact.phone && <p className="m-0 text-sm">{maskPhone(order.contact.phone)}</p>}
           {order.cancel_reason && (
             <p className="mt-3 text-sm text-status-error">Cancelado: {order.cancel_reason}</p>
           )}
