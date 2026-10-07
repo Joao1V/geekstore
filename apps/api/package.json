@@ -13,6 +13,8 @@
     "import:erp": "tsx src/cli/import-erp.ts",
     "normalize:catalog": "tsx src/cli/normalize-catalog.ts",
     "import:catalog": "tsx src/cli/import-catalog.ts",
+    "link:legacy": "tsx src/cli/link-legacy.ts",
+    "export:depara": "tsx src/cli/export-depara.ts",
     "ai:sample": "tsx src/cli/ai-sample.ts",
     "ai:report": "tsx src/cli/ai-report.ts"
   },

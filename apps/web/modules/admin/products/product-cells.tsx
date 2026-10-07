@@ -14,6 +14,12 @@ export function SkuCell({ product }: { product: ProductListItem }) {
   return (
     <div className="grid justify-items-start gap-1">
       <code className={CODE_CHIP}>{first ?? '—'}</code>
+      {product.legacy_codes.length > 0 && (
+        <span className="muted text-2xs" title="Código na base antiga (ERP)">
+          ERP {product.legacy_codes.join(', ')}
+          {product.sku_count > product.legacy_codes.length ? '…' : ''}
+        </span>
+      )}
       {more > 0 && (
         <span className="muted text-2xs">
           +{more} {more === 1 ? 'variação' : 'variações'}
