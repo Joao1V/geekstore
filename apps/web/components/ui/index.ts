@@ -8,3 +8,4 @@ export * from './field-switch';
 export * from './field-textarea';
 export * from './price';
 export * from './quantity';
+export * from './scarcity-badge';

@@ -8,13 +8,20 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
-import { Action, Dialog, FieldInput, Price, Quantity } from '@/components/ui';
+import {
+  Action,
+  Dialog,
+  FieldInput,
+  LOW_STOCK_THRESHOLD,
+  Price,
+  Quantity,
+  ScarcityBadge,
+} from '@/components/ui';
 import { discountPercent, formatBRL, installmentPlan, pixCents } from './lib/money';
 import { ProductImage } from './product-image';
 import { useCartStore } from './state/cart-store';
 
 const OPTION_BUTTON = 'min-w-[43px] rounded-lg px-3 text-foreground';
-const LOW_STOCK_NOTICE = 3;
 
 type Selection = Record<string, string>;
 type FreightFormValues = { cep: string };
@@ -253,6 +260,11 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
               ? `SKU ${sku.code}`
               : `${product.skus.length} ${product.skus.length === 1 ? 'versão' : 'versões'} disponíveis`}
           </p>
+          {sku && (
+            <div className="mt-3">
+              <ScarcityBadge available={available} />
+            </div>
+          )}
           <div className="my-6">
             {onSale && (
               <del className="mb-2 block text-sm text-muted">
@@ -317,10 +329,8 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
                   : 'Produto esgotado'
                 : available <= 0
                   ? 'Esgotado nesta combinação'
-                  : available <= LOW_STOCK_NOTICE
-                    ? available === 1
-                      ? 'Última unidade'
-                      : `Últimas ${available} unidades`
+                  : available <= LOW_STOCK_THRESHOLD
+                    ? ''
                     : `${available} disponíveis`}
             </small>
           </div>

@@ -2,7 +2,7 @@ import type { StoreProductCard } from '@geekstore/shared';
 import { Truck } from 'lucide-react';
 import Link from 'next/link';
 
-import { Price } from '@/components/ui';
+import { Price, ScarcityBadge } from '@/components/ui';
 import { FavoriteButton } from './card-actions';
 import {
   discountPercent,
@@ -42,6 +42,11 @@ export function ProductCard({
         {!p.in_stock && (
           <span className="absolute top-3 left-3 rounded-md bg-ink px-2 py-1 text-2xs font-black text-white max-md:top-2 max-md:left-2">
             Esgotado
+          </span>
+        )}
+        {p.in_stock && (
+          <span className="absolute bottom-3 left-3 max-md:bottom-2 max-md:left-2">
+            <ScarcityBadge available={p.available} compact />
           </span>
         )}
         <FavoriteButton productId={p.product_id} name={p.name} />
