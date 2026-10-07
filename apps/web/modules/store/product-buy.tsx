@@ -64,7 +64,7 @@ export function Freight() {
         />
         <Action
           type="submit"
-          className="[--action-bg:var(--surface-secondary)] [--action-fg:var(--foreground)]"
+          className="shrink-0 whitespace-nowrap [--action-bg:var(--surface-secondary)] [--action-fg:var(--foreground)]"
         >
           Calcular
         </Action>

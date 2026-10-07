@@ -161,7 +161,7 @@ export function StoreSearch() {
                   </Link>
                 </>
               ) : term.length < MIN_SEARCH_LENGTH || !suggestions ? (
-                <p className="text-sm text-muted">Buscando…</p>
+                <SearchSkeleton />
               ) : (
                 <p className="text-sm">Nenhum produto. Tente “funko” ou “lego”.</p>
               )}
@@ -231,6 +231,25 @@ export function StoreSearch() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+const SKELETON_ROWS = ['first', 'second', 'third'];
+
+/** Linhas cinza pulsando no lugar dos resultados, no formato da linha real (foto + nome + preço). */
+function SearchSkeleton() {
+  return (
+    <div role="status" aria-label="Buscando produtos" className="animate-pulse">
+      {SKELETON_ROWS.map((row) => (
+        <div key={row} className="flex items-center gap-3 py-2">
+          <span className="block size-[45px] shrink-0 rounded-[7px] bg-surface-secondary" />
+          <span className="grid flex-1 gap-2">
+            <span className="h-3 w-4/5 rounded bg-surface-secondary" />
+            <span className="h-3 w-1/4 rounded bg-surface-secondary" />
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
