@@ -57,6 +57,8 @@ export function Freight() {
               }}
               fieldState={fieldState}
               label="CEP para cálculo de frete"
+              hideLabel
+              placeholder="Digite seu CEP"
               inputMode="numeric"
               maxLength={9}
             />
@@ -64,7 +66,7 @@ export function Freight() {
         />
         <Action
           type="submit"
-          className="shrink-0 whitespace-nowrap [--action-bg:var(--surface-secondary)] [--action-fg:var(--foreground)]"
+          className="h-10 min-h-0 shrink-0 self-start whitespace-nowrap [--action-bg:var(--surface-secondary)] [--action-fg:var(--foreground)]"
         >
           Calcular
         </Action>

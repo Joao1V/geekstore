@@ -15,6 +15,7 @@
     "import:catalog": "tsx src/cli/import-catalog.ts",
     "link:legacy": "tsx src/cli/link-legacy.ts",
     "export:depara": "tsx src/cli/export-depara.ts",
+    "consolidate:catalog": "tsx src/cli/consolidate-catalog.ts",
     "ai:export": "tsx src/cli/ai-export.ts",
     "ai:import": "tsx src/cli/ai-import.ts",
     "ai:compare": "tsx src/cli/ai-compare.ts",
