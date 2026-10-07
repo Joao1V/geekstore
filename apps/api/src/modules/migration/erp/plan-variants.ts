@@ -119,7 +119,9 @@ const BABY_LOOK: Record<string, string> = {
   BLG: 'Baby Look G',
 };
 const SIZE_LABELS = new Set(['TAMANHO', 'TAM', 'TAM.']);
-const RANGE = /^\d{2}\/\d{2}$/;
+const RANGE = /^\d{2}[/-]\d{2}$/;
+// Numeração de criança que o nome traz sem a palavra "Infantil" colada: só pares pequenos, no fim.
+const TRAILING_KIDS_SIZE = /^(?:0?[2468]|1[0246])$/;
 const KIDS_SIZE = /^\d{2}$/;
 // Cores de duas palavras primeiro, para "AZUL MARINHO" não virar "AZUL".
 const byWordCount = (list: string[]) =>
@@ -217,25 +219,38 @@ function parseGeneric(tokens: string[], rootSlug: string): ParsedVariant | null 
 /** "Camiseta Naruto Kunai Preto GG" -> base "Camiseta Naruto Kunai", cor Preto, tamanho GG. */
 export function parseVariant(name: string, rootSlug: string): ParsedVariant | null {
   const tokens = name
-    .replace(/#\d+/g, '')
+    .replace(/#\s*\d+/g, '')
+    // "36 a 38" é a mesma numeração que "36/38".
+    .replace(/\b(\d{2})\s+a\s+(\d{2})\b/gi, '$1/$2')
     .split(/\s+/)
     .filter((token) => token && !MODEL_CODE.test(token));
   if (rootSlug !== CLOTHING_ROOT) return parseGeneric(tokens, rootSlug);
-  const isKids = tokens.some((token) => token.toUpperCase() === 'INF');
-  const sizeTokens = tokens.filter((token) => isSize(token, isKids));
-  if (sizeTokens.length === 0) return null;
+
+  const upper = tokens.map((token) => token.toUpperCase());
+  const isKids = upper.some(
+    (token) => token === 'INF' || token === 'INFANTIL' || token === 'JUVENIL'
+  );
+  const lastIndex = tokens.length - 1;
+  // Posições que são tamanho: letras (P, GG), faixas (33/35) e números de criança (02, 6, 14).
+  const sizeAt = new Set<number>();
+  upper.forEach((token, i) => {
+    const afterLabel = i > 0 && SIZE_LABELS.has(upper[i - 1] ?? '') && /^\d{1,2}$/.test(token);
+    const trailing = i === lastIndex && i > 0 && TRAILING_KIDS_SIZE.test(token);
+    if (isSize(token, isKids) || afterLabel || trailing) sizeAt.add(i);
+  });
+  if (sizeAt.size === 0) return null;
 
   const withoutSize = tokens.filter(
-    (token) => !isSize(token, isKids) && !SIZE_LABELS.has(token.toUpperCase())
+    (token, i) => !sizeAt.has(i) && !SIZE_LABELS.has(token.toUpperCase())
   );
   const { rest, color } = takeColor(withoutSize);
   const baseName = rest.join(' ').trim();
   if (!baseName) return null;
-  const sizes = sizeTokens.map((token) => token.toUpperCase());
+  const sizes = [...sizeAt].map((i) => (upper[i] ?? '').replace('-', '/'));
   const numeracao = sizes.find((size) => RANGE.test(size));
-  const kids = sizes.find((size) => KIDS_SIZE.test(size));
+  const kids = sizes.find((size) => /^\d{1,2}$/.test(size));
   const tamanho = sizes
-    .filter((size) => !RANGE.test(size) && !KIDS_SIZE.test(size))
+    .filter((size) => !RANGE.test(size) && !/^\d{1,2}$/.test(size))
     .map((size) => BABY_LOOK[size] ?? size)
     .join(' ');
   return {

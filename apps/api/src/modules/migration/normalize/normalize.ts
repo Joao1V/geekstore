@@ -2,6 +2,7 @@ import { categoryNode } from '@geekstore/db';
 
 import { formatBaseCode, skuCodeOf } from '../../catalog/sku-codes';
 import type { CatalogPlan, PlannedItem } from '../erp/plan-types';
+import { parseVariant } from '../erp/plan-variants';
 import { slugify } from '../erp/text';
 import { restoreAccents } from './accents';
 import type { LegacyMapEntry, NormalizedCatalog, NormalizedProduct } from './catalog-file';
@@ -57,6 +58,32 @@ export const cleanProductName = (name: string): string =>
     .replace(/\s{2,}/g, ' ')
     .trim();
 
+const SIZE_ATTRIBUTES = ['tamanho', 'tamanho_infantil', 'numeracao'];
+
+/**
+ * Produto que sobrou com um tamanho só (as outras numerações não existem no ERP): o tamanho é
+ * atributo do SKU, não parte do título ("Pijama Starlit Azul Tamanho 6" -> "Pijama Starlit Azul").
+ */
+function titleOf(item: PlannedItem, group: readonly PlannedItem[]): string {
+  if (group.length > 1 || !SIZE_ATTRIBUTES.some((code) => code in item.attributes))
+    return item.name;
+  const parsed = parseVariant(item.name, categoryNode(item.categoryKey).rootSlug);
+  if (!parsed) return item.name;
+  const color = parsed.attributes.cor;
+  return color ? `${parsed.baseName} ${color}` : parsed.baseName;
+}
+
+/**
+ * Variações de uma cor só: a cor não é escolha do cliente, então volta ao nome do produto
+ * ("Pijama Starlit" + Azul -> "Pijama Starlit Azul"). O atributo continua no SKU.
+ */
+export function nameWithSharedColor(name: string, group: readonly PlannedItem[]): string {
+  const colors = new Set(group.map((item) => item.attributes.cor));
+  const [only] = [...colors];
+  if (group.length < 2 || colors.size !== 1 || !only) return name;
+  return plainUpper(name).includes(plainUpper(only)) ? name : `${name} ${only}`;
+}
+
 /** Itens do ERP já planejados (categorias, famílias, atributos) -> catálogo com SKUs sequenciais. */
 export function normalizePlan(plan: CatalogPlan, options: NormalizeOptions): NormalizeResult {
   const inScope = options.scope
@@ -84,7 +111,7 @@ export function normalizePlan(plan: CatalogPlan, options: NormalizeOptions): Nor
     counters.set(type, next);
     const baseCode = formatBaseCode(type, next);
     const franchise = detectFranchise(plainUpper(first.name));
-    const displayName = cleanProductName(first.name);
+    const displayName = nameWithSharedColor(cleanProductName(titleOf(first, group)), group);
 
     const skus = group.map((item) => {
       const code = skuCodeOf(baseCode, item.attributes);

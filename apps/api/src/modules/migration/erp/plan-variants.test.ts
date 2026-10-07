@@ -4,6 +4,7 @@ import { type ErpRow, erpRowSchema } from './erp-row';
 import { chunkByProduct } from './load-batch';
 import { buildPlan } from './plan';
 import type { PlannedItem } from './plan-types';
+import { parseVariant } from './plan-variants';
 import { familyPrefix, variantCode } from './sku-code';
 
 const NOW = new Date('2026-10-02T12:00:00Z');
@@ -179,5 +180,37 @@ describe('buildPlan: variations outside clothing', () => {
   it('keeps items apart when only some of them carry a colour', () => {
     const { items } = plan([item(90, 'PORTA LAPIS ROSA'), item(91, 'PORTA LAPIS ROSA GRANDE')]);
     expect(new Set(items.map((i) => i.productKey)).size).toBe(2);
+  });
+});
+
+describe('parseVariant: kids sizes, shoe ranges and loose numbers', () => {
+  const clothing = 'moda-geek';
+
+  it('reads "Tamanho N" as a kids size, with or without a leading zero', () => {
+    expect(parseVariant('Pijama Infantil Manga Curta Starlit Azul Tamanho 6', clothing)).toEqual({
+      baseName: 'Pijama Infantil Manga Curta Starlit',
+      attributes: { cor: 'Azul', tamanho_infantil: '6' },
+    });
+    expect(parseVariant('Pijama Infantil Manga Curta Starlit Azul Tamanho 06', clothing)).toEqual({
+      baseName: 'Pijama Infantil Manga Curta Starlit',
+      attributes: { cor: 'Azul', tamanho_infantil: '6' },
+    });
+  });
+
+  it('reads a trailing kids size without the word "Tamanho"', () => {
+    expect(parseVariant('Camiseta Infantil Star Wars Grogu 08', clothing)?.attributes).toEqual({
+      tamanho_infantil: '8',
+    });
+  });
+
+  it('reads the letter size and the shoe range in any of their spellings', () => {
+    const expected = { tamanho: 'P', numeracao: '33/35' };
+    for (const label of ['P 33/35', 'P 33-35', 'P 33 a 35']) {
+      expect(parseVariant(`Pantufa Cozy Mickey ${label}`, clothing)?.attributes).toEqual(expected);
+    }
+  });
+
+  it('does not take a model number in the middle of the name for a size', () => {
+    expect(parseVariant('Camiseta Dragon Ball 2000 Preto', clothing)).toBeNull();
   });
 });
