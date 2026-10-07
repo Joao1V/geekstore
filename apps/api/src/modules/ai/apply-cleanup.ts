@@ -4,6 +4,7 @@ import { v7 as uuidv7 } from 'uuid';
 
 import { slugify } from '../migration/erp/text';
 import type { CleanupSuggestion } from './name-cleanup';
+import { ruleClean } from './rule-clean';
 
 const BATCH = 500;
 /** Franquia nova só vira coleção se a IA a apontou em pelo menos tantos produtos (evita 1 coleção por item solto). */
@@ -68,6 +69,20 @@ export function planCleanup(
       }
     }
     if (row.removed_codes.length > 0) codes.set(product.product_id, row.removed_codes);
+  }
+  // Quem a IA não viu ainda ganha, ao menos, a limpeza mecânica dos códigos no fim do nome.
+  const answered = new Set(suggestions.map((row) => row.id));
+  for (const product of products) {
+    if (answered.has(product.product_id)) continue;
+    const cleaned = ruleClean(product.name);
+    if (!cleaned) continue;
+    renames.push({
+      product_id: product.product_id,
+      old_name: product.name,
+      name: cleaned.name,
+      slug: uniqueSlug(cleaned.name, product, takenSlugs),
+    });
+    codes.set(product.product_id, cleaned.removed);
   }
   return {
     renames,
