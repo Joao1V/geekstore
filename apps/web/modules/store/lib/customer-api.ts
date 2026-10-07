@@ -9,7 +9,8 @@ import { useCustomerStore } from '../state/customer-store';
 
 let refreshing: Promise<string> | null = null;
 
-function refreshAccessToken(): Promise<string> {
+/** Renova a sessão pelo cookie. Uma chamada só por vez: refresh rotativo revoga tudo se o mesmo token chegar duas vezes. */
+export function refreshAccessToken(): Promise<string> {
   refreshing ??= api
     .post<CustomerSession>('/api/customer/auth/refresh')
     .then((session) => {

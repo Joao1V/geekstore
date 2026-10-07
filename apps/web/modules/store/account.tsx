@@ -247,7 +247,7 @@ export function Account({ register = false }: { register?: boolean }) {
   return (
     <section className="wrap section">
       <div className="mx-auto grid max-w-[1040px] grid-cols-[1fr_1.05fr] overflow-hidden rounded-[22px] border-2 border-ink [box-shadow:8px_8px_var(--ink-shadow)] max-md:grid-cols-1">
-        <div className="relative min-h-[670px] overflow-hidden bg-geek-yellow p-[38px] text-ink max-md:min-h-[210px] max-md:p-[25px]">
+        <div className="relative flex flex-col overflow-hidden bg-geek-yellow p-[38px] pb-0 text-ink max-md:min-h-[210px] max-md:p-[25px]">
           <Link href="/" className="back-link max-md:mb-2.5">
             <ArrowLeft size={17} /> Voltar para a loja
           </Link>
@@ -261,9 +261,9 @@ export function Account({ register = false }: { register?: boolean }) {
           </h2>
           <Image
             {...getMascot('welcome')}
-            width={320}
-            height={380}
-            className="absolute -right-[5px] -bottom-[15px] h-[380px] w-[320px] object-contain max-md:right-0 max-md:-bottom-4 max-md:h-[220px] max-md:w-[185px]"
+            width={400}
+            height={475}
+            className="relative -mr-2.5 mt-2 min-h-[260px] w-full flex-1 object-contain object-bottom max-md:absolute max-md:right-0 max-md:-bottom-4 max-md:mt-0 max-md:h-[220px] max-md:min-h-0 max-md:w-[185px] max-md:flex-none"
           />
         </div>
         <div className="bg-surface p-[42px] max-md:px-5 max-md:py-[25px]">

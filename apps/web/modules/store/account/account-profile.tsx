@@ -1,6 +1,6 @@
 'use client';
 
-import { isValidDocument, onlyDigits } from '@geekstore/shared';
+import { isValidDocument, maskDocument, maskPhone, onlyDigits } from '@geekstore/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -32,8 +32,8 @@ export function AccountProfile() {
     resolver: zodResolver(schema),
     defaultValues: {
       name: customer?.name ?? '',
-      document: customer?.document ?? '',
-      phone: customer?.phone ?? '',
+      document: maskDocument(customer?.document ?? ''),
+      phone: maskPhone(customer?.phone ?? ''),
     },
   });
 
@@ -67,7 +67,10 @@ export function AccountProfile() {
           name="document"
           render={({ field, fieldState }) => (
             <FieldInput
-              field={field}
+              field={{
+                ...field,
+                onChange: (event) => field.onChange(maskDocument(event.target.value)),
+              }}
               fieldState={fieldState}
               label="CPF ou CNPJ"
               required={false}
@@ -80,7 +83,10 @@ export function AccountProfile() {
           name="phone"
           render={({ field, fieldState }) => (
             <FieldInput
-              field={field}
+              field={{
+                ...field,
+                onChange: (event) => field.onChange(maskPhone(event.target.value)),
+              }}
               fieldState={fieldState}
               label="Telefone"
               type="tel"

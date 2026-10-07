@@ -3,6 +3,8 @@
 import {
   type CheckoutBody,
   type CouponCheck,
+  maskDocument,
+  maskPhone,
   mockCardToken,
   onlyDigits,
   PIX_DISCOUNT_PERCENT,
@@ -92,8 +94,9 @@ export function Checkout() {
     if (!customer) return;
     if (!getValues('name')) setValue('name', customer.name);
     if (!getValues('email')) setValue('email', customer.email);
-    if (!getValues('phone') && customer.phone) setValue('phone', customer.phone);
-    if (!getValues('document') && customer.document) setValue('document', customer.document);
+    if (!getValues('phone') && customer.phone) setValue('phone', maskPhone(customer.phone));
+    if (!getValues('document') && customer.document)
+      setValue('document', maskDocument(customer.document));
   }, [customer, getValues, setValue]);
   useEffect(() => {
     const home = addresses?.find((address) => address.is_default) ?? addresses?.[0];
