@@ -217,4 +217,20 @@ describe('admin orders (integration — requires a live DATABASE_URL)', () => {
     expect((await call('GET', '/', customerToken)).statusCode).toBe(401);
     expect((await call('GET', '/999999999', owner)).statusCode).toBe(404);
   });
+
+  it('summarizes today, the states and the last 7 days for the dashboard', async () => {
+    const before = (await call('GET', '/summary', owner)).json().data;
+    const order = await paidOrder();
+    const response = await call('GET', '/summary', owner);
+    expect(response.statusCode).toBe(200);
+    const after = response.json().data;
+    expect(after.last_7_days).toHaveLength(7);
+    expect(after.today.orders).toBe(before.today.orders + 1);
+    expect(after.today.revenue_cents).toBeGreaterThan(before.today.revenue_cents);
+    expect(after.by_status.paid).toBe(before.by_status.paid + 1);
+    await call('POST', `/${order.number}/cancel`, owner, { reason: 'Teste' });
+    const cancelled = (await call('GET', '/summary', owner)).json().data;
+    expect(cancelled.by_status.cancelled).toBe(before.by_status.cancelled + 1);
+    expect((await call('GET', '/summary')).statusCode).toBe(401);
+  });
 });

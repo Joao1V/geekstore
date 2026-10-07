@@ -1,4 +1,9 @@
-import type { AdminOrderListQuery, AdminOrderSummary, Order } from '@geekstore/shared';
+import type {
+  AdminOrderListQuery,
+  AdminOrderSummary,
+  Order,
+  OrderDashboard,
+} from '@geekstore/shared';
 import { queryOptions } from '@tanstack/react-query';
 
 import { adminApi } from '../../lib/admin-api';
@@ -14,4 +19,10 @@ export const orderDetailQueryOptions = (number: number) =>
   queryOptions({
     queryKey: adminKeys.orderDetail(number),
     queryFn: () => adminApi.get<Order>(`/api/orders/${number}`),
+  });
+
+export const orderDashboardQueryOptions = () =>
+  queryOptions({
+    queryKey: [...adminKeys.orders, 'dashboard'] as const,
+    queryFn: () => adminApi.get<OrderDashboard>('/api/orders/summary'),
   });

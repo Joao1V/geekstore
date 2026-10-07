@@ -220,3 +220,17 @@ export const cartCheckLineSchema = z.object({
 });
 export type CartCheckLine = z.infer<typeof cartCheckLineSchema>;
 export const cartCheckResponseSchema = dataResponse(z.array(cartCheckLineSchema));
+
+// ── Painel: números dos pedidos (RF-ADM-05) ────────────────────────────────────
+export const orderDashboardSchema = z.object({
+  /** Pedidos pagos e não cancelados de hoje (horário de Brasília) e o que renderam. */
+  today: z.object({ orders: z.number().int(), revenue_cents: z.number().int() }),
+  /** Quantos pedidos há em cada estado que o cliente vê. */
+  by_status: z.record(displayStatusSchema, z.number().int()),
+  /** Vendas dos últimos 7 dias, do mais antigo ao de hoje. */
+  last_7_days: z.array(
+    z.object({ date: z.string(), orders: z.number().int(), revenue_cents: z.number().int() })
+  ),
+});
+export type OrderDashboard = z.infer<typeof orderDashboardSchema>;
+export const orderDashboardResponseSchema = dataResponse(orderDashboardSchema);

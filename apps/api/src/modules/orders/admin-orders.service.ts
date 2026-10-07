@@ -5,6 +5,7 @@ import type {
   DisplayStatus,
   Order,
   OrderCancelBody,
+  OrderDashboard,
   OrderShipBody,
   Paginated,
 } from '@geekstore/shared';
@@ -198,4 +199,44 @@ export async function cancelAdminOrder(
     });
     return toOrder(await loadByNumber(tx, number));
   });
+}
+
+const STORE_TIME_ZONE = 'America/Sao_Paulo';
+const DASHBOARD_DAYS = 7;
+
+/** Números do painel. "Hoje" e os dias do gráfico seguem o horário de Brasília, não o do servidor. */
+export async function getOrderDashboard(): Promise<OrderDashboard> {
+  const statuses = Object.keys(STATUS_FILTERS) as DisplayStatus[];
+  const counts = await Promise.all(
+    statuses.map((status) => prisma.order.count({ where: STATUS_FILTERS[status] }))
+  );
+  const days = await prisma.$queryRaw<{ day: string; orders: bigint; revenue: bigint | null }[]>`
+    WITH series AS (
+      SELECT generate_series(
+        (now() AT TIME ZONE ${STORE_TIME_ZONE})::date - ${DASHBOARD_DAYS - 1}::int,
+        (now() AT TIME ZONE ${STORE_TIME_ZONE})::date,
+        interval '1 day')::date AS day
+    )
+    SELECT to_char(s.day, 'YYYY-MM-DD') AS day,
+           COUNT(o.order_id) AS orders,
+           COALESCE(SUM(o.total_cents), 0) AS revenue
+    FROM series s
+    LEFT JOIN "order" o
+      ON (o.created_at AT TIME ZONE 'UTC' AT TIME ZONE ${STORE_TIME_ZONE})::date = s.day
+     AND o.status <> 'cancelled' AND o.payment_status <> 'pending'
+    GROUP BY s.day ORDER BY s.day`;
+  const last7 = days.map((row) => ({
+    date: row.day,
+    orders: Number(row.orders),
+    revenue_cents: Number(row.revenue ?? 0),
+  }));
+  const today = last7.at(-1) ?? { orders: 0, revenue_cents: 0 };
+  return {
+    today: { orders: today.orders, revenue_cents: today.revenue_cents },
+    by_status: Object.fromEntries(statuses.map((status, i) => [status, counts[i] ?? 0])) as Record<
+      DisplayStatus,
+      number
+    >,
+    last_7_days: last7,
+  };
 }

@@ -2,6 +2,7 @@ import {
   adminOrderListQuerySchema,
   adminOrderListResponseSchema,
   orderCancelBodySchema,
+  orderDashboardResponseSchema,
   orderParamsSchema,
   orderResponseSchema,
   orderShipBodySchema,
@@ -13,6 +14,7 @@ import { requirePermission } from '../../core/hooks';
 import {
   cancelAdminOrder,
   getAdminOrder,
+  getOrderDashboard,
   listAdminOrders,
   markDelivered,
   shipOrder,
@@ -39,6 +41,18 @@ export async function adminOrderRoutes(fastify: FastifyInstance): Promise<void> 
       },
     },
     async (request) => listAdminOrders(request.query)
+  );
+  app.get(
+    '/summary',
+    {
+      ...read,
+      schema: {
+        tags,
+        summary: 'Números do painel: vendas de hoje, pedidos por estado e os últimos 7 dias',
+        response: { 200: orderDashboardResponseSchema },
+      },
+    },
+    async () => ({ data: await getOrderDashboard() })
   );
   app.get(
     '/:number',

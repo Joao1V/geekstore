@@ -16,6 +16,7 @@ import { PageHeader } from '../ui/page-header';
 import { CatalogHealth } from './catalog-health';
 import { CategoryBars } from './category-bars';
 import { KpiCard } from './kpi-card';
+import { OrdersOverview } from './orders-overview';
 
 function DashboardSkeleton() {
   return (
@@ -33,6 +34,7 @@ function DashboardSkeleton() {
 export function AdminHome() {
   const user = useAdminAuthStore((state) => state.user);
   const canReadCatalog = Boolean(user?.permissions.includes('catalog:read'));
+  const canReadOrders = Boolean(user?.permissions.includes('orders:read'));
   const { data, isPending, error } = useQuery({
     ...catalogDashboardQueryOptions(),
     enabled: canReadCatalog,
@@ -50,6 +52,11 @@ export function AdminHome() {
   return (
     <>
       <PageHeader title={`Olá, ${user?.name.split(' ')[0] ?? 'bem-vindo'}`} />
+      {canReadOrders && (
+        <div className="mb-8">
+          <OrdersOverview />
+        </div>
+      )}
       {canReadCatalog && isPending && <DashboardSkeleton />}
       {error && (
         <p className="error" role="alert">
