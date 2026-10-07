@@ -19,11 +19,11 @@ async function main() {
   });
 
   const files = existsSync(answers)
-    ? readdirSync(answers).filter((name) => /^lote-\d+.*\.txt$/.test(name))
+    ? readdirSync(answers).filter((name) => /^lote-(\d+|todos).*\.txt$/.test(name))
     : [];
   let total = 0;
   for (const file of files.sort()) {
-    const label = /^lote-(\d+)/.exec(file)?.[1] ?? '';
+    const label = /^lote-(\d+|todos)/.exec(file)?.[1] ?? '';
     const mapPath = resolve(dir, `lote-${label}.map.json`);
     if (!existsSync(mapPath)) {
       console.log(`${file}: sem o lote-${label}.map.json, ignorado.`);

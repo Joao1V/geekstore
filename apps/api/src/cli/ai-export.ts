@@ -2,6 +2,7 @@
 // você anexa numa conversa; a resposta vai para um .txt e o ai:import lê.
 //
 //   pnpm --filter api ai:export --only noisy --per-file 250
+//   pnpm --filter api ai:export --only noisy --single      (um arquivo só, resposta em partes)
 //   pnpm --filter api ai:import
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -19,6 +20,7 @@ async function main() {
     options: {
       only: { type: 'string', default: 'noisy' },
       'per-file': { type: 'string', default: String(DEFAULT_PER_FILE) },
+      single: { type: 'boolean', default: false },
       out: { type: 'string', default: '../../.temp' },
     },
   });
@@ -45,7 +47,9 @@ async function main() {
   const pending = all
     .filter((row) => !done.has(row.product_id))
     .filter((row) => values.only === 'all' || CODE_LIKE.test(row.name));
-  const perFile = Math.max(20, Number(values['per-file']) || DEFAULT_PER_FILE);
+  const perFile = values.single
+    ? Math.max(1, pending.length)
+    : Math.max(20, Number(values['per-file']) || DEFAULT_PER_FILE);
 
   let count = 0;
   for (let start = 0; start < pending.length; start += perFile) {
@@ -53,8 +57,11 @@ async function main() {
     const items = pending
       .slice(start, start + perFile)
       .map((row) => ({ id: row.product_id, name: row.name, category: row.category }));
-    const label = String(count).padStart(3, '0');
-    writeFileSync(resolve(dir, `lote-${label}.md`), buildWebBatch(items, franchises, count));
+    const label = values.single ? 'todos' : String(count).padStart(3, '0');
+    writeFileSync(
+      resolve(dir, `lote-${label}.md`),
+      buildWebBatch(items, franchises, values.single ? 'todos' : count)
+    );
     writeFileSync(resolve(dir, `lote-${label}.map.json`), JSON.stringify(items));
   }
   console.log(`${pending.length} produtos em ${count} lotes (${perFile} por arquivo): ${dir}`);

@@ -14,11 +14,12 @@ const CONFIDENCE_WORDS = { alta: 'high', media: 'medium', média: 'medium', baix
 export function buildWebBatch(
   items: readonly CleanupInput[],
   franchises: readonly FranchiseOption[],
-  batchNumber: number
+  batchNumber: number | 'todos'
 ): string {
+  const label = typeof batchNumber === 'number' ? String(batchNumber).padStart(3, '0') : 'único';
   const known = franchises.map((franchise) => `${franchise.slug} (${franchise.name})`).join(', ');
   const lines = items.map((item, index) => `${index + 1} | ${item.category} | ${item.name}`);
-  return `# Lote ${String(batchNumber).padStart(3, '0')} — limpeza de nomes de produtos de uma loja geek
+  return `# Lote ${label} — limpeza de nomes de produtos de uma loja geek
 
 Você organiza o catálogo de uma loja de itens geek (colecionáveis, mangás, jogos, canecas, roupas). Para cada produto da lista no fim deste arquivo, devolva:
 
@@ -38,7 +39,7 @@ Responda **somente** com um bloco de código, **uma linha por produto, na mesma 
 2 | Outro nome | - | media | -
 \`\`\`
 
-Não pule nenhum número. Se a resposta ficar longa demais, pare numa linha completa e eu peço "continua".
+Não pule nenhum número. ${items.length > 400 ? `A lista é longa (${items.length} produtos): responda em partes de uns 300 produtos, pare numa linha completa ao fim de cada parte e espere eu escrever "continua"; então retome exatamente do número seguinte, sem repetir linhas e sem texto fora do bloco de código.` : 'Se a resposta ficar longa demais, pare numa linha completa e eu peço "continua".'}
 
 ## Produtos (número | categoria | nome)
 
