@@ -1,5 +1,6 @@
 'use client';
 
+import { maskCardExpiry, maskCardNumber } from '@geekstore/shared';
 import { type Control, Controller } from 'react-hook-form';
 
 import { FieldInput, FieldSelect } from '@/components/ui';
@@ -72,7 +73,10 @@ export function PaymentStep({
               name="card_number"
               render={({ field, fieldState }) => (
                 <FieldInput
-                  field={field}
+                  field={{
+                    ...field,
+                    onChange: (event) => field.onChange(maskCardNumber(event.target.value)),
+                  }}
                   fieldState={fieldState}
                   label="Número do cartão"
                   inputMode="numeric"
@@ -98,7 +102,10 @@ export function PaymentStep({
               name="card_expiry"
               render={({ field, fieldState }) => (
                 <FieldInput
-                  field={field}
+                  field={{
+                    ...field,
+                    onChange: (event) => field.onChange(maskCardExpiry(event.target.value)),
+                  }}
                   fieldState={fieldState}
                   label="Validade (MM/AA)"
                   inputMode="numeric"

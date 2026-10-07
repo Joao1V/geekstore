@@ -35,3 +35,18 @@ export function maskZip(value: string): string {
   const digits = onlyDigits(value).slice(0, 8);
   return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
 }
+
+const CARD_MAX_DIGITS = 19;
+
+/** Número do cartão em grupos de 4: 4242 4242 4242 4242. */
+export function maskCardNumber(value: string): string {
+  return onlyDigits(value)
+    .slice(0, CARD_MAX_DIGITS)
+    .replace(/(\d{4})(?=\d)/g, '$1 ');
+}
+
+/** Validade MM/AA. */
+export function maskCardExpiry(value: string): string {
+  const digits = onlyDigits(value).slice(0, 4);
+  return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+}

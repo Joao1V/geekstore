@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { maskDocument, maskPhone, maskZip } from './masks';
+import { maskCardExpiry, maskCardNumber, maskDocument, maskPhone, maskZip } from './masks';
 
 describe('maskDocument', () => {
   it('formats CPF while typing and CNPJ after 11 digits', () => {
@@ -28,5 +28,14 @@ describe('maskZip', () => {
     expect(maskZip('3014')).toBe('3014');
     expect(maskZip('30140071')).toBe('30140-071');
     expect(maskZip('30140-0719999')).toBe('30140-071');
+  });
+});
+
+describe('card masks', () => {
+  it('groups the number and formats the expiry', () => {
+    expect(maskCardNumber('4242424242424242')).toBe('4242 4242 4242 4242');
+    expect(maskCardNumber('42424')).toBe('4242 4');
+    expect(maskCardExpiry('1230')).toBe('12/30');
+    expect(maskCardExpiry('1')).toBe('1');
   });
 });
