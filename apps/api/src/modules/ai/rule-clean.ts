@@ -5,7 +5,7 @@
 export type RuleCleanResult = { name: string; removed: string[] };
 
 // Códigos da Mattel/Hot Wheels/Matchbox: três letras e dois dígitos, com sufixo opcional (HKH91-M7C5, GRT01).
-const MATTEL_CODE = /^[A-Z]{3}\d{2}(?:-[A-Z0-9]{3,6})?$/;
+const MATTEL_CODE = /^(?:[A-Z]{3}\d{2}(?:-[A-Z0-9]{3,6})?|[A-Z]{3}\d{1,2}[.-][A-Z]\d[A-Z]\d)$/;
 // Códigos de licenciados: pelo menos 3 letras e 3 dígitos, com sufixo opcional (DHNA9020-MK1, DQH070Y-TT1).
 const LICENSED_CODE =
   /^(?:[A-Z]{3,5}\d{3,}[A-Z0-9]*(?:-[A-Za-z0-9]{1,5})?|[A-Z]{4,5}\d{2,}[A-Z0-9]*(?:-[A-Za-z0-9]{1,5})?|[A-Z]{3}\d{2}[A-Z]-[A-Za-z0-9]{1,5})$/;
@@ -13,8 +13,8 @@ const LICENSED_CODE =
 const HASH_ALNUM = /^#(?=[A-Za-z0-9-]*[A-Za-z])(?=[A-Za-z0-9-]*\d)[A-Za-z0-9-]{3,}$/;
 // "#31127", "#1902": hashtag com número longo (nunca em LEGO).
 const HASH_NUMBER = /^#\d{4,}$/;
-// Referência da Imaginarium: CS2002.
-const CS_CODE = /^CS\d{3,5}$/;
+// Referências da Imaginarium: CS2002, PI6283Y, MI3450Y.
+const CS_CODE = /^(?:CS\d{3,5}|[PM]I\d{4}[A-Z]?)$/;
 
 const isCode = (token: string): boolean =>
   MATTEL_CODE.test(token) ||

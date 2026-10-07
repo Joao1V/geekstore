@@ -35,6 +35,16 @@ describe('ruleClean', () => {
     );
   });
 
+  it('removes Imaginarium references and the odd Hot Wheels spellings', () => {
+    expect(ruleClean('Cooler com Alcas Fica Frio PI6283Y')?.name).toBe(
+      'Cooler com Alcas Fica Frio'
+    );
+    expect(ruleClean('Almofada Linho Abstrata MI3750')?.name).toBe('Almofada Linho Abstrata');
+    expect(ruleClean('Miniatura Hotwheels Honda CB750 Café HW Moto HKG49.M7C5')?.name).toBe(
+      'Miniatura Hotwheels Honda CB750 Café HW Moto'
+    );
+  });
+
   it('keeps what is part of the product: LEGO sets, short numbers, model names', () => {
     expect(ruleClean('LEGO Marvel Spider-Man 466 Peças #76175')).toBeNull();
     expect(ruleClean('Miniatura Greenlight Indycar #5 James Hinchcliffe')).toBeNull();
