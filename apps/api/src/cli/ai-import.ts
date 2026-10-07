@@ -43,7 +43,7 @@ async function main() {
     total += suggestions.length;
     console.log(
       `${file}: ${suggestions.length} de ${items.length} aceitas, ${unreadable} linhas ilegíveis, ` +
-        `${items.length - suggestions.length - unreadable} recusadas (número inventado, confiança ou código inválido).`
+        `${items.length - suggestions.length - unreadable} sem resposta ou recusadas (número inventado ou código que não estava no nome).`
     );
   }
   console.log(`Total importado: ${total}. Agora rode: pnpm --filter api ai:apply`);
