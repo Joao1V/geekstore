@@ -1,6 +1,6 @@
 'use client';
 
-import { type Address, onlyDigits, shippingAddressSchema } from '@geekstore/shared';
+import { type Address, maskZip, onlyDigits, shippingAddressSchema } from '@geekstore/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, Plus, Trash2 } from 'lucide-react';
@@ -105,6 +105,7 @@ function AddressForm({ onDone }: { onDone: () => void }) {
             <FieldInput
               field={{
                 ...field,
+                onChange: (event) => field.onChange(maskZip(event.target.value)),
                 onBlur: () => {
                   field.onBlur();
                   fillFromZip();

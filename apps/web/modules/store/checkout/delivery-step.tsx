@@ -1,7 +1,7 @@
 'use client';
 
 import type { ShippingOption } from '@geekstore/shared';
-import { onlyDigits } from '@geekstore/shared';
+import { maskZip, onlyDigits } from '@geekstore/shared';
 import { Truck } from 'lucide-react';
 import { type Control, Controller } from 'react-hook-form';
 
@@ -65,6 +65,7 @@ export function DeliveryStep({
               <FieldInput
                 field={{
                   ...field,
+                  onChange: (event) => field.onChange(maskZip(event.target.value)),
                   onBlur: () => {
                     field.onBlur();
                     onZipBlur();

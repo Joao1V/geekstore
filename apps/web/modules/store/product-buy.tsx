@@ -39,7 +39,7 @@ export function Freight() {
       <h3 className="flex items-center gap-2 text-sm font-extrabold">
         <Truck size={18} /> Frete e prazo
       </h3>
-      <form onSubmit={handleSubmit(submit)} className="my-3 flex gap-2">
+      <form onSubmit={handleSubmit(submit)} className="my-3 flex items-start gap-2">
         <Controller
           control={control}
           name="cep"
@@ -316,7 +316,9 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
                 : available <= 0
                   ? 'Esgotado nesta combinação'
                   : available <= LOW_STOCK_NOTICE
-                    ? `Últimas ${available} ${available === 1 ? 'unidade' : 'unidades'}`
+                    ? available === 1
+                      ? 'Última unidade'
+                      : `Últimas ${available} unidades`
                     : `${available} disponíveis`}
             </small>
           </div>

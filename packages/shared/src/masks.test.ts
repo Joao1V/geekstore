@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { maskDocument, maskPhone } from './masks';
+import { maskDocument, maskPhone, maskZip } from './masks';
 
 describe('maskDocument', () => {
   it('formats CPF while typing and CNPJ after 11 digits', () => {
@@ -20,5 +20,13 @@ describe('maskPhone', () => {
     expect(maskPhone('1133334444')).toBe('(11) 3333-4444');
     expect(maskPhone('11999998888')).toBe('(11) 99999-8888');
     expect(maskPhone('119999988889999')).toBe('(11) 99999-8888');
+  });
+});
+
+describe('maskZip', () => {
+  it('adds the dash after the fifth digit', () => {
+    expect(maskZip('3014')).toBe('3014');
+    expect(maskZip('30140071')).toBe('30140-071');
+    expect(maskZip('30140-0719999')).toBe('30140-071');
   });
 });

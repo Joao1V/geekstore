@@ -29,3 +29,9 @@ export function maskPhone(value: string): string {
   const split = digits.length > 10 ? 5 : 4;
   return `${area}${rest.slice(0, split)}-${rest.slice(split)}`;
 }
+
+/** CEP: 00000-000. */
+export function maskZip(value: string): string {
+  const digits = onlyDigits(value).slice(0, 8);
+  return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
+}
