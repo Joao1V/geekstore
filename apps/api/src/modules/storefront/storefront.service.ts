@@ -56,7 +56,7 @@ async function buildConditions(filters: StoreFilters, fuzzy = false): Promise<Pr
       OR EXISTS (
         SELECT 1 FROM sku s
         WHERE s.product_id = v.product_id AND s.status = 'active'
-          AND ${matchesSearch([Prisma.sql`s.code`], filters.q)}
+          AND ${matchesSearch([Prisma.sql`s.code`, Prisma.sql`s.manufacturer_code`], filters.q)}
       )
     )`;
     // Segunda tentativa: o exato OU palavras parecidas no nome ou na marca ("stich" -> "Stitch").

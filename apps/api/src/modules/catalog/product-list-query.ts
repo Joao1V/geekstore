@@ -27,7 +27,7 @@ function buildWhere(query: ProductListQuery, categoryIds?: string[]): Prisma.Sql
       OR EXISTS (
         SELECT 1 FROM sku s
         WHERE s.product_id = p.product_id
-          AND ${matchesSearch([Prisma.sql`s.code`, Prisma.sql`s.legacy_code`], query.q)}
+          AND ${matchesSearch([Prisma.sql`s.code`, Prisma.sql`s.legacy_code`, Prisma.sql`s.manufacturer_code`], query.q)}
       )
     )`);
   }

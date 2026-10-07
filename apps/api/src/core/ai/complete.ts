@@ -11,8 +11,9 @@ export type AiPrompt = { system: string; user: string };
 export type AiComplete = (prompt: AiPrompt) => Promise<string>;
 
 /** O cliente da IA configurado pelo ambiente (ANTHROPIC_API_KEY, AI_MODEL). Erro claro se faltar a chave. */
-export function createCompleter(maxTokens: number): AiComplete {
-  const { API_KEY, MODEL } = envConfig.ai;
+export function createCompleter(maxTokens: number, modelOverride?: string): AiComplete {
+  const { API_KEY, MODEL: defaultModel } = envConfig.ai;
+  const MODEL = modelOverride ?? defaultModel;
   if (!API_KEY) {
     throw new BadRequestError(
       'A IA não está configurada: falta ANTHROPIC_API_KEY no ambiente da API.'
@@ -24,7 +25,8 @@ export function createCompleter(maxTokens: number): AiComplete {
       const message = await client.messages.create({
         model: MODEL,
         max_tokens: maxTokens,
-        temperature: 0,
+        // Os modelos 5.x não aceitam `temperature`; nos demais, 0 deixa a resposta estável.
+        ...(MODEL.includes('-5-') ? {} : { temperature: 0 }),
         system,
         messages: [{ role: 'user', content: user }],
       });

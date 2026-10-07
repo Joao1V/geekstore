@@ -13,6 +13,8 @@ export type CleanupSuggestion = {
   /** Franquia existente (slug), franquia nova (nome) ou nenhuma. */
   franchise: { kind: 'existing'; slug: string } | { kind: 'new'; name: string } | null;
   confidence: 'high' | 'medium' | 'low';
+  /** Códigos de fabricante/ERP que saíram do nome, como estavam: guardados para a busca interna. */
+  removed_codes: string[];
 };
 
 const SYSTEM = `Você organiza o catálogo de uma loja de itens geek (colecionáveis, mangás, jogos, canecas, roupas).
@@ -20,7 +22,8 @@ Para cada produto você devolve:
 1. "name": o nome limpo para a vitrine, em português do Brasil. Tire códigos internos do fabricante e do ERP (ex.: MC49222HP, #DMG9040S-MK13, WZK71603, "e-Commerce"), mantendo o que ajuda o cliente (personagem, linha, tamanho, cor, capacidade, volume, quantidade de peças e o nº do set da LEGO quando for o identificador do produto). Nunca troque, some nem crie números. Corrija acentos e erros de digitação óbvios. NÃO invente nada que não esteja no nome. Se o nome já está bom, devolva igual.
 2. "franchise": a franquia/universo do produto (Naruto, Disney, Overwatch...). Se estiver na lista de franquias existentes, devolva {"slug": "..."}. Se não estiver mas for uma franquia conhecida, devolva {"new": "Nome da Franquia"}. Se não houver franquia clara (item genérico), devolva null. Na dúvida, null.
 3. "confidence": "high", "medium" ou "low".
-Responda SOMENTE um JSON, sem texto fora dele: [{"id": "...", "name": "...", "franchise": null | {"slug": "..."} | {"new": "..."}, "confidence": "high"}]`;
+4. "removed_codes": a lista dos códigos que você TIROU do nome, exatamente como estavam (ex.: ["MC49222HP", "CS2002"]); lista vazia se não tirou nenhum.
+Responda SOMENTE um JSON, sem texto fora dele: [{"id": "...", "name": "...", "franchise": null | {"slug": "..."} | {"new": "..."}, "confidence": "high", "removed_codes": []}]`;
 
 export function buildPrompt(
   items: readonly CleanupInput[],
@@ -44,6 +47,7 @@ const answerSchema = z.array(
       z.null(),
     ]),
     confidence: z.enum(['high', 'medium', 'low']),
+    removed_codes: z.array(z.string()).default([]),
   })
 );
 
@@ -82,7 +86,14 @@ export function parseCleanup(
     } else if (row.franchise) {
       franchise = { kind: 'new', name: row.franchise.new };
     }
-    return [{ id: row.id, name: row.name, franchise, confidence: row.confidence }];
+    // Só vale código que estava mesmo no nome original (a IA não inventa referência).
+    const haystack = original.toLowerCase();
+    const removed_codes = row.removed_codes
+      .map((code) => code.trim())
+      .filter(
+        (code) => code.length > 0 && code.length <= 40 && haystack.includes(code.toLowerCase())
+      );
+    return [{ id: row.id, name: row.name, franchise, confidence: row.confidence, removed_codes }];
   });
 }
 
@@ -100,27 +111,43 @@ export function introducesNewNumber(original: string, suggested: string): boolea
   return [...numbersIn(suggested)].some((digits) => !before.has(digits));
 }
 
-/** Pede a faxina em lotes (uma chamada por ~20 produtos). Lote que falha ou vem torto é pulado e contado. */
+export type CleanupProgress = (done: number, total: number) => void;
+
+/**
+ * Pede a faxina em lotes de ~20, vários ao mesmo tempo. Lote que falha ou vem torto é pulado e contado
+ * (nada trava a corrida inteira). `onBatch` recebe cada lote pronto, para gravar o progresso.
+ */
 export async function cleanupBatches(
   items: readonly CleanupInput[],
   franchises: readonly FranchiseOption[],
-  complete: AiComplete
+  complete: AiComplete,
+  options: { concurrency?: number; onBatch?: (rows: CleanupSuggestion[]) => void } = {}
 ): Promise<{ suggestions: CleanupSuggestion[]; skipped: number }> {
+  const { concurrency = 1, onBatch } = options;
+  const batches: CleanupInput[][] = [];
+  for (let start = 0; start < items.length; start += BATCH_SIZE) {
+    batches.push(items.slice(start, start + BATCH_SIZE));
+  }
   const suggestions: CleanupSuggestion[] = [];
   let skipped = 0;
-  for (let start = 0; start < items.length; start += BATCH_SIZE) {
-    const batch = items.slice(start, start + BATCH_SIZE);
-    try {
-      const parsed = parseCleanup(
-        await complete(buildPrompt(batch, franchises)),
-        batch,
-        franchises
-      );
-      suggestions.push(...parsed);
-      skipped += batch.length - parsed.length;
-    } catch {
-      skipped += batch.length;
+  let next = 0;
+  const worker = async () => {
+    while (next < batches.length) {
+      const batch = batches[next++] as CleanupInput[];
+      try {
+        const parsed = parseCleanup(
+          await complete(buildPrompt(batch, franchises)),
+          batch,
+          franchises
+        );
+        suggestions.push(...parsed);
+        skipped += batch.length - parsed.length;
+        onBatch?.(parsed);
+      } catch {
+        skipped += batch.length;
+      }
     }
-  }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, concurrency) }, worker));
   return { suggestions, skipped };
 }
