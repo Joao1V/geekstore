@@ -32,7 +32,7 @@ export function ruleClean(original: string): RuleCleanResult | null {
     const last = tokens[tokens.length - 1] as string;
     if (isCode(last)) {
       removed.unshift(tokens.pop() as string);
-    } else if (/^[-–/]$/.test(last) || /^cod\.?$/i.test(last) || /^ref\.?:?$/i.test(last)) {
+    } else if (/^[-–/#]$/.test(last) || /^cod\.?$/i.test(last) || /^ref\.?:?$/i.test(last)) {
       tokens.pop();
     } else {
       break;
@@ -40,7 +40,7 @@ export function ruleClean(original: string): RuleCleanResult | null {
   }
   const name = tokens
     .join(' ')
-    .replace(/\s+[-–/]\s*$/, '')
+    .replace(/\s+[-–/#]\s*$/, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
   return removed.length > 0 && name && name !== original ? { name, removed } : null;

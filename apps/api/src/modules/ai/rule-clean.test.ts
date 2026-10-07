@@ -45,6 +45,15 @@ describe('ruleClean', () => {
     );
   });
 
+  it('handles a hash separated from its code and a code repeated twice', () => {
+    expect(ruleClean('Metal Earth Iconx Silver Dragon # ICX023')?.name).toBe(
+      'Metal Earth Iconx Silver Dragon'
+    );
+    expect(ruleClean('Porta Retrato Magnetico Amizade PI6201Y PI6201Y')?.name).toBe(
+      'Porta Retrato Magnetico Amizade'
+    );
+  });
+
   it('keeps what is part of the product: LEGO sets, short numbers, model names', () => {
     expect(ruleClean('LEGO Marvel Spider-Man 466 Peças #76175')).toBeNull();
     expect(ruleClean('Miniatura Greenlight Indycar #5 James Hinchcliffe')).toBeNull();

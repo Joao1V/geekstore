@@ -12,6 +12,7 @@ import { prisma } from '@geekstore/db';
 import { buildWebBatch } from '../modules/ai/web-batches';
 
 const DEFAULT_PER_FILE = 250;
+const SERIES_CATEGORIES = new Set(['Mangás', 'HQs', 'Livros e Álbuns']);
 // Código de fabricante/ERP no nome: "#1452", "MC49222HP", "CS2002".
 const CODE_LIKE = /(#\s*[A-Z0-9-]{2,}|\b[A-Z]{1,4}\d{3,}[A-Z0-9-]*\b)/;
 
@@ -53,7 +54,14 @@ async function main() {
     WHERE p.status <> 'archived' ORDER BY p.created_at, p.product_id`;
   const pending = all
     .filter((row) => !done.has(row.product_id))
-    .filter((row) => values.only === 'all' || CODE_LIKE.test(row.name));
+    .filter((row) => {
+      if (values.only === 'all') return true;
+      if (values.only === 'review') {
+        // Só o que ainda precisa de olho humano/IA: sem franquia e fora de mangá, HQ e livro (séries não viram franquia).
+        return !row.franchises && !SERIES_CATEGORIES.has(row.category);
+      }
+      return CODE_LIKE.test(row.name);
+    });
   const perFile = values.single
     ? Math.max(1, pending.length)
     : Math.max(20, Number(values['per-file']) || DEFAULT_PER_FILE);
