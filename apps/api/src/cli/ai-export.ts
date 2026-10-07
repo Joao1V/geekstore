@@ -21,6 +21,8 @@ async function main() {
       only: { type: 'string', default: 'noisy' },
       'per-file': { type: 'string', default: String(DEFAULT_PER_FILE) },
       single: { type: 'boolean', default: false },
+      // Só as linhas numeradas, sem as instruções (para quem já conhece o formato, como o Claude Code).
+      bare: { type: 'boolean', default: false },
       out: { type: 'string', default: '../../.temp' },
     },
   });
@@ -40,8 +42,13 @@ async function main() {
     select: { slug: true, name: true },
     orderBy: { name: 'asc' },
   });
-  const all = await prisma.$queryRaw<{ product_id: string; name: string; category: string }[]>`
-    SELECT p.product_id::text AS product_id, p.name, c.name AS category
+  const all = await prisma.$queryRaw<
+    { product_id: string; name: string; category: string; franchises: string }[]
+  >`
+    SELECT p.product_id::text AS product_id, p.name, c.name AS category,
+           COALESCE((SELECT string_agg(co.slug, ',') FROM collection_product cp
+                     JOIN collection co ON co.collection_id = cp.collection_id
+                     WHERE cp.product_id = p.product_id AND co.kind = 'franchise'), '') AS franchises
     FROM product p JOIN category c ON c.category_id = p.category_id
     WHERE p.status <> 'archived' ORDER BY p.created_at, p.product_id`;
   const pending = all
@@ -54,14 +61,17 @@ async function main() {
   let count = 0;
   for (let start = 0; start < pending.length; start += perFile) {
     count += 1;
-    const items = pending
-      .slice(start, start + perFile)
-      .map((row) => ({ id: row.product_id, name: row.name, category: row.category }));
+    const items = pending.slice(start, start + perFile).map((row) => ({
+      id: row.product_id,
+      name: row.name,
+      category: row.category,
+      franchises: row.franchises,
+    }));
     const label = values.single ? 'todos' : String(count).padStart(3, '0');
-    writeFileSync(
-      resolve(dir, `lote-${label}.md`),
-      buildWebBatch(items, franchises, values.single ? 'todos' : count)
-    );
+    const text = values.bare
+      ? `${items.map((item, index) => `${index + 1} | ${item.category} | ${item.name}${item.franchises ? ` | já em: ${item.franchises}` : ''}`).join('\n')}\n`
+      : buildWebBatch(items, franchises, values.single ? 'todos' : count);
+    writeFileSync(resolve(dir, `lote-${label}.md`), text);
     writeFileSync(resolve(dir, `lote-${label}.map.json`), JSON.stringify(items));
   }
   console.log(`${pending.length} produtos em ${count} lotes (${perFile} por arquivo): ${dir}`);
