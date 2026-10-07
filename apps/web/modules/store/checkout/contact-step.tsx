@@ -1,5 +1,6 @@
 'use client';
 
+import { maskDocument, maskPhone } from '@geekstore/shared';
 import Link from 'next/link';
 import { type Control, Controller } from 'react-hook-form';
 
@@ -52,9 +53,12 @@ export function ContactStep({ control }: { control: Control<CheckoutFormValues> 
           name="phone"
           render={({ field, fieldState }) => (
             <FieldInput
-              field={field}
+              field={{
+                ...field,
+                onChange: (event) => field.onChange(maskPhone(event.target.value)),
+              }}
               fieldState={fieldState}
-              label="Telefone (opcional)"
+              label="Telefone"
               type="tel"
               required={false}
               autoComplete="tel"
@@ -66,9 +70,12 @@ export function ContactStep({ control }: { control: Control<CheckoutFormValues> 
           name="document"
           render={({ field, fieldState }) => (
             <FieldInput
-              field={field}
+              field={{
+                ...field,
+                onChange: (event) => field.onChange(maskDocument(event.target.value)),
+              }}
               fieldState={fieldState}
-              label="CPF ou CNPJ (opcional)"
+              label="CPF ou CNPJ"
               required={false}
               inputMode="numeric"
               autoComplete="off"

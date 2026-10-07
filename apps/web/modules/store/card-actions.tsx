@@ -13,7 +13,7 @@ export function FavoriteButton({ productId, name }: { productId: string; name: s
   return (
     <Button
       isIconOnly
-      className={`absolute top-3 right-3 z-10 size-[34px] min-w-[34px] rounded-full p-0 text-ink shadow-[0_2px_8px_#0002] max-md:top-2 max-md:right-2 max-md:size-[30px] max-md:min-w-[30px] ${isFavorite ? 'bg-geek-yellow [&_svg]:fill-ink' : 'bg-white'}`}
+      className={`absolute top-3 right-3 z-10 size-[34px] min-w-[34px] rounded-full p-0 text-ink shadow-[0_2px_8px_#0002] max-md:top-2 max-md:right-2 max-md:size-[30px] max-md:min-w-[30px] ${isFavorite ? 'bg-geek-yellow [&_svg]:fill-ink' : 'bg-white pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:opacity-100'}`}
       aria-label={`${isFavorite ? 'Remover dos' : 'Adicionar aos'} favoritos: ${name}`}
       aria-pressed={isFavorite}
       onPress={() => favorite(productId)}

@@ -108,9 +108,7 @@ export async function Home() {
           <section key={brand.slug} className="wrap pb-[40px] max-md:pb-[30px]">
             <div className="section-heading">
               <div>
-                <p className="eyebrow orange">
-                  {brand.product_count.toLocaleString('pt-BR')} produtos
-                </p>
+                <p className="eyebrow orange">Em destaque</p>
                 <h2 className="section-title">Mais de {brand.name}</h2>
               </div>
               <Link href={`/catalogo/?marca=${brand.slug}`}>

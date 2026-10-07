@@ -78,11 +78,6 @@ function CategoryFilter({
             >
               {category.name}
             </span>
-            <span
-              className={`text-xs tabular-nums ${isSelected ? 'font-extrabold' : 'text-muted'}`}
-            >
-              {category.product_count}
-            </span>
           </Link>
           {openIds.has(category.category_id) && (
             <ul className="ml-4">{render(category.category_id, depth + 1)}</ul>
@@ -171,9 +166,6 @@ export async function CatalogPage({ state }: { state: CatalogState }) {
                     className={`${FILTER_LINK} ${isSelected ? 'bg-geek-yellow font-extrabold text-ink hover:bg-geek-yellow' : ''}`}
                   >
                     <span className="truncate">{brand.name}</span>
-                    <span className={`text-xs tabular-nums ${isSelected ? '' : 'text-muted'}`}>
-                      {brand.product_count}
-                    </span>
                   </Link>
                 </li>
               );
@@ -189,7 +181,6 @@ export async function CatalogPage({ state }: { state: CatalogState }) {
                   <li key={brand.slug}>
                     <Link href={catalogHref(state, { marca: brand.slug })} className={FILTER_LINK}>
                       <span className="truncate">{brand.name}</span>
-                      <span className="text-xs text-muted tabular-nums">{brand.product_count}</span>
                     </Link>
                   </li>
                 ))}
@@ -282,11 +273,7 @@ export async function CatalogPage({ state }: { state: CatalogState }) {
           <div className="mt-4">{filterPanel}</div>
         </details>
         <div>
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted" aria-live="polite">
-              {products.meta.total.toLocaleString('pt-BR')}{' '}
-              {products.meta.total === 1 ? 'produto' : 'produtos'}
-            </p>
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
             <nav aria-label="Ordenar por" className="flex flex-wrap gap-1.5">
               {SORT_OPTIONS.map((option) => (
                 <Link

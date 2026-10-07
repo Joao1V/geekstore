@@ -118,7 +118,8 @@ async function effectiveWhere(filters: StoreFilters): Promise<Prisma.Sql | null>
   const exactConditions = await buildConditions(filters);
   if (exactConditions === null) return null;
   const exact = toWhere(exactConditions);
-  if (!filters.q) return exact;
+  // Código (CS2002, 10300, CNC-00002) é busca exata: tolerar erro de digitação num código só traz ruído.
+  if (!filters.q || /\d/.test(filters.q)) return exact;
 
   const key = decisionKey(filters);
   const cached = decisions.get(key);

@@ -9,6 +9,7 @@ export * from './customers';
 export * from './documents';
 export * from './duplicates';
 export * from './grid';
+export * from './masks';
 export * from './money';
 export * from './orders';
 export * from './pricing';

@@ -1,6 +1,6 @@
 'use client';
 
-import { isValidDocument, onlyDigits } from '@geekstore/shared';
+import { isValidDocument, maskDocument, maskPhone, onlyDigits } from '@geekstore/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
@@ -164,9 +164,12 @@ function RegisterForm({ onDone }: { onDone: () => void }) {
           name="document"
           render={({ field, fieldState }) => (
             <FieldInput
-              field={field}
+              field={{
+                ...field,
+                onChange: (event) => field.onChange(maskDocument(event.target.value)),
+              }}
               fieldState={fieldState}
-              label="CPF ou CNPJ (opcional)"
+              label="CPF ou CNPJ"
               required={false}
               inputMode="numeric"
               autoComplete="off"
@@ -178,9 +181,12 @@ function RegisterForm({ onDone }: { onDone: () => void }) {
           name="phone"
           render={({ field, fieldState }) => (
             <FieldInput
-              field={field}
+              field={{
+                ...field,
+                onChange: (event) => field.onChange(maskPhone(event.target.value)),
+              }}
               fieldState={fieldState}
-              label="Telefone (opcional)"
+              label="Telefone"
               type="tel"
               required={false}
               autoComplete="tel"
