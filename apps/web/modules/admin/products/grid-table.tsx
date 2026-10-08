@@ -1,12 +1,13 @@
 'use client';
 
-import type { Attribute } from '@geekstore/shared';
+import type { Attribute, SkuGridRow } from '@geekstore/shared';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { type Control, Controller, useWatch } from 'react-hook-form';
 
 import { FieldInput, FieldNumber, FieldSwitch } from '@/components/ui';
 import { describeAttributes } from '../lib/attribute-labels';
+import { formatBRL } from '../lib/format';
 import { AdminTable, Td, Th } from '../ui/table';
 import type { ProductFormValues } from './product-form-schema';
 
@@ -18,12 +19,15 @@ export function GridTable({
   rowIds,
   definitions,
   showCombination,
+  stock,
 }: {
   control: Control<ProductFormValues>;
   rowIds: string[];
   definitions: Attribute[];
   /** Produto simples (1 SKU, sem grade) não precisa da coluna "Combinação". */
   showCombination: boolean;
+  /** Preço e saldo atuais dos SKUs já gravados, por `sku_id`. */
+  stock: ReadonlyMap<string, SkuGridRow>;
 }) {
   const rows = useWatch({ control, name: 'skus' });
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
@@ -45,7 +49,7 @@ export function GridTable({
           <Th>EAN</Th>
           <Th>Peso (g)</Th>
           <Th>Preço</Th>
-          <Th>Estoque inicial</Th>
+          <Th>Estoque</Th>
           <Th>Ativo</Th>
           <Th align="right">
             <span className="sr-only">Detalhes</span>
@@ -68,6 +72,7 @@ export function GridTable({
               columns={columns}
               showCombination={showCombination}
               combination={describeAttributes(row.attributes, definitions) || 'Único'}
+              current={row.sku_id ? stock.get(row.sku_id) : undefined}
               onToggle={() => toggle(id)}
             />
           );
@@ -85,6 +90,7 @@ function GridRow({
   columns,
   showCombination,
   combination,
+  current,
   onToggle,
 }: {
   control: Control<ProductFormValues>;
@@ -94,6 +100,8 @@ function GridRow({
   columns: number;
   showCombination: boolean;
   combination: string;
+  /** Preço e saldo atuais (só SKU já gravado). */
+  current: SkuGridRow | undefined;
   onToggle: () => void;
 }) {
   return (
@@ -155,7 +163,17 @@ function GridRow({
         </Td>
         <Td className="min-w-[9rem]">
           {isExisting ? (
-            <span className="muted block pt-3 text-xs">na grade de estoque</span>
+            <span className="block pt-3 text-sm font-extrabold whitespace-nowrap">
+              {current ? (
+                current.price_cents === null ? (
+                  <span className="muted font-bold">Sem preço</span>
+                ) : (
+                  formatBRL(current.price_cents)
+                )
+              ) : (
+                <span className="muted text-xs font-bold">carregando…</span>
+              )}
+            </span>
           ) : (
             <Controller
               control={control}
@@ -176,7 +194,20 @@ function GridRow({
         </Td>
         <Td className="min-w-[7rem]">
           {isExisting ? (
-            <span className="muted block pt-3 text-xs">na grade de estoque</span>
+            <span className="block pt-3 text-sm font-extrabold whitespace-nowrap">
+              {current ? (
+                <>
+                  {current.on_hand} un.
+                  {current.reserved > 0 && (
+                    <span className="muted block text-xs font-bold">
+                      {current.available} disp. · {current.reserved} reserv.
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="muted text-xs font-bold">carregando…</span>
+              )}
+            </span>
           ) : (
             <Controller
               control={control}

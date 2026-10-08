@@ -23,6 +23,13 @@ const compactBrlFormatter = new Intl.NumberFormat('pt-BR', {
   maximumFractionDigits: 1,
 });
 
+const brlFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+/** Centavos em reais, completo: 5990 -> "R$ 59,90". */
+export function formatBRL(cents: number): string {
+  return brlFormatter.format(cents / 100);
+}
+
 /** Valor grande em reais, curto: 701568828 centavos -> "R$ 7 mi". */
 export function formatBRLCompact(cents: number): string {
   return compactBrlFormatter.format(cents / 100);

@@ -22,6 +22,7 @@ import {
 import {
   attributesQueryOptions,
   categoryAttributesQueryOptions,
+  skuGridQueryOptions,
 } from '../services/catalog/queries';
 import { ConfirmDialog } from '../ui/confirm-dialog';
 import { GridSection } from './grid-section';
@@ -67,6 +68,15 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
   const categoryId = useWatch({ control, name: 'category_id' });
   const { data: categoryRules } = useQuery(categoryAttributesQueryOptions(categoryId));
   const { data: definitions } = useQuery(attributesQueryOptions());
+  // Preço vigente e saldo de cada SKU já gravado (a edição desses valores é na tela de Estoque e preços).
+  const { data: stockPage } = useQuery({
+    ...skuGridQueryOptions({ product_id: product?.product_id, page: 1, page_size: 100 }),
+    enabled: isEditing,
+  });
+  const stockBySku = useMemo(
+    () => new Map((stockPage?.data ?? []).map((row) => [row.sku_id, row])),
+    [stockPage]
+  );
 
   const submit = async (values: ProductFormValues) => {
     setFormError('');
@@ -257,6 +267,7 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
             definitions={definitions ?? []}
             rules={categoryRules ?? []}
             isEditing={isEditing}
+            stock={stockBySku}
           />
           {errors.skus?.message && (
             <p className="error m-0" role="alert">

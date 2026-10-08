@@ -5,9 +5,11 @@ import {
   type CategoryAttribute,
   combinations,
   mergeGrid,
+  type SkuGridRow,
   suggestSkuCode,
 } from '@geekstore/shared';
 import { Copy } from 'lucide-react';
+import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import {
   Controller,
@@ -35,12 +37,15 @@ export function GridSection({
   definitions,
   rules,
   isEditing,
+  stock,
 }: {
   form: UseFormReturn<ProductFormValues>;
   skus: UseFieldArrayReturn<ProductFormValues, 'skus'>;
   definitions: Attribute[];
   rules: CategoryAttribute[];
   isEditing: boolean;
+  /** Preço e saldo atuais dos SKUs já gravados, por `sku_id`. */
+  stock: ReadonlyMap<string, SkuGridRow>;
 }) {
   const { control, setValue, getValues } = form;
   const hasGrid = useWatch({ control, name: 'has_grid' });
@@ -182,6 +187,14 @@ export function GridSection({
                 ? `${skus.fields.length} ${skus.fields.length === 1 ? 'SKU' : 'SKUs'} (um por combinação)`
                 : 'SKU'}
             </p>
+            {isEditing && stock.size > 0 && (
+              <Link
+                href={`/admin/estoque/?q=${encodeURIComponent(productCode)}`}
+                className="muted text-xs font-bold underline"
+              >
+                Editar preço e estoque em Estoque e preços
+              </Link>
+            )}
             {hasGrid && hasNewRows && skus.fields.length > 1 && (
               <Action className="action-outline" onPress={repeatFirstRow}>
                 <Copy size={16} /> Repetir preço, estoque e peso da 1ª linha
@@ -193,6 +206,7 @@ export function GridSection({
             rowIds={rowIds}
             definitions={definitions}
             showCombination={hasGrid}
+            stock={stock}
           />
         </>
       )}
