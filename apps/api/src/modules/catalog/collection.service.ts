@@ -140,3 +140,65 @@ export async function replaceCollectionProducts(
     });
   });
 }
+
+/**
+ * Troca as coleções de UM produto sem tocar nas demais ligações de cada coleção: as que saem são
+ * desligadas e as novas entram no fim da ordem curada. (O `replaceCollectionProducts` troca a
+ * lista inteira de uma coleção e não serve para editar a partir do produto.)
+ */
+export async function setProductCollections(
+  actorId: string,
+  productId: string,
+  collectionIds: readonly string[]
+): Promise<void> {
+  if (new Set(collectionIds).size !== collectionIds.length) {
+    throw new BadRequestError('A lista de coleções tem itens repetidos.');
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const product = await tx.product.findUnique({ where: { product_id: productId } });
+    if (!product) throw new NotFoundError('Produto não encontrado.');
+
+    const found = await tx.collection.count({
+      where: { collection_id: { in: [...collectionIds] } },
+    });
+    if (found !== collectionIds.length) throw new BadRequestError('Alguma coleção não existe.');
+
+    const previous = await tx.collectionProduct.findMany({
+      where: { product_id: productId },
+      select: { collection_id: true },
+    });
+    const previousIds = new Set(previous.map((link) => link.collection_id));
+    const wanted = new Set(collectionIds);
+
+    await tx.collectionProduct.deleteMany({
+      where: { product_id: productId, collection_id: { notIn: [...wanted] } },
+    });
+
+    const added = collectionIds.filter((id) => !previousIds.has(id));
+    if (added.length > 0) {
+      const tails = await tx.collectionProduct.groupBy({
+        by: ['collection_id'],
+        where: { collection_id: { in: added } },
+        _max: { position: true },
+      });
+      const tailOf = new Map(tails.map((row) => [row.collection_id, row._max.position ?? -1]));
+      await tx.collectionProduct.createMany({
+        data: added.map((collectionId) => ({
+          collection_id: collectionId,
+          product_id: productId,
+          position: (tailOf.get(collectionId) ?? -1) + 1,
+        })),
+      });
+    }
+
+    await writeAuditLog(tx, {
+      userId: actorId,
+      entity: 'product',
+      entityId: productId,
+      action: 'update',
+      before: { collection_ids: [...previousIds] },
+      after: { collection_ids: [...wanted] },
+    });
+  });
+}

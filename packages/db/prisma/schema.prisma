@@ -802,6 +802,7 @@ model Brand {
   name       String   @unique @db.VarChar(120)
   slug       String   @unique @db.VarChar(140)
   is_active  Boolean  @default(true)
+  logo_url   String?  @db.VarChar(500)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 

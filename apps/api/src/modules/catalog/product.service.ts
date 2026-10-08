@@ -22,7 +22,7 @@ import { applyInitialValues, loadInitialContext } from './sku-initial';
 
 const detailInclude = {
   skus: { orderBy: { code: 'asc' }, include: skuAttributeInclude },
-  brand: { select: { name: true } },
+  brand: { select: { name: true, logo_url: true } },
   media: { orderBy: [{ position: 'asc' }, { created_at: 'asc' }] },
   collection_products: { select: { collection_id: true } },
 } satisfies Prisma.ProductInclude;

@@ -21,6 +21,7 @@ type BrandRow = {
   name: string;
   slug: string;
   is_active: boolean;
+  logo_url: string | null;
   _count: { products: number };
 };
 
@@ -29,6 +30,7 @@ const toBrand = (row: BrandRow): Brand => ({
   name: row.name,
   slug: row.slug,
   is_active: row.is_active,
+  logo_url: row.logo_url,
   product_count: row._count.products,
 });
 
@@ -91,8 +93,18 @@ export async function updateBrand(
       entity: 'brand',
       entityId: brandId,
       action: 'update',
-      before: { name: before.name, slug: before.slug, is_active: before.is_active },
-      after: { name: updated.name, slug: updated.slug, is_active: updated.is_active },
+      before: {
+        name: before.name,
+        slug: before.slug,
+        is_active: before.is_active,
+        logo_url: before.logo_url,
+      },
+      after: {
+        name: updated.name,
+        slug: updated.slug,
+        is_active: updated.is_active,
+        logo_url: updated.logo_url,
+      },
     });
     return toBrand(updated);
   });

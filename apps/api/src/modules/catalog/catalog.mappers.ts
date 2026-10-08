@@ -114,7 +114,8 @@ export function toProductListItem(
 }
 
 export function toProductDetail(
-  row: ProductRow & {
+  row: Omit<ProductRow, 'brand'> & {
+    brand: { name: string; logo_url: string | null } | null;
     skus: SkuRow[];
     media: Media[];
     collection_products: { collection_id: string }[];
@@ -122,6 +123,7 @@ export function toProductDetail(
 ): ProductDetail {
   return {
     ...toProduct(row),
+    brand_logo_url: row.brand?.logo_url ?? null,
     skus: row.skus.map(toSku),
     media: row.media.map(toMedia),
     collection_ids: row.collection_products.map((link) => link.collection_id),

@@ -41,6 +41,7 @@ import {
   mediaUploadUrlBodySchema,
   mediaUploadUrlResponseSchema,
   productBodySchema,
+  productCollectionsBodySchema,
   productDetailResponseSchema,
   productListQuerySchema,
   productListResponseSchema,
@@ -92,6 +93,7 @@ import {
   productSummaryController,
   replaceCollectionProductsController,
   setCategoryAttributesController,
+  setProductCollectionsController,
   updateAttributeController,
   updateBrandController,
   updateCategoryController,
@@ -579,6 +581,19 @@ export async function catalogRoutes(fastify: FastifyInstance): Promise<void> {
       },
     },
     replaceCollectionProductsController
+  );
+  app.put(
+    '/products/:product_id/collections',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary: 'Troca as coleções de um produto (204)',
+        params: productParamsSchema,
+        body: productCollectionsBodySchema,
+      },
+    },
+    setProductCollectionsController
   );
 
   // ── Mídia ────────────────────────────────────────────────────────────────────

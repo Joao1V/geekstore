@@ -207,6 +207,8 @@ export const productSchema = z.object({
 export type Product = z.infer<typeof productSchema>;
 
 export const productDetailSchema = productSchema.extend({
+  /** Logo da marca (leitura), para o card do admin. */
+  brand_logo_url: z.string().nullable(),
   skus: z.array(skuSchema),
   media: z.array(mediaSchema),
   collection_ids: z.array(z.string().uuid()),
@@ -398,6 +400,12 @@ export const collectionProductsBodySchema = z.object({
   product_ids: z.array(z.string().uuid()),
 });
 export type CollectionProductsBody = z.infer<typeof collectionProductsBodySchema>;
+
+/** Substitui as coleções de UM produto (as que ficam entram no fim da ordem curada de cada coleção). */
+export const productCollectionsBodySchema = z.object({
+  collection_ids: z.array(z.string().uuid()),
+});
+export type ProductCollectionsBody = z.infer<typeof productCollectionsBodySchema>;
 
 /** Produtos da coleção na ordem curada (`position`). */
 export const collectionProductsResponseSchema = z.object({ data: z.array(productSchema) });

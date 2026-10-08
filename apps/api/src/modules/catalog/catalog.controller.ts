@@ -21,6 +21,7 @@ import type {
   MediaUpdateBody,
   MediaUploadUrlBody,
   ProductBody,
+  ProductCollectionsBody,
   ProductListQuery,
   ProductMoveBody,
   ProductParams,
@@ -46,6 +47,7 @@ import {
   listCollectionProducts,
   listCollections,
   replaceCollectionProducts,
+  setProductCollections,
   updateCollection,
 } from './collection.service';
 import {
@@ -196,6 +198,18 @@ export async function replaceCollectionProductsController(
     request.user.sub,
     request.params.collection_id,
     request.body.product_ids
+  );
+  return reply.status(204).send();
+}
+
+export async function setProductCollectionsController(
+  request: Req<{ Params: ProductParams; Body: ProductCollectionsBody }>,
+  reply: FastifyReply
+) {
+  await setProductCollections(
+    request.user.sub,
+    request.params.product_id,
+    request.body.collection_ids
   );
   return reply.status(204).send();
 }
