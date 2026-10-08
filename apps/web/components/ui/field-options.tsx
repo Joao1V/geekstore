@@ -11,6 +11,8 @@ export type FieldSelectOption = {
   label: string;
   group?: string;
   textValue?: string;
+  /** Imagem antes do texto (ex.: logo da marca). Opções sem imagem reservam o mesmo espaço. */
+  image?: string | null;
 };
 
 type Section = { title: string | null; options: FieldSelectOption[] };
@@ -27,6 +29,18 @@ function toSections(options: FieldSelectOption[]): Section[] {
   }, []);
 }
 
+/** Quadrinho fixo para o logo: alinha os nomes mesmo quando a opção não tem imagem. */
+export function OptionImage({ src, className = '' }: { src: string | null; className?: string }) {
+  return (
+    <span className={`mr-2 inline-grid size-6 shrink-0 place-items-center ${className}`}>
+      {src && (
+        // biome-ignore lint/performance/noImgElement: URL do bucket, sem otimização do Next
+        <img src={src} alt="" className="max-h-full max-w-full object-contain" />
+      )}
+    </span>
+  );
+}
+
 /**
  * É função (não componente) de propósito: o ListBox do React Aria monta a coleção a partir dos
  * elementos filhos diretos.
@@ -39,6 +53,7 @@ function renderItem(option: FieldSelectOption): ReactNode {
       textValue={option.textValue ?? option.label}
       className="rounded-sm"
     >
+      {option.image !== undefined && <OptionImage src={option.image} />}
       {option.label}
       <ListBox.ItemIndicator />
     </ListBox.Item>

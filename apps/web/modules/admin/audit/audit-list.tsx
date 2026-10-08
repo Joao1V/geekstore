@@ -80,7 +80,7 @@ export function AuditList() {
 
   return (
     <>
-      <PageHeader title="Auditoria" />
+      <PageHeader title="Auditoria" crumbs={[{ label: 'Sistema' }, { label: 'Auditoria' }]} />
       <form
         onSubmit={handleSubmit((values) =>
           setParams({ entity: values.entity, entity_id: values.entity_id.trim() })

@@ -48,6 +48,7 @@ export function CollectionManager() {
     <>
       <PageHeader
         title="Coleções"
+        crumbs={[{ label: 'Catálogo' }, { label: 'Coleções' }]}
         actions={
           canWrite && (
             <Action onPress={() => setFormTarget({})}>

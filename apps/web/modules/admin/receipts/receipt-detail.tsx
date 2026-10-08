@@ -2,8 +2,7 @@
 
 import { formatBRL } from '@geekstore/shared';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, PackagePlus, Trash2 } from 'lucide-react';
-import Link from 'next/link';
+import { PackagePlus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -58,11 +57,13 @@ export function ReceiptDetail({ receiptId }: { receiptId: string }) {
 
   return (
     <div>
-      <Link href="/admin/notas/" className="muted mb-3 inline-flex items-center gap-1 text-sm">
-        <ArrowLeft size={14} /> Notas de entrada
-      </Link>
       <PageHeader
         title={receipt.number ? `Nota ${receipt.number}` : 'Nota de entrada'}
+        crumbs={[
+          { label: 'Estoque' },
+          { label: 'Notas de entrada', href: '/admin/notas/' },
+          { label: receipt.number ? `Nota ${receipt.number}` : 'Nota de entrada' },
+        ]}
         eyebrow={receipt.supplier?.name ?? 'Sem fornecedor'}
         actions={
           editable && (

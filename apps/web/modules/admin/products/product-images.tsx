@@ -54,11 +54,14 @@ export function ProductImages({
   productName,
   media,
   canWrite,
+  embedded = false,
 }: {
   productId: string;
   productName: string;
   media: Media[];
   canWrite: boolean;
+  /** Dentro de um modal: sem a moldura de card e com o título só para leitores de tela. */
+  embedded?: boolean;
 }) {
   const upload = useUploadProductImage();
   const updateMedia = useUpdateMedia();
@@ -120,9 +123,12 @@ export function ProductImages({
   };
 
   return (
-    <section className="surface grid gap-5 p-6 max-md:p-4" aria-labelledby="product-images">
+    <section
+      className={embedded ? 'grid gap-5' : 'surface grid gap-5 p-6 max-md:p-4'}
+      aria-labelledby="product-images"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="product-images" className="text-xl font-extrabold">
+        <h2 id="product-images" className={embedded ? 'sr-only' : 'text-xl font-extrabold'}>
           Imagens
         </h2>
         {canWrite && (

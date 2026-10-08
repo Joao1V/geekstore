@@ -16,7 +16,7 @@ import type {
   FieldValues,
 } from 'react-hook-form';
 
-import { type FieldSelectOption, renderFieldOptions } from './field-options';
+import { type FieldSelectOption, OptionImage, renderFieldOptions } from './field-options';
 
 /**
  * Seleção única digitável: escreve-se no próprio campo e a lista filtra conforme o texto (o
@@ -40,6 +40,7 @@ export function FieldAutocomplete<
   placeholder = 'Digite para buscar…',
   emptyText = 'Nenhum resultado',
   required = true,
+  leadingImage,
 }: {
   field: ControllerRenderProps<TFieldValues, TName>;
   fieldState: ControllerFieldState;
@@ -49,6 +50,8 @@ export function FieldAutocomplete<
   placeholder?: string;
   emptyText?: string;
   required?: boolean;
+  /** Imagem da opção escolhida, mostrada dentro do campo antes do texto (`undefined` = sem espaço). */
+  leadingImage?: string | null;
 }) {
   return (
     <ComboBox
@@ -62,9 +65,19 @@ export function FieldAutocomplete<
       className="form-field"
     >
       <Label>{label}</Label>
-      <ComboBox.InputGroup className="w-full">
+      <ComboBox.InputGroup className="relative w-full">
         {/* `pe-8!` reserva o espaço da seta (o padding do field-input, sozinho, a deixaria por cima do texto). */}
-        <Input ref={field.ref} placeholder={placeholder} className="field-input pe-8!" />
+        {leadingImage !== undefined && (
+          <OptionImage
+            src={leadingImage}
+            className="pointer-events-none absolute top-1/2 left-2.5 z-10 mr-0 -translate-y-1/2"
+          />
+        )}
+        <Input
+          ref={field.ref}
+          placeholder={placeholder}
+          className={`field-input pe-8! ${leadingImage ? 'ps-11!' : ''}`}
+        />
         <ComboBox.Trigger />
       </ComboBox.InputGroup>
       <ComboBox.Popover className="rounded-md">

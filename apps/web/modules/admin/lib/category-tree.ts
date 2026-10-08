@@ -93,3 +93,14 @@ export function categoryLabels(categories: Category[]): Map<string, CategoryLabe
     ])
   );
 }
+
+/** Caminho da raiz até a categoria (inclusive), para o breadcrumb. Vazio se o id não existe. */
+export function categoryPath(categories: Category[], categoryId: string): Category[] {
+  const byId = new Map(categories.map((category) => [category.category_id, category]));
+  const walk = (id: string | null, seen: ReadonlySet<string>): Category[] => {
+    const category = id ? byId.get(id) : undefined;
+    if (!category || seen.has(category.category_id)) return [];
+    return [...walk(category.parent_id, new Set([...seen, category.category_id])), category];
+  };
+  return walk(categoryId, new Set());
+}

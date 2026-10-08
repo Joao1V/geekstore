@@ -52,6 +52,7 @@ export function UserManager() {
     <>
       <PageHeader
         title="Usuários"
+        crumbs={[{ label: 'Sistema' }, { label: 'Usuários' }]}
         actions={
           canWrite && (
             <Action onPress={() => setFormTarget({})}>

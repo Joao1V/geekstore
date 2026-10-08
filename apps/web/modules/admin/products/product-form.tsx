@@ -4,7 +4,6 @@ import type { ProductDetail } from '@geekstore/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { Archive, Save } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
@@ -23,9 +22,7 @@ import {
 import {
   attributesQueryOptions,
   categoryAttributesQueryOptions,
-  collectionsQueryOptions,
 } from '../services/catalog/queries';
-import { Badge } from '../ui/badge';
 import { ConfirmDialog } from '../ui/confirm-dialog';
 import { GridSection } from './grid-section';
 import { PRODUCT_STATUS_OPTIONS } from './labels';
@@ -37,39 +34,8 @@ import {
   toProductBody,
   toProductUpdateBody,
 } from './product-form-schema';
-import { ProductImages } from './product-images';
 
 const SECTION = 'surface grid gap-5 p-6 max-md:p-4';
-
-function CollectionChips({ product }: { product: ProductDetail }) {
-  const { data: collections } = useQuery(collectionsQueryOptions());
-  const linked = (collections ?? []).filter((collection) =>
-    product.collection_ids.includes(collection.collection_id)
-  );
-  return (
-    <section className={SECTION} aria-labelledby="product-collections">
-      <h2 id="product-collections" className="text-xl font-extrabold">
-        Coleções
-      </h2>
-      <div className="flex flex-wrap gap-2">
-        {linked.length ? (
-          linked.map((collection) => (
-            <Badge key={collection.collection_id}>{collection.name}</Badge>
-          ))
-        ) : (
-          <p className="muted text-sm">Este produto não está em nenhuma coleção.</p>
-        )}
-      </div>
-      <p className="muted text-sm">
-        A participação em coleções é gerenciada (com ordenação) na tela de{' '}
-        <Link href="/admin/colecoes/" className="font-extrabold underline">
-          coleções
-        </Link>
-        .
-      </p>
-    </section>
-  );
-}
 
 export function ProductForm({ product }: { product?: ProductDetail }) {
   const router = useRouter();
@@ -140,26 +106,26 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
           <h2 id="product-data" className="text-xl font-extrabold">
             Dados do produto
           </h2>
-          <Controller
-            control={control}
-            name="name"
-            render={({ field, fieldState }) => (
-              <FieldInput
-                field={{
-                  ...field,
-                  onChange: (event) => {
-                    field.onChange(event);
-                    if (!isEditing && !dirtyFields.slug) {
-                      setValue('slug', slugify(event.target.value), { shouldValidate: false });
-                    }
-                  },
-                }}
-                fieldState={fieldState}
-                label="Nome"
-              />
-            )}
-          />
-          <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+          <div className="grid grid-cols-[minmax(0,7fr)_minmax(0,3fr)] items-start gap-4 max-md:grid-cols-1">
+            <Controller
+              control={control}
+              name="name"
+              render={({ field, fieldState }) => (
+                <FieldInput
+                  field={{
+                    ...field,
+                    onChange: (event) => {
+                      field.onChange(event);
+                      if (!isEditing && !dirtyFields.slug) {
+                        setValue('slug', slugify(event.target.value), { shouldValidate: false });
+                      }
+                    },
+                  }}
+                  fieldState={fieldState}
+                  label="Nome"
+                />
+              )}
+            />
             <Controller
               control={control}
               name="code"
@@ -326,17 +292,6 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
         )}
       </form>
 
-      {product && (
-        <>
-          <ProductImages
-            productId={product.product_id}
-            productName={product.name}
-            media={product.media}
-            canWrite={canWrite}
-          />
-          <CollectionChips product={product} />
-        </>
-      )}
       {!product && (
         <p className="muted text-sm">
           Depois de criar o produto você poderá enviar as imagens e ver as coleções.

@@ -32,6 +32,7 @@ export function AttributeManager() {
     <>
       <PageHeader
         title="Atributos"
+        crumbs={[{ label: 'Catálogo' }, { label: 'Atributos' }]}
         actions={
           canWrite && (
             <Action onPress={() => setTarget({})}>

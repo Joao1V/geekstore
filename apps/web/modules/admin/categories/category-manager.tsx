@@ -187,6 +187,7 @@ export function CategoryManager() {
     <>
       <PageHeader
         title="Categorias"
+        crumbs={[{ label: 'Catálogo' }, { label: 'Categorias' }]}
         actions={
           canWrite && (
             <Action onPress={() => setFormTarget({})}>

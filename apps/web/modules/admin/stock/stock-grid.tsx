@@ -434,7 +434,10 @@ export function StockGrid() {
 
   return (
     <>
-      <PageHeader title="Estoque e preços" />
+      <PageHeader
+        title="Estoque e preços"
+        crumbs={[{ label: 'Estoque' }, { label: 'Estoque e preços' }]}
+      />
       <div className="mb-4 grid grid-cols-[minmax(0,420px)_1fr] items-start gap-4 max-md:grid-cols-1">
         <SearchBox
           label="Buscar por SKU, código legado ou produto"

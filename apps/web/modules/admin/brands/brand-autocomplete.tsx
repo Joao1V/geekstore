@@ -32,7 +32,11 @@ export function BrandAutocomplete<
     () =>
       (brands ?? [])
         .filter((brand) => brand.is_active || brand.brand_id === field.value)
-        .map((brand) => ({ value: brand.brand_id, label: brand.name })),
+        .map((brand) => ({
+          value: brand.brand_id,
+          label: brand.name,
+          image: brand.logo_url,
+        })),
     [brands, field.value]
   );
   return (
@@ -45,6 +49,7 @@ export function BrandAutocomplete<
       emptyText="Nenhuma marca com esse nome"
       options={options}
       required={required}
+      leadingImage={options.find((option) => option.value === field.value)?.image}
     />
   );
 }

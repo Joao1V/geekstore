@@ -137,6 +137,7 @@ export function ProductList() {
     <>
       <PageHeader
         title="Produtos"
+        crumbs={[{ label: 'Catálogo' }, { label: 'Produtos' }]}
         actions={
           canWrite && (
             <Link href="/admin/produtos/novo/" className="action">

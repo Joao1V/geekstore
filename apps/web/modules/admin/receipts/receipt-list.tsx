@@ -65,6 +65,7 @@ export function ReceiptList() {
     <div>
       <PageHeader
         title="Notas de entrada"
+        crumbs={[{ label: 'Estoque' }, { label: 'Notas de entrada' }]}
         actions={
           canWrite && (
             <>

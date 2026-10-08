@@ -35,7 +35,7 @@ export function OrderList() {
 
   return (
     <div>
-      <PageHeader title="Pedidos" />
+      <PageHeader title="Pedidos" crumbs={[{ label: 'Vendas' }, { label: 'Pedidos' }]} />
       <div className="mb-4">
         <SearchBox
           label="Buscar por número, cliente, e-mail ou SKU"

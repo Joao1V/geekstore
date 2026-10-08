@@ -39,6 +39,7 @@ export function BrandManager() {
     <>
       <PageHeader
         title="Marcas"
+        crumbs={[{ label: 'Catálogo' }, { label: 'Marcas' }]}
         actions={
           canWrite && (
             <Action onPress={() => setTarget({})}>
@@ -71,8 +72,22 @@ export function BrandManager() {
           {rows.map((brand: Brand) => (
             <tr key={brand.brand_id} className="hover:bg-surface-secondary/50">
               <Td>
-                <strong>{brand.name}</strong>
-                <span className="muted block font-mono text-2xs">{brand.slug}</span>
+                <div className="flex items-center gap-3">
+                  <div className="grid h-9 w-14 shrink-0 place-items-center rounded-md border border-border bg-surface-secondary p-1">
+                    {brand.logo_url && (
+                      // biome-ignore lint/performance/noImgElement: URL do bucket, sem otimização do Next
+                      <img
+                        src={brand.logo_url}
+                        alt=""
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <strong>{brand.name}</strong>
+                    <span className="muted block font-mono text-2xs">{brand.slug}</span>
+                  </div>
+                </div>
               </Td>
               <Td className="tabular-nums">{formatInteger(brand.product_count)}</Td>
               <Td>

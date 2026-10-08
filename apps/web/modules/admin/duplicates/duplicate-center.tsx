@@ -66,7 +66,10 @@ export function DuplicateCenter() {
 
   return (
     <>
-      <PageHeader title="Produtos duplicados" />
+      <PageHeader
+        title="Produtos duplicados"
+        crumbs={[{ label: 'Catálogo' }, { label: 'Duplicados' }]}
+      />
       <p className="muted mb-5 max-w-3xl text-sm">
         O ERP cadastrou o mesmo produto mais de uma vez. Mesclar mantém um produto e soma o estoque
         dele (registrado no histórico); o código do ERP do repetido é guardado. O mesmo código de

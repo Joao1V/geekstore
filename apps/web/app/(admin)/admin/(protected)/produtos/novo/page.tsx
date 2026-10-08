@@ -7,7 +7,15 @@ export const metadata = { title: 'Novo produto', robots: { index: false, follow:
 export default function Page() {
   return (
     <RequirePermission permission="catalog:write">
-      <PageHeader title="Novo produto" eyebrow="Catálogo" />
+      <PageHeader
+        title="Novo produto"
+        eyebrow="Catálogo"
+        crumbs={[
+          { label: 'Catálogo' },
+          { label: 'Produtos', href: '/admin/produtos/' },
+          { label: 'Novo produto' },
+        ]}
+      />
       <ProductForm />
     </RequirePermission>
   );

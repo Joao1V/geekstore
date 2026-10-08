@@ -158,6 +158,24 @@ export function useSetCollectionProducts() {
   });
 }
 
+/** Troca as coleções de um produto (as demais ligações de cada coleção não mudam). */
+export function useSetProductCollections() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      product_id,
+      collection_ids,
+    }: {
+      product_id: string;
+      collection_ids: string[];
+    }) => adminApi.put<void>(`${CATALOG}/products/${product_id}/collections`, { collection_ids }),
+    onSettled: (_data, _error, { product_id }) => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.productDetail(product_id) });
+      queryClient.invalidateQueries({ queryKey: adminKeys.collections });
+    },
+  });
+}
+
 // ── Mídia ──────────────────────────────────────────────────────────────────────
 type UploadUrl = { upload_url: string; public_url: string; expires_in: number };
 
@@ -169,28 +187,34 @@ export type UploadImageInput = {
   sku_id?: string | null;
 };
 
-/** Comprime no cliente, pede a URL pré-assinada, faz o PUT direto no bucket e registra a mídia. */
+/** Comprime no cliente, pede a URL pré-assinada e faz o PUT direto no bucket. Devolve a URL pública. */
+async function uploadImageToBucket(file: File): Promise<string> {
+  const { blob, contentType } = await compressImage(file);
+  const target = await adminApi.post<UploadUrl>(`${CATALOG}/media/upload-url`, {
+    content_type: contentType,
+    size_bytes: blob.size,
+  });
+  let uploadResponse: Response;
+  try {
+    uploadResponse = await fetch(target.upload_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body: blob,
+    });
+  } catch {
+    throw new Error('Falha de rede ao enviar a imagem para o armazenamento.');
+  }
+  if (!uploadResponse.ok) throw new Error('O armazenamento recusou o envio da imagem.');
+  return target.public_url;
+}
+
+/** Envia a imagem e registra a mídia no produto. */
 export function useUploadProductImage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ product_id, file, alt, position, sku_id }: UploadImageInput) => {
-      const { blob, contentType } = await compressImage(file);
-      const target = await adminApi.post<UploadUrl>(`${CATALOG}/media/upload-url`, {
-        content_type: contentType,
-        size_bytes: blob.size,
-      });
-      let uploadResponse: Response;
-      try {
-        uploadResponse = await fetch(target.upload_url, {
-          method: 'PUT',
-          headers: { 'Content-Type': contentType },
-          body: blob,
-        });
-      } catch {
-        throw new Error('Falha de rede ao enviar a imagem para o armazenamento.');
-      }
-      if (!uploadResponse.ok) throw new Error('O armazenamento recusou o envio da imagem.');
-      const body: MediaBody = { url: target.public_url, alt, position, sku_id: sku_id ?? null };
+      const url = await uploadImageToBucket(file);
+      const body: MediaBody = { url, alt, position, sku_id: sku_id ?? null };
       return adminApi.post<Media>(`${CATALOG}/products/${product_id}/media`, body);
     },
     onSettled: (_data, _error, { product_id }) =>
@@ -248,6 +272,21 @@ export function useUpdateBrand() {
   return useMutation({
     mutationFn: ({ brand_id, body }: { brand_id: string; body: BrandUpdateBody }) =>
       adminApi.patch<Brand>(`${CATALOG}/brands/${brand_id}`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.brands });
+      queryClient.invalidateQueries({ queryKey: adminKeys.products });
+    },
+  });
+}
+
+/** Envia a imagem do logo e grava a URL na marca. */
+export function useUploadBrandLogo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ brand_id, file }: { brand_id: string; file: File }) => {
+      const logo_url = await uploadImageToBucket(file);
+      return adminApi.patch<Brand>(`${CATALOG}/brands/${brand_id}`, { logo_url });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.brands });
       queryClient.invalidateQueries({ queryKey: adminKeys.products });

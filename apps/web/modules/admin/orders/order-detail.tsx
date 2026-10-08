@@ -3,8 +3,7 @@
 import { formatBRL, orderCancelBodySchema, orderShipBodySchema } from '@geekstore/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Ban, CheckCheck, PackageCheck, Truck } from 'lucide-react';
-import Link from 'next/link';
+import { Ban, CheckCheck, PackageCheck, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import type { z } from 'zod';
@@ -89,11 +88,13 @@ export function OrderDetail({ number }: { number: number }) {
 
   return (
     <div>
-      <Link href="/admin/pedidos/" className="muted mb-3 inline-flex items-center gap-1 text-sm">
-        <ArrowLeft size={14} /> Pedidos
-      </Link>
       <PageHeader
         title={`Pedido #${order.number}`}
+        crumbs={[
+          { label: 'Vendas' },
+          { label: 'Pedidos', href: '/admin/pedidos/' },
+          { label: `Pedido #${order.number}` },
+        ]}
         eyebrow={formatDateTime(order.created_at)}
         actions={
           <>
