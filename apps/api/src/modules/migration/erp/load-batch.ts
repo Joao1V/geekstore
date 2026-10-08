@@ -44,6 +44,7 @@ export function buildBatchRows(items: LoadItem[], ctx: BatchContext) {
   };
 
   const productIds = new Map<string, string>();
+  const firstItemOf = new Map<string, (typeof items)[number]>();
   const mediaCount = new Map<string, number>();
   const seenUrls = new Set<string>();
   /** Fotos de um produto (ou da variação, com `skuId`), em sequência e sem repetir a mesma URL. */
@@ -75,6 +76,7 @@ export function buildBatchRows(items: LoadItem[], ctx: BatchContext) {
     const productId = known ?? uuidv7();
     if (!known) {
       productIds.set(item.productKey, productId);
+      firstItemOf.set(item.productKey, item);
       rows.products.push({
         product_id: productId,
         category_id: categoryId,
@@ -153,6 +155,12 @@ export function buildBatchRows(items: LoadItem[], ctx: BatchContext) {
         reference_type: ctx.stock?.reference ?? STOCK_REFERENCE,
       });
     }
+  }
+  // Numa família as fotos de cada variação já entraram acima; o que sobra só do produto (ex.: fotos
+  // juntadas na consolidação) entra no fim, no nível do produto. A mesma URL nunca entra duas vezes.
+  for (const item of items) {
+    if (!item.hasVariants || firstItemOf.get(item.productKey) !== item) continue;
+    pushMedia(item.photos, productIds.get(item.productKey) as string, null, item.name);
   }
   return rows;
 }

@@ -48,6 +48,8 @@ export const normalizedCatalogSchema = z.object({
   source_sha256: z.string(),
   /** Categorias incluídas (piloto) ou `null` quando é o catálogo todo. */
   scope: z.array(z.string()).nullable(),
+  /** Franquias usadas (endereço e nome). Sem isto, o importador só conhece a lista fixa do código. */
+  collections: z.array(z.object({ slug: z.string(), name: z.string() })).optional(),
   products: z.array(productSchema),
 });
 

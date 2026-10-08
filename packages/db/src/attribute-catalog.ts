@@ -229,6 +229,12 @@ export const ATTRIBUTE_CATALOG: readonly AttributeSeed[] = [
       v('Sachê', 'SCH'),
     ],
   },
+  {
+    // Criado pela consolidação do catálogo: itens de mesmo nome e nada que os distinga viram "Opção N".
+    code: 'modelo',
+    name: 'Modelo',
+    values: Array.from({ length: 24 }, (_, index) => v(`Opção ${index + 1}`, `O${index + 1}`)),
+  },
 ];
 
 /** `Azul Marinho` -> `azul-marinho`; `33/35` -> `33-35`. É o código estável do valor. */

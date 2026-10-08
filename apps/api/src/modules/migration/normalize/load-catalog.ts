@@ -97,8 +97,17 @@ function toLoadItems(product: NormalizedProduct): (LoadItem & { collections: str
 }
 
 /** Cria (ou reaproveita, pelo endereço) as coleções de franquia usadas; devolve `slug -> collection_id`. */
-async function ensureCollections(slugs: Iterable<string>): Promise<Map<string, string>> {
-  const wanted = FRANCHISES.filter((franchise) => new Set(slugs).has(franchise.slug));
+async function ensureCollections(
+  slugs: Iterable<string>,
+  definitions: readonly { slug: string; name: string }[]
+): Promise<Map<string, string>> {
+  const used = new Set(slugs);
+  const known = new Map<string, { slug: string; name: string }>(
+    FRANCHISES.map((franchise) => [franchise.slug, franchise])
+  );
+  // As definições do próprio arquivo vencem a lista fixa: é onde as franquias novas (da faxina) chegam.
+  for (const definition of definitions) known.set(definition.slug, definition);
+  const wanted = [...known.values()].filter((franchise) => used.has(franchise.slug));
   await prisma.collection.createMany({
     data: wanted.map((franchise) => ({
       collection_id: uuidv7(),
@@ -160,7 +169,10 @@ export async function importCatalog(
   const attributeValueIds = await ensureAttributeValues(source);
   const brandIds = await ensureBrands(source);
   await linkCategoryAttributes(source, taxonomy.ids, attributeValueIds);
-  const collectionIds = await ensureCollections(pending.flatMap((product) => product.collections));
+  const collectionIds = await ensureCollections(
+    pending.flatMap((product) => product.collections),
+    catalog.collections ?? []
+  );
   const base = await loadContext();
   const ctx: BatchContext = {
     ...base,
