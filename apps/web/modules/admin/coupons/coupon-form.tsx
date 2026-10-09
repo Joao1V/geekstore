@@ -26,6 +26,7 @@ import {
 import { getErrorMessage } from '../lib/errors';
 import { fromDateTimeLocal, toDateTimeLocal } from '../lib/format';
 import { useCreateCoupon, useUpdateCoupon } from '../services/pricing/mutations';
+import { CouponCategoriesField } from './coupon-categories-field';
 
 const BRL = { style: 'currency', currency: 'BRL' } as const;
 const KIND_OPTIONS = couponKindSchema.options.map((kind) => ({
@@ -48,6 +49,7 @@ const formSchema = z
     starts_at: z.string(),
     ends_at: z.string(),
     is_active: z.boolean(),
+    category_ids: z.array(z.string()),
   })
   .superRefine((values, ctx) => {
     const issue = couponRuleIssue({
@@ -82,6 +84,7 @@ const toBody = (values: FormValues): CouponBody => ({
   starts_at: fromDateTimeLocal(values.starts_at),
   ends_at: fromDateTimeLocal(values.ends_at),
   is_active: values.is_active,
+  category_ids: values.category_ids,
 });
 
 const emptyValues = (): FormValues => ({
@@ -94,6 +97,7 @@ const emptyValues = (): FormValues => ({
   starts_at: '',
   ends_at: '',
   is_active: true,
+  category_ids: [],
 });
 
 const fromCoupon = (coupon: Coupon): FormValues => ({
@@ -106,6 +110,7 @@ const fromCoupon = (coupon: Coupon): FormValues => ({
   starts_at: toDateTimeLocal(coupon.starts_at),
   ends_at: toDateTimeLocal(coupon.ends_at),
   is_active: coupon.is_active,
+  category_ids: coupon.category_ids,
 });
 
 /** `{}` = novo cupom; `{ coupon }` = edição; `null` = fechado. */
@@ -231,7 +236,7 @@ export function CouponForm({
                   field={field}
                   fieldState={fieldState}
                   label="Pedido mínimo (R$)"
-                  description="Em branco: sem mínimo."
+                  description="Em branco: sem mínimo. Com categorias, conta só os itens delas."
                   required={false}
                   minValue={0}
                   formatOptions={BRL}
@@ -269,6 +274,13 @@ export function CouponForm({
               )}
             />
           </div>
+          <Controller
+            control={control}
+            name="category_ids"
+            render={({ field }) => (
+              <CouponCategoriesField value={field.value} onChange={field.onChange} />
+            )}
+          />
           <Controller
             control={control}
             name="is_active"

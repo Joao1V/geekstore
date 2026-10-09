@@ -146,7 +146,11 @@ export function CouponManager() {
             <tr key={coupon.coupon_id} className="hover:bg-surface-secondary/50">
               <Td>
                 <strong className="font-mono">{coupon.code}</strong>
-                <span className="muted block text-xs">{benefitOf(coupon)}</span>
+                <span className="muted block text-xs">
+                  {benefitOf(coupon)}
+                  {coupon.category_ids.length > 0 &&
+                    ` · só ${coupon.category_ids.length} ${coupon.category_ids.length === 1 ? 'categoria' : 'categorias'}`}
+                </span>
               </Td>
               <Td>{coupon.min_subtotal_cents ? formatBRL(coupon.min_subtotal_cents) : '—'}</Td>
               <Td align="right" className="tabular-nums">

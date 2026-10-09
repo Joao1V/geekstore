@@ -149,7 +149,10 @@ export function Checkout() {
   const applyCoupon = async (code: string) => {
     setCouponMessage('');
     try {
-      const result = await checkCoupon.mutateAsync({ code, subtotal_cents: subtotalCents });
+      const result = await checkCoupon.mutateAsync({
+        code,
+        items: lines.map((line) => ({ sku_id: line.sku_id, quantity: line.qty })),
+      });
       setCoupon(result);
       setCouponMessage('Cupom aplicado.');
     } catch (error) {

@@ -1,6 +1,6 @@
 'use client';
 
-import type { CheckoutBody, CouponCheck, Order } from '@geekstore/shared';
+import type { CheckoutBody, CouponCheck, CouponCheckBody, Order } from '@geekstore/shared';
 import { useMutation } from '@tanstack/react-query';
 
 import { api } from '@/lib/api';
@@ -25,7 +25,7 @@ export function useCreateOrder() {
 
 export function useCheckCoupon() {
   return useMutation({
-    mutationFn: (input: { code: string; subtotal_cents: number }) =>
+    mutationFn: (input: CouponCheckBody) =>
       api.post<CouponCheck>('/api/store/coupons/check', input),
   });
 }
