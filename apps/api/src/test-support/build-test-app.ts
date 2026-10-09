@@ -6,7 +6,11 @@ import { cookiePlugin } from '../core/plugins/cookie.plugin';
 import { jwtPlugin } from '../core/plugins/jwt.plugin';
 import { auditRoutes } from '../modules/audit/audit.routes';
 import { catalogRoutes } from '../modules/catalog/catalog.routes';
-import { contentRoutes, storePageRoutes } from '../modules/content/content.routes';
+import {
+  contentRoutes,
+  storeBannerRoutes,
+  storePageRoutes,
+} from '../modules/content/content.routes';
 import { customerRoutes } from '../modules/customers/customer.routes';
 import { adminOrderRoutes } from '../modules/orders/admin-orders.routes';
 import {
@@ -47,6 +51,7 @@ export async function buildTestApp() {
   await app.register(usersRoutes, { prefix: '/api/users' });
   await app.register(storefrontRoutes, { prefix: '/api/store' });
   await app.register(storePageRoutes, { prefix: '/api/store/pages' });
+  await app.register(storeBannerRoutes, { prefix: '/api/store/banners' });
   await app.register(contentRoutes, { prefix: '/api/content' });
   await app.register(auditRoutes, { prefix: '/api/audit-logs' });
   await app.ready();

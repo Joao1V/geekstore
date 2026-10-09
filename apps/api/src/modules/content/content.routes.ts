@@ -1,9 +1,16 @@
 import {
+  bannerBodySchema,
+  bannerListResponseSchema,
+  bannerOrderBodySchema,
+  bannerParamsSchema,
+  bannerResponseSchema,
+  bannerUpdateBodySchema,
   pageBodySchema,
   pageListResponseSchema,
   pageParamsSchema,
   pageResponseSchema,
   pageUpdateBodySchema,
+  storeBannerListResponseSchema,
   storePageListResponseSchema,
   storePageParamsSchema,
   storePageResponseSchema,
@@ -13,12 +20,18 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 
 import { requirePermission } from '../../core/hooks';
 import {
+  createBannerController,
   createPageController,
+  deleteBannerController,
   deletePageController,
   getPageController,
   getStorePageController,
+  listBannersController,
   listPagesController,
+  listStoreBannersController,
   listStorePagesController,
+  reorderBannersController,
+  updateBannerController,
   updatePageController,
 } from './page.controller';
 
@@ -94,6 +107,68 @@ export async function contentRoutes(fastify: FastifyInstance): Promise<void> {
     },
     deletePageController
   );
+
+  app.get(
+    '/banners',
+    {
+      ...read,
+      schema: {
+        tags,
+        summary: 'Lista os banners da home, na ordem',
+        response: { 200: bannerListResponseSchema },
+      },
+    },
+    listBannersController
+  );
+  app.post(
+    '/banners',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary: 'Cria banner (entra no fim da ordem)',
+        body: bannerBodySchema,
+        response: { 201: bannerResponseSchema },
+      },
+    },
+    createBannerController
+  );
+  // `/banners/order` vem antes de `/banners/:banner_id` só por clareza: o método é outro (PUT).
+  app.put(
+    '/banners/order',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary: 'Define a ordem dos banners (a lista completa dos ids)',
+        body: bannerOrderBodySchema,
+        response: { 200: bannerListResponseSchema },
+      },
+    },
+    reorderBannersController
+  );
+  app.patch(
+    '/banners/:banner_id',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary: 'Edita banner (só o que for enviado)',
+        params: bannerParamsSchema,
+        body: bannerUpdateBodySchema,
+        response: { 200: bannerResponseSchema },
+      },
+    },
+    updateBannerController
+  );
+  app.delete(
+    '/banners/:banner_id',
+    {
+      ...write,
+      schema: { tags, summary: 'Apaga banner (204)', params: bannerParamsSchema },
+    },
+    deleteBannerController
+  );
 }
 
 /** Loja (público): só as páginas publicadas. Prefixo `/api/store/pages`. */
@@ -121,5 +196,20 @@ export async function storePageRoutes(fastify: FastifyInstance): Promise<void> {
       },
     },
     getStorePageController
+  );
+}
+
+/** Loja (público): os banners que estão no ar agora. Prefixo `/api/store/banners`. */
+export async function storeBannerRoutes(fastify: FastifyInstance): Promise<void> {
+  fastify.withTypeProvider<ZodTypeProvider>().get(
+    '/',
+    {
+      schema: {
+        tags: ['Vitrine'],
+        summary: 'Banners ativos da home (dentro da janela de datas), na ordem',
+        response: { 200: storeBannerListResponseSchema },
+      },
+    },
+    listStoreBannersController
   );
 }

@@ -865,3 +865,25 @@ model Page {
 
   @@map("page")
 }
+
+// Banner da home da loja (o carrossel do topo). Só os ativos e dentro da janela de datas aparecem.
+model Banner {
+  banner_id  String    @id @default(uuid(7)) @db.Uuid
+  tag        String?   @db.VarChar(120)
+  // Uma frase por linha: a primeira em branco, a segunda em amarelo.
+  headline   String    @db.VarChar(160)
+  text       String?   @db.VarChar(300)
+  cta_label  String    @db.VarChar(60)
+  href       String    @db.VarChar(300)
+  // Sem imagem, o carrossel mostra o mascote da loja.
+  image_url  String?   @db.VarChar(500)
+  position   Int       @default(0)
+  is_active  Boolean   @default(true)
+  starts_at  DateTime?
+  ends_at    DateTime?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+
+  @@index([position])
+  @@map("banner")
+}
