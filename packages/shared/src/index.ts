@@ -5,6 +5,7 @@ export * from './brands';
 export * from './card-token';
 export * from './catalog';
 export * from './common';
+export * from './coupons';
 export * from './customers';
 export * from './documents';
 export * from './duplicates';
