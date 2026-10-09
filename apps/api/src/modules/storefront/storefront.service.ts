@@ -51,8 +51,16 @@ async function buildConditions(filters: StoreFilters, fuzzy = false): Promise<Pr
     if (slugs.length > 0) conditions.push(Prisma.sql`b.slug IN (${Prisma.join(slugs)})`);
   }
   if (filters.q) {
+    // As variações (cor, modelo...) também entram na busca: a cor saiu do nome e "camiseta preto" tem de achar.
+    const variations = Prisma.sql`(
+      SELECT string_agg(av.label, ' ')
+      FROM sku sv
+      JOIN sku_attribute_value sav ON sav.sku_id = sv.sku_id
+      JOIN attribute_value av ON av.attribute_value_id = sav.attribute_value_id
+      WHERE sv.product_id = v.product_id AND sv.status = 'active'
+    )`;
     const exact = Prisma.sql`(
-      ${matchesSearch([Prisma.sql`v.name`, Prisma.sql`b.name`, Prisma.sql`v.code`], filters.q)}
+      ${matchesSearch([Prisma.sql`v.name`, Prisma.sql`b.name`, Prisma.sql`v.code`, variations], filters.q)}
       OR EXISTS (
         SELECT 1 FROM sku s
         WHERE s.product_id = v.product_id AND s.status = 'active'
@@ -62,7 +70,7 @@ async function buildConditions(filters: StoreFilters, fuzzy = false): Promise<Pr
     // Segunda tentativa: o exato OU palavras parecidas no nome ou na marca ("stich" -> "Stitch").
     conditions.push(
       fuzzy
-        ? Prisma.sql`(${exact} OR ${matchesSearchFuzzy([Prisma.sql`v.name`, Prisma.sql`b.name`], filters.q)})`
+        ? Prisma.sql`(${exact} OR ${matchesSearchFuzzy([Prisma.sql`v.name`, Prisma.sql`b.name`, variations], filters.q)})`
         : exact
     );
   }

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { type Prisma, prisma } from '@geekstore/db';
 
 import {
+  type LegacyMapEntry,
   type NormalizedCatalog,
   type NormalizedProduct,
   type NormalizedSku,
@@ -155,4 +156,17 @@ export async function exportCatalog(
     collections,
     products,
   });
+}
+
+/**
+ * O mapa do ERP (código do SKU -> código e nome no ERP) a partir do banco. Precisa sair junto do
+ * catálogo: quando um SKU muda de código, o mapa antigo ligaria o item do ERP ao SKU errado.
+ * Só os SKUs que entram no arquivo; os mesclados em outro guardam o código no banco.
+ */
+export async function exportLegacyMap(): Promise<LegacyMapEntry[]> {
+  return prisma.$queryRaw<LegacyMapEntry[]>`
+    SELECT s.code AS sku_code, s.legacy_code AS erp_code, COALESCE(s.legacy_data->>'erp_name', '') AS erp_name
+    FROM sku s JOIN product p ON p.product_id = s.product_id
+    WHERE s.legacy_code IS NOT NULL AND s.merged_into_sku_id IS NULL AND p.status <> 'archived'
+    ORDER BY s.code`;
 }

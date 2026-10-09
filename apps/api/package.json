@@ -23,7 +23,8 @@
     "ai:cleanup": "tsx src/cli/ai-cleanup.ts",
     "ai:sample": "tsx src/cli/ai-sample.ts",
     "ai:report": "tsx src/cli/ai-report.ts",
-    "export:catalog": "tsx src/cli/export-catalog.ts"
+    "export:catalog": "tsx src/cli/export-catalog.ts",
+    "normalize:families": "tsx src/cli/normalize-families.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

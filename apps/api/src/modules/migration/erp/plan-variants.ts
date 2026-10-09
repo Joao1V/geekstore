@@ -344,3 +344,19 @@ function sameKinds(members: ProductGroup['members']): boolean {
 /** A chave da família começa pela categoria; roupa é tudo o que está sob "Moda Geek". */
 const isClothing = (familyKey: string): boolean =>
   categoryNode(familyKey.split('|')[0] ?? '').rootSlug === CLOTHING_ROOT;
+
+// Peças do planejador que a normalização do catálogo já gravado também usa (cor, tamanho, medida e
+// código de fabricante reconhecidos no nome).
+export {
+  BABY_LOOK,
+  COLORS,
+  canonicalColor,
+  isSize,
+  KIDS_SIZE,
+  MODEL_CODE,
+  RANGE,
+  SIZE_LABELS,
+  TRAILING_KIDS_SIZE,
+  VOLUME,
+  WEIGHT,
+};
