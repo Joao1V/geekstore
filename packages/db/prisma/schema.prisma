@@ -840,3 +840,28 @@ model DuplicateDismissal {
 
   @@map("duplicate_dismissal")
 }
+
+// ---------- Conteúdo da loja: páginas institucionais (Markdown) ----------
+
+enum PageStatus {
+  draft
+  published
+}
+
+// Página institucional (trocas e devoluções, nos conheça, contato...). O corpo é Markdown; só `published`
+// aparece na loja, em /pagina/<slug>.
+model Page {
+  page_id         String     @id @default(uuid(7)) @db.Uuid
+  slug            String     @unique @db.VarChar(120)
+  title           String     @db.VarChar(255)
+  body            String     @default("") @db.Text
+  status          PageStatus @default(draft)
+  seo_title       String?    @db.VarChar(255)
+  seo_description String?    @db.VarChar(500)
+  // Ordem dos links no rodapé da loja.
+  position        Int        @default(0)
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+
+  @@map("page")
+}
