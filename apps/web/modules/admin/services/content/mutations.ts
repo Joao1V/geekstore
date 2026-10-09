@@ -1,6 +1,13 @@
 'use client';
 
-import type { Page, PageBody, PageUpdateBody } from '@geekstore/shared';
+import type {
+  Banner,
+  BannerBody,
+  BannerUpdateBody,
+  Page,
+  PageBody,
+  PageUpdateBody,
+} from '@geekstore/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { adminApi } from '../../lib/admin-api';
@@ -30,5 +37,42 @@ export function useDeletePage() {
   return useMutation({
     mutationFn: (pageId: string) => adminApi.delete<void>(`${PAGES}/${pageId}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.pages }),
+  });
+}
+
+const BANNERS = '/api/content/banners';
+
+export function useCreateBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: BannerBody) => adminApi.post<Banner>(BANNERS, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.banners }),
+  });
+}
+
+export function useUpdateBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ banner_id, body }: { banner_id: string; body: BannerUpdateBody }) =>
+      adminApi.patch<Banner>(`${BANNERS}/${banner_id}`, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.banners }),
+  });
+}
+
+export function useDeleteBanner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (bannerId: string) => adminApi.delete<void>(`${BANNERS}/${bannerId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.banners }),
+  });
+}
+
+/** A lista completa dos ids, na nova ordem. */
+export function useReorderBanners() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (bannerIds: string[]) =>
+      adminApi.put<Banner[]>(`${BANNERS}/order`, { banner_ids: bannerIds }),
+    onSuccess: (data) => queryClient.setQueryData(adminKeys.banners, data),
   });
 }

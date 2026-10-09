@@ -1,4 +1,4 @@
-import type { Page, PageListItem } from '@geekstore/shared';
+import type { Banner, Page, PageListItem } from '@geekstore/shared';
 import { queryOptions } from '@tanstack/react-query';
 
 import { adminApi } from '../../lib/admin-api';
@@ -16,4 +16,10 @@ export const pageDetailQueryOptions = (pageId: string) =>
   queryOptions({
     queryKey: adminKeys.pageDetail(pageId),
     queryFn: () => adminApi.get<Page>(`${PAGES}/${pageId}`),
+  });
+
+export const bannerListQueryOptions = () =>
+  queryOptions({
+    queryKey: adminKeys.banners,
+    queryFn: () => adminApi.get<Banner[]>('/api/content/banners'),
   });

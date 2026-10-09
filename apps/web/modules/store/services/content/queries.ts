@@ -1,4 +1,4 @@
-import type { StorePage, StorePageLink } from '@geekstore/shared';
+import type { StoreBanner, StorePage, StorePageLink } from '@geekstore/shared';
 import { queryOptions } from '@tanstack/react-query';
 
 import { api } from '@/lib/api';
@@ -17,4 +17,10 @@ export const storePageQuery = (slug: string) =>
     queryKey: ['store', 'pages', slug],
     queryFn: () =>
       api.get<StorePage>(`/api/store/pages/${encodeURIComponent(slug)}`, undefined, server),
+  });
+
+export const storeBannersQuery = () =>
+  queryOptions({
+    queryKey: ['store', 'banners'],
+    queryFn: () => api.get<StoreBanner[]>('/api/store/banners', undefined, server),
   });

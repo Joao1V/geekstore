@@ -1,3 +1,4 @@
+import type { StoreBanner } from '@geekstore/shared';
 import {
   ArrowRight,
   Blocks,
@@ -22,6 +23,7 @@ import { CampaignSlider } from './campaign-slider';
 import { ProductGrid } from './product-card';
 import { Reveal } from './reveal';
 import { storeHomeQuery, storeProductsQuery } from './services/catalog/queries';
+import { storeBannersQuery } from './services/content/queries';
 import { Benefits } from './shell';
 
 const MAX_UNIVERSES = 6;
@@ -43,8 +45,18 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   'alimentos-e-guloseimas': Cookie,
 };
 
+/** Banners no ar. Se a API não responder, a home abre com os padrões (lista vazia). */
+async function loadBanners(): Promise<StoreBanner[]> {
+  try {
+    return await getQueryClient().fetchQuery(storeBannersQuery());
+  } catch {
+    return [];
+  }
+}
+
 export async function Home() {
   const client = getQueryClient();
+  const banners = await loadBanners();
   const home = await client.fetchQuery(storeHomeQuery());
   const universes = [...home.categories]
     .sort((a, b) => b.product_count - a.product_count)
@@ -67,7 +79,7 @@ export async function Home() {
         <span className="size-[3px] rounded-[10px] bg-ink" /> Frete grátis a partir de R$ 299*{' '}
         <small className="text-2xs font-medium max-md:hidden">*Condições demonstrativas</small>
       </div>
-      <CampaignSlider />
+      <CampaignSlider banners={banners} />
       <section className="wrap flex items-center gap-[25px] py-7 max-md:py-[22px]">
         <div className="flex items-center gap-3 text-sm font-black whitespace-nowrap max-tablet:hidden">
           Escolha seu universo <ChevronRight size={18} />

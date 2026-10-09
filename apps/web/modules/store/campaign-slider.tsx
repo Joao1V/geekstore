@@ -1,5 +1,6 @@
 'use client';
 
+import type { StoreBanner } from '@geekstore/shared';
 import { Button } from '@heroui/react';
 import { ArrowLeft, ArrowRight, Flame } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
@@ -10,26 +11,32 @@ import { A11y, Keyboard } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { getMascot } from '@/lib/mascot';
 
-const campaigns = [
+/** Reserva: se a loja não tiver nenhum banner no ar (ou a API estiver fora), a home segue com estes dois. */
+export const DEFAULT_BANNERS: StoreBanner[] = [
   {
+    banner_id: 'padrao-1',
     tag: 'O próximo capítulo é seu',
-    title: ['Seu universo.', 'Sua coleção.'],
+    headline: 'Seu universo.\nSua coleção.',
     text: 'Colecionáveis, games e itens que contam a sua história.',
-    cta: 'Encontrar meu próximo drop',
+    cta_label: 'Encontrar meu próximo drop',
     href: '/catalogo/',
+    image_url: null,
   },
   {
+    banner_id: 'padrao-2',
     tag: 'Dê um upgrade na coleção',
-    title: ['Pequenos achados.', 'Grandes histórias.'],
+    headline: 'Pequenos achados.\nGrandes histórias.',
     text: 'Explore os produtos e encontre seu próximo favorito.',
-    cta: 'Ver as novidades',
+    cta_label: 'Ver as novidades',
     href: '/catalogo/?ordem=newest',
+    image_url: null,
   },
 ];
 
 const CONTROL_BUTTON = 'h-[26px] w-7 min-w-6 bg-transparent p-0 text-night-fg';
 
-export function CampaignSlider() {
+export function CampaignSlider({ banners }: { banners: StoreBanner[] }) {
+  const campaigns = banners.length > 0 ? banners : DEFAULT_BANNERS;
   const [slider, setSlider] = useState<SwiperInstance | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const reducedMotion = useReducedMotion();
@@ -57,7 +64,7 @@ export function CampaignSlider() {
         {campaigns.map((campaign, index) => {
           const Heading = index === 0 ? 'h1' : 'h2';
           return (
-            <SwiperSlide key={campaign.href} inert={activeIndex !== index}>
+            <SwiperSlide key={campaign.banner_id} inert={activeIndex !== index}>
               <div
                 className={`relative overflow-hidden ${index === 1 ? 'bg-[radial-gradient(ellipse_at_80%_50%,var(--color-bronze),var(--color-night)_65%)]' : 'bg-night'}`}
                 inert={activeIndex !== index}
@@ -73,32 +80,41 @@ export function CampaignSlider() {
                     }}
                     transition={{ duration: reducedMotion ? 0 : 0.4 }}
                   >
-                    <p className="eyebrow text-geek-yellow max-md:max-w-[200px]">
-                      <Flame size={16} />
-                      {campaign.tag}
-                    </p>
+                    {campaign.tag && (
+                      <p className="eyebrow text-geek-yellow max-md:max-w-[200px]">
+                        <Flame size={16} />
+                        {campaign.tag}
+                      </p>
+                    )}
                     <Heading className="font-display my-[22px] text-5xl xl:text-6xl 2xl:text-7xl leading-[0.98] tracking-[0.025em] max-md:my-[17px]">
-                      {campaign.title.map((line, i) => (
-                        <span key={line} className={i ? 'block text-geek-yellow' : 'block'}>
-                          {line}
-                        </span>
-                      ))}
+                      {campaign.headline
+                        .split('\n')
+                        .filter(Boolean)
+                        .map((line, i) => (
+                          <span key={line} className={i ? 'block text-geek-yellow' : 'block'}>
+                            {line}
+                          </span>
+                        ))}
                     </Heading>
-                    <p className="mb-[25px] max-w-[380px] text-base font-semibold text-night-muted max-md:max-w-[210px] max-md:text-sm max-md:leading-[1.6]">
-                      {campaign.text}
-                    </p>
+                    {campaign.text && (
+                      <p className="mb-[25px] max-w-[380px] text-base font-semibold text-night-muted max-md:max-w-[210px] max-md:text-sm max-md:leading-[1.6]">
+                        {campaign.text}
+                      </p>
+                    )}
                     <Link
                       className="action max-md:min-h-[43px] max-md:px-[13px] max-md:py-[11px] max-md:text-xs max-md:[&_svg]:w-[15px]"
                       href={campaign.href}
                     >
-                      {campaign.cta}
+                      {campaign.cta_label}
                       <ArrowRight size={19} />
                     </Link>
                   </motion.div>
                   <div className="relative flex min-w-0 items-end justify-center">
                     <div className="absolute top-[55px] size-[330px] rounded-full border border-geek-yellow/27 max-md:-left-[25px] max-md:top-[60px] max-md:size-[180px]" />
                     <motion.img
-                      {...getMascot('hero')}
+                      {...(campaign.image_url
+                        ? { src: campaign.image_url, alt: '' }
+                        : getMascot('hero'))}
                       width={550}
                       height={550}
                       className="absolute bottom-0 h-[410px] w-[485px] max-w-none origin-[50%_80%] object-contain [filter:drop-shadow(0_20px_25px_#0008)] max-tablet:w-[430px] max-md:-left-7 max-md:h-[285px] max-md:w-[250px]"
@@ -131,7 +147,7 @@ export function CampaignSlider() {
           </Button>
           {campaigns.map((campaign, index) => (
             <button
-              key={campaign.href}
+              key={campaign.banner_id}
               type="button"
               aria-label={`Banner ${index + 1}`}
               aria-pressed={activeIndex === index}

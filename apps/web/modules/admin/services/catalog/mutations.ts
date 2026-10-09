@@ -30,7 +30,7 @@ import type {
 } from '@geekstore/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../lib/admin-api';
-import { compressImage } from '../../lib/compress-image';
+import { uploadImageToBucket } from '../../lib/upload-image';
 import { adminKeys } from '../query-keys';
 
 const CATALOG = '/api/catalog';
@@ -177,8 +177,6 @@ export function useSetProductCollections() {
 }
 
 // ── Mídia ──────────────────────────────────────────────────────────────────────
-type UploadUrl = { upload_url: string; public_url: string; expires_in: number };
-
 export type UploadImageInput = {
   product_id: string;
   file: File;
@@ -186,27 +184,6 @@ export type UploadImageInput = {
   position: number;
   sku_id?: string | null;
 };
-
-/** Comprime no cliente, pede a URL pré-assinada e faz o PUT direto no bucket. Devolve a URL pública. */
-async function uploadImageToBucket(file: File): Promise<string> {
-  const { blob, contentType } = await compressImage(file);
-  const target = await adminApi.post<UploadUrl>(`${CATALOG}/media/upload-url`, {
-    content_type: contentType,
-    size_bytes: blob.size,
-  });
-  let uploadResponse: Response;
-  try {
-    uploadResponse = await fetch(target.upload_url, {
-      method: 'PUT',
-      headers: { 'Content-Type': contentType },
-      body: blob,
-    });
-  } catch {
-    throw new Error('Falha de rede ao enviar a imagem para o armazenamento.');
-  }
-  if (!uploadResponse.ok) throw new Error('O armazenamento recusou o envio da imagem.');
-  return target.public_url;
-}
 
 /** Envia a imagem e registra a mídia no produto. */
 export function useUploadProductImage() {
