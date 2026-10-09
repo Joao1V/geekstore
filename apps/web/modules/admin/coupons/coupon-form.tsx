@@ -54,7 +54,7 @@ const formSchema = z
   .superRefine((values, ctx) => {
     const issue = couponRuleIssue({
       kind: values.kind,
-      value: valueOf(values),
+      value: couponValue(values),
       starts_at: fromDateTimeLocal(values.starts_at),
       ends_at: fromDateTimeLocal(values.ends_at),
     });
@@ -69,7 +69,7 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>;
 
 /** Valor do desconto no contrato: pontos percentuais, ou centavos; frete grátis não tem valor. */
-function valueOf(values: Pick<FormValues, 'kind' | 'percent' | 'amount'>): number {
+function couponValue(values: Pick<FormValues, 'kind' | 'percent' | 'amount'>): number {
   if (values.kind === 'percent') return values.percent ?? 0;
   if (values.kind === 'amount') return toCents(values.amount ?? 0);
   return 0;
@@ -78,7 +78,7 @@ function valueOf(values: Pick<FormValues, 'kind' | 'percent' | 'amount'>): numbe
 const toBody = (values: FormValues): CouponBody => ({
   code: values.code.trim().toUpperCase(),
   kind: values.kind,
-  value: valueOf(values),
+  value: couponValue(values),
   min_subtotal_cents: toCents(values.min_subtotal ?? 0),
   max_uses: values.max_uses,
   starts_at: fromDateTimeLocal(values.starts_at),

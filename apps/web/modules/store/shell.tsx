@@ -1,5 +1,6 @@
 'use client';
 
+import type { StorePageLink } from '@geekstore/shared';
 import { Button } from '@heroui/react';
 import {
   ArrowRight,
@@ -57,9 +58,12 @@ const BENEFITS = [
 export function Shell({
   children,
   categories,
+  pages,
 }: {
   children: ReactNode;
   categories: NavCategory[];
+  /** Páginas institucionais publicadas, para o rodapé. */
+  pages: StorePageLink[];
 }) {
   const store = useCartStore();
   const path = usePathname();
@@ -259,9 +263,17 @@ export function Shell({
           <div>
             <h3 className={FOOTER_TITLE}>Sua conta</h3>
             <AccountLinks variant="footer" linkClassName={FOOTER_LINK} />
-            <Link className={FOOTER_LINK} href="/ajuda/">
-              Atendimento e trocas
-            </Link>
+            {pages.length > 0 ? (
+              pages.map((page) => (
+                <Link key={page.slug} className={FOOTER_LINK} href={`/pagina/${page.slug}/`}>
+                  {page.title}
+                </Link>
+              ))
+            ) : (
+              <Link className={FOOTER_LINK} href="/ajuda/">
+                Atendimento e trocas
+              </Link>
+            )}
           </div>
           <div>
             <h3 className={FOOTER_TITLE}>Sobre esta versão</h3>

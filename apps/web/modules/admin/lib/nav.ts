@@ -1,6 +1,7 @@
 import type { Permission } from '@geekstore/shared';
 import {
   Copy,
+  FileText,
   FolderTree,
   Home,
   Layers,
@@ -99,6 +100,18 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         description: 'Produtos repetidos: mesclar e somar o estoque',
         icon: Copy,
         permission: 'catalog:read',
+      },
+    ],
+  },
+  {
+    label: 'Conteúdo',
+    items: [
+      {
+        href: '/admin/paginas/',
+        label: 'Páginas',
+        description: 'Trocas e devoluções, nos conheça, contato…',
+        icon: FileText,
+        permission: 'content:read',
       },
     ],
   },

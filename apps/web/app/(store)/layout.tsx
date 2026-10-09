@@ -1,5 +1,8 @@
+import type { StorePageLink } from '@geekstore/shared';
+
 import { getQueryClient } from '@/lib/get-query-client';
 import { storeHomeQuery } from '@/modules/store/services/catalog/queries';
+import { storePageLinksQuery } from '@/modules/store/services/content/queries';
 import { type NavCategory, Shell } from '@/modules/store/shell';
 
 // As páginas da loja leem a API na hora do pedido (os dados têm cache de 60 s, ver
@@ -21,6 +24,20 @@ async function loadNavCategories(): Promise<NavCategory[]> {
   }
 }
 
+/** Links das páginas institucionais publicadas (rodapé). Se a API estiver fora, o rodapé fica sem eles. */
+async function loadPageLinks(): Promise<StorePageLink[]> {
+  try {
+    return await getQueryClient().fetchQuery(storePageLinksQuery());
+  } catch {
+    return [];
+  }
+}
+
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  return <Shell categories={await loadNavCategories()}>{children}</Shell>;
+  const [categories, pages] = await Promise.all([loadNavCategories(), loadPageLinks()]);
+  return (
+    <Shell categories={categories} pages={pages}>
+      {children}
+    </Shell>
+  );
 }
