@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { prisma } from '@geekstore/db';
-import type { CheckoutBody, OrderListQuery } from '@geekstore/shared';
+import type { CheckoutBody, CouponCheckBody, OrderListQuery } from '@geekstore/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { NotFoundError } from '../../core/_errors';
+import { BadRequestError, NotFoundError } from '../../core/_errors';
 import { envConfig } from '../../core/config';
 import { optionalCustomerId, requireCustomerId } from '../customers/customer-token';
 import { paymentProvider } from '../payments/payment-provider';
 import { applyPaymentEvent } from '../payments/webhook.service';
+import { loadCartSkus } from './cart-lines';
 import { checkCoupon } from './coupon.service';
 import { listCustomerOrders } from './customer-orders.service';
 import { createOrder, getCustomerOrder, getOrderById } from './order.service';
@@ -48,10 +49,14 @@ export async function simulatePaymentController(
   return { data: await getOrderById(request.params.order_id) };
 }
 
-export async function couponCheckController(
-  request: FastifyRequest<{ Body: { code: string; subtotal_cents: number } }>
-) {
-  return { data: await checkCoupon(prisma, request.body.code, request.body.subtotal_cents) };
+export async function couponCheckController(request: FastifyRequest<{ Body: CouponCheckBody }>) {
+  const skus = await loadCartSkus(request.body.items.map((line) => line.sku_id));
+  const lines = request.body.items.map((line) => {
+    const sku = skus.get(line.sku_id);
+    if (!sku) throw new BadRequestError('Algum item do carrinho não está mais à venda.');
+    return { category_id: sku.category_id, total_cents: sku.price_cents * line.quantity };
+  });
+  return { data: await checkCoupon(prisma, request.body.code, lines) };
 }
 
 export async function customerOrdersController(

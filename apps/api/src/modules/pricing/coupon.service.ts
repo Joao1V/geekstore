@@ -16,7 +16,10 @@ import { buildMeta, parseSort, skipTake } from '../../core/http/pagination';
 const ENTITY = 'coupon';
 const SORT_FIELDS = ['created_at', 'code', 'uses'] as const;
 
-type CouponRow = Prisma.CouponGetPayload<object>;
+const withCategories = {
+  categories: { select: { category_id: true } },
+} satisfies Prisma.CouponInclude;
+type CouponRow = Prisma.CouponGetPayload<{ include: typeof withCategories }>;
 
 /** "Posso usar agora?": o motivo mais forte vence (desativado antes de vencido, vencido antes de esgotado). */
 export function couponStatus(row: CouponRow, now: Date): CouponStatus {
@@ -38,6 +41,7 @@ const toCoupon = (row: CouponRow, now: Date): Coupon => ({
   starts_at: row.starts_at?.toISOString() ?? null,
   ends_at: row.ends_at?.toISOString() ?? null,
   is_active: row.is_active,
+  category_ids: row.categories.map((link) => link.category_id),
   status: couponStatus(row, now),
   created_at: row.created_at.toISOString(),
 });
@@ -51,6 +55,7 @@ const snapshot = (row: CouponRow) => ({
   starts_at: row.starts_at,
   ends_at: row.ends_at,
   is_active: row.is_active,
+  category_ids: row.categories.map((link) => link.category_id).sort(),
 });
 
 const date = (value: string | null | undefined): Date | null | undefined =>
@@ -64,6 +69,7 @@ export async function listCoupons(query: CouponListQuery): Promise<Paginated<Cou
   });
   const rows = await prisma.coupon.findMany({
     where: query.q ? { code: { contains: query.q, mode: 'insensitive' } } : {},
+    include: withCategories,
     orderBy: [{ [field]: direction }, { coupon_id: 'asc' }],
   });
   const now = new Date();
@@ -77,6 +83,15 @@ export async function listCoupons(query: CouponListQuery): Promise<Paginated<Cou
   };
 }
 
+/** As categorias do cupom precisam existir; ids repetidos viram um só. */
+async function resolveCategoryIds(ids: readonly string[]): Promise<string[]> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return [];
+  const found = await prisma.category.count({ where: { category_id: { in: unique } } });
+  if (found !== unique.length) throw new BadRequestError('Alguma categoria do cupom não existe.');
+  return unique;
+}
+
 async function assertCodeFree(code: string, exceptId?: string): Promise<void> {
   const taken = await prisma.coupon.findFirst({
     where: { code, ...(exceptId ? { NOT: { coupon_id: exceptId } } : {}) },
@@ -87,9 +102,12 @@ async function assertCodeFree(code: string, exceptId?: string): Promise<void> {
 
 export async function createCoupon(actorId: string, body: CouponBody): Promise<Coupon> {
   await assertCodeFree(body.code);
+  const categoryIds = await resolveCategoryIds(body.category_ids);
   return prisma.$transaction(async (tx) => {
     const created = await tx.coupon.create({
+      include: withCategories,
       data: {
+        categories: { create: categoryIds.map((category_id) => ({ category_id })) },
         code: body.code,
         kind: body.kind,
         value: body.kind === 'free_shipping' ? 0 : body.value,
@@ -116,8 +134,12 @@ export async function updateCoupon(
   couponId: string,
   body: CouponUpdateBody
 ): Promise<Coupon> {
-  const before = await prisma.coupon.findUnique({ where: { coupon_id: couponId } });
+  const before = await prisma.coupon.findUnique({
+    where: { coupon_id: couponId },
+    include: withCategories,
+  });
   if (!before) throw new NotFoundError('Cupom não encontrado.');
+  const categoryIds = body.category_ids ? await resolveCategoryIds(body.category_ids) : null;
   if (body.code !== undefined && body.code !== before.code) {
     if (before.uses > 0) {
       throw new BadRequestError('O código de um cupom já usado não muda: crie outro cupom.');
@@ -143,8 +165,15 @@ export async function updateCoupon(
   }
 
   return prisma.$transaction(async (tx) => {
+    if (categoryIds) {
+      await tx.couponCategory.deleteMany({ where: { coupon_id: couponId } });
+      await tx.couponCategory.createMany({
+        data: categoryIds.map((category_id) => ({ coupon_id: couponId, category_id })),
+      });
+    }
     const updated = await tx.coupon.update({
       where: { coupon_id: couponId },
+      include: withCategories,
       data: {
         ...(body.code !== undefined ? { code: body.code } : {}),
         kind,
@@ -172,7 +201,10 @@ export async function updateCoupon(
 
 /** Cupom que já foi usado vira histórico do pedido: só se desativa. O que nunca foi usado pode sair. */
 export async function deleteCoupon(actorId: string, couponId: string): Promise<void> {
-  const before = await prisma.coupon.findUnique({ where: { coupon_id: couponId } });
+  const before = await prisma.coupon.findUnique({
+    where: { coupon_id: couponId },
+    include: withCategories,
+  });
   if (!before) throw new NotFoundError('Cupom não encontrado.');
   if (before.uses > 0) {
     throw new ConflictError('Este cupom já foi usado: desative em vez de apagar.');

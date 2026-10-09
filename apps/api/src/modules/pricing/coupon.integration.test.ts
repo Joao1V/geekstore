@@ -156,6 +156,42 @@ describe('coupons admin (integration — requires a live DATABASE_URL)', () => {
     );
   });
 
+  it('a PATCH that sends one field leaves every other field untouched (toggle must not wipe the rules)', async () => {
+    const category = await prisma.category.create({
+      data: { name: `Cat ${run}`, slug: `cat-pt-${run.toLowerCase()}` },
+    });
+    try {
+      const made = (
+        await call('POST', '', owner, {
+          code: code('KEEP'),
+          kind: 'percent',
+          value: 15,
+          min_subtotal_cents: 9_000,
+          max_uses: 7,
+          starts_at: '2026-01-01T00:00:00.000Z',
+          ends_at: '2027-01-01T00:00:00.000Z',
+          category_ids: [category.category_id],
+        })
+      ).json().data as { coupon_id: string };
+
+      const toggled = (
+        await call('PATCH', `/${made.coupon_id}`, owner, { is_active: false })
+      ).json().data;
+      expect(toggled).toMatchObject({
+        is_active: false,
+        value: 15,
+        min_subtotal_cents: 9_000,
+        max_uses: 7,
+        starts_at: '2026-01-01T00:00:00.000Z',
+        ends_at: '2027-01-01T00:00:00.000Z',
+        category_ids: [category.category_id],
+      });
+    } finally {
+      await prisma.coupon.deleteMany({ where: { code: code('KEEP') } });
+      await prisma.category.delete({ where: { category_id: category.category_id } });
+    }
+  });
+
   it('deletes a coupon nobody used, but only deactivates one that was used', async () => {
     const fresh = (
       await call('POST', '', owner, { code: code('DEL'), kind: 'amount', value: 100 })

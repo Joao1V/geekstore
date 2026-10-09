@@ -167,15 +167,19 @@ export const orderListResponseSchema = paginatedResponse(orderSummarySchema);
 export const orderParamsSchema = z.object({ number: z.coerce.number().int().positive() });
 
 // ── Cupom ──────────────────────────────────────────────────────────────────────
+/** O servidor recalcula tudo a partir dos itens: o preço e a categoria nunca vêm do navegador. */
 export const couponCheckBodySchema = z.object({
   code: z.string().trim().toUpperCase().min(1).max(40),
-  subtotal_cents: z.number().int().min(0),
+  items: z.array(cartLineSchema).min(1).max(100),
 });
+export type CouponCheckBody = z.infer<typeof couponCheckBodySchema>;
 export const couponCheckSchema = z.object({
   code: z.string(),
   kind: z.enum(['percent', 'amount', 'free_shipping']),
   discount_cents: z.number().int(),
   free_shipping: z.boolean(),
+  /** Parte do carrinho em que o cupom vale (o carrinho todo, se ele não tem categorias). */
+  eligible_subtotal_cents: z.number().int(),
 });
 export type CouponCheck = z.infer<typeof couponCheckSchema>;
 export const couponCheckResponseSchema = dataResponse(couponCheckSchema);

@@ -7,6 +7,7 @@ import { currentSitePrice, skuAvailable } from '../storefront/storefront.sql';
 export type CartSku = {
   sku_id: string;
   code: string;
+  category_id: string;
   product_name: string;
   variant: string | null;
   image_url: string | null;
@@ -29,7 +30,8 @@ export async function loadCartSkus(skuIds: readonly string[]): Promise<Map<strin
   const unique = [...new Set(skuIds)];
   if (unique.length === 0) return new Map();
   const rows = await prisma.$queryRaw<Row[]>`
-    SELECT k.sku_id::text AS sku_id, k.code, p.name AS product_name, k.weight_g,
+    SELECT k.sku_id::text AS sku_id, k.code, p.category_id::text AS category_id,
+           p.name AS product_name, k.weight_g,
            pr.price_cents AS price_cents,
            ${skuAvailable} AS available,
            (SELECT string_agg(av.label, ' · ' ORDER BY a.code)

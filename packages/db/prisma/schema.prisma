@@ -107,6 +107,7 @@ model Category {
   children   Category[]          @relation("CategoryTree")
   products   Product[]
   attributes CategoryAttribute[]
+  coupons    CouponCategory[]
 
   @@index([parent_id])
   @@map("category")
@@ -380,7 +381,25 @@ model Coupon {
   is_active          Boolean    @default(true)
   created_at         DateTime   @default(now())
 
+  categories CouponCategory[]
+
   @@map("coupon")
+}
+
+// Restringe o cupom a categorias (vale também nas subcategorias). Sem nenhuma linha, vale para o carrinho
+// todo. `onDelete: Restrict` na categoria: apagar a categoria não pode "soltar" a restrição sem ninguém ver.
+model CouponCategory {
+  coupon_category_id String   @id @default(uuid(7)) @db.Uuid
+  coupon_id          String   @db.Uuid
+  category_id        String   @db.Uuid
+  created_at         DateTime @default(now())
+
+  coupon   Coupon   @relation(fields: [coupon_id], references: [coupon_id], onDelete: Cascade)
+  category Category @relation(fields: [category_id], references: [category_id], onDelete: Restrict)
+
+  @@unique([coupon_id, category_id])
+  @@index([category_id])
+  @@map("coupon_category")
 }
 
 // ---------- Compras: nota de entrada (NF-e do fornecedor) que alimenta o estoque ----------

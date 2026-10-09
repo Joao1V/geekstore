@@ -32,6 +32,8 @@ export const couponSchema = z.object({
   starts_at: isoDateTimeSchema.nullable(),
   ends_at: isoDateTimeSchema.nullable(),
   is_active: z.boolean(),
+  /** Categorias em que o cupom vale (e as subcategorias delas). Vazio = o carrinho todo. */
+  category_ids: z.array(z.string().uuid()),
   status: couponStatusSchema,
   created_at: isoDateTimeSchema,
 });
@@ -43,15 +45,19 @@ const codeSchema = z
   .toUpperCase()
   .regex(/^[A-Z0-9_-]{3,40}$/, 'Use de 3 a 40 letras, números, hífen ou sublinhado');
 
+// Sem valores padrão aqui: o PATCH só pode alterar o que foi enviado (`.partial()` sobre campos com
+// `.default()` reaplicaria o padrão e apagaria limite, mínimo, datas e categorias). Os padrões do
+// cadastro entram só no `couponBodySchema`.
 const couponFields = {
   code: codeSchema,
   kind: couponKindSchema,
   value: z.number().int().min(0),
-  min_subtotal_cents: z.number().int().min(0).default(0),
-  max_uses: z.number().int().min(1).nullable().default(null),
-  starts_at: isoDateTimeSchema.nullable().default(null),
-  ends_at: isoDateTimeSchema.nullable().default(null),
-  is_active: z.boolean().default(true),
+  min_subtotal_cents: z.number().int().min(0),
+  max_uses: z.number().int().min(1).nullable(),
+  starts_at: isoDateTimeSchema.nullable(),
+  ends_at: isoDateTimeSchema.nullable(),
+  is_active: z.boolean(),
+  category_ids: z.array(z.string().uuid()).max(50),
 };
 
 type RuleInput = {
@@ -76,10 +82,20 @@ export function couponRuleIssue(input: RuleInput): string | null {
   return null;
 }
 
-export const couponBodySchema = z.object(couponFields).superRefine((body, ctx) => {
-  const issue = couponRuleIssue(body);
-  if (issue) ctx.addIssue({ code: 'custom', path: ['value'], message: issue });
-});
+export const couponBodySchema = z
+  .object({
+    ...couponFields,
+    min_subtotal_cents: couponFields.min_subtotal_cents.default(0),
+    max_uses: couponFields.max_uses.default(null),
+    starts_at: couponFields.starts_at.default(null),
+    ends_at: couponFields.ends_at.default(null),
+    is_active: couponFields.is_active.default(true),
+    category_ids: couponFields.category_ids.default([]),
+  })
+  .superRefine((body, ctx) => {
+    const issue = couponRuleIssue(body);
+    if (issue) ctx.addIssue({ code: 'custom', path: ['value'], message: issue });
+  });
 export type CouponBody = z.infer<typeof couponBodySchema>;
 
 /** Edição parcial: o que não vem fica como está; a regra de vários campos é conferida na API, já mesclada. */

@@ -88,7 +88,16 @@ export async function createOrder({
   const option = quote.options.find((candidate) => candidate.code === body.shipping_service);
   if (!option) throw new BadRequestError('Forma de entrega indisponível.');
 
-  const coupon = body.coupon_code ? await checkCoupon(prisma, body.coupon_code, subtotal) : null;
+  const coupon = body.coupon_code
+    ? await checkCoupon(
+        prisma,
+        body.coupon_code,
+        items.map(({ line, sku }) => ({
+          category_id: sku.category_id,
+          total_cents: sku.price_cents * line.quantity,
+        }))
+      )
+    : null;
   const shipping = coupon?.free_shipping ? 0 : option.price_cents;
   const couponDiscount = coupon?.discount_cents ?? 0;
   const pixDiscount =
