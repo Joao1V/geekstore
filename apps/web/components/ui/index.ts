@@ -1,6 +1,7 @@
 export * from './action';
 export * from './dialog';
 export * from './field-autocomplete';
+export * from './field-date';
 export * from './field-input';
 export * from './field-number';
 export * from './field-select';

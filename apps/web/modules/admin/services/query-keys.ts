@@ -21,6 +21,8 @@ export const adminKeys = {
   stockLevels: ['admin', 'stock', 'levels'] as const,
   movements: ['admin', 'stock', 'movements'] as const,
   movementList: (params: object) => ['admin', 'stock', 'movements', 'list', params] as const,
+  coupons: ['admin', 'coupons'] as const,
+  couponList: (params: object) => ['admin', 'coupons', 'list', params] as const,
   prices: (skuId: string) => ['admin', 'pricing', 'prices', skuId] as const,
   orders: ['admin', 'orders'] as const,
   orderList: (params: object) => ['admin', 'orders', 'list', params] as const,

@@ -11,6 +11,7 @@ import {
   ShoppingBag,
   SlidersHorizontal,
   Tag,
+  Ticket,
   Users,
   Warehouse,
 } from 'lucide-react';
@@ -44,6 +45,13 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         description: 'Pagamento, separação, envio e rastreio',
         icon: ShoppingBag,
         permission: 'orders:read',
+      },
+      {
+        href: '/admin/cupons/',
+        label: 'Cupons',
+        description: 'Cupons de desconto e frete grátis',
+        icon: Ticket,
+        permission: 'pricing:read',
       },
     ],
   },
