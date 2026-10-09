@@ -1,7 +1,7 @@
 'use client';
 
 import type { ProductDetail } from '@geekstore/shared';
-import { ChevronLeft, ChevronRight, ImageOff, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import { useState } from 'react';
 
 import { Dialog } from '@/components/ui';
@@ -39,7 +39,8 @@ export function ProductGallery({ product }: { product: ProductDetail }) {
           // biome-ignore lint/performance/noImgElement: URL do bucket, sem otimização do Next
           <img src={current.url} alt={current.alt} className="size-full object-cover" />
         ) : (
-          <ImageOff size={40} className="text-muted" aria-label="Sem foto" />
+          // biome-ignore lint/performance/noImgElement: arquivo estático local
+          <img src="/placeholder-produto.svg" alt="Sem foto" className="size-full object-cover" />
         )}
 
         {canWrite && (

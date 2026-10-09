@@ -1,13 +1,15 @@
 'use client';
 
-import { ImageOff } from 'lucide-react';
 import { useState } from 'react';
 
 /**
  * Foto do produto. Hoje as fotos vêm de links de terceiros (ainda não foram copiadas para o nosso
  * bucket), por isso `<img>` com `referrerPolicy` neutro em vez de `next/image` (que exigiria
- * liberar cada um dos ~750 domínios). Link quebrado cai num quadro com ícone, sem buraco na grade.
+ * liberar cada um dos ~750 domínios). Sem foto, ou com o link quebrado, aparece o placeholder "Foto em
+ * breve" (`public/placeholder-produto.svg`), sem buraco na grade.
  */
+export const PLACEHOLDER_SRC = '/placeholder-produto.svg';
+
 export function ProductImage({
   src,
   alt,
@@ -25,13 +27,13 @@ export function ProductImage({
   const [failed, setFailed] = useState(false);
   if (!src || failed) {
     return (
-      <span
-        role="img"
-        aria-label={alt}
-        className={`flex size-full items-center justify-center bg-placeholder text-muted ${className}`}
-      >
-        <ImageOff size={32} aria-hidden="true" />
-      </span>
+      // biome-ignore lint/performance/noImgElement: arquivo estático local, sem o que o next/image otimizaria
+      <img
+        src={PLACEHOLDER_SRC}
+        alt={alt}
+        loading={priority ? 'eager' : 'lazy'}
+        className={`size-full object-cover ${className}`}
+      />
     );
   }
   return (

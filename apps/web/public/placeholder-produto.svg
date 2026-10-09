@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-label="Foto em breve">
+  <rect width="600" height="600" fill="#e4e4e6"/>
+  <g transform="translate(300 262)" fill="none" stroke="#9a99a3" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-110 -70 L0 -125 L110 -70 L110 55 L0 110 L-110 55 Z"/>
+    <path d="M-110 -70 L0 -15 L110 -70"/>
+    <path d="M0 -15 L0 110"/>
+  </g>
+  <rect x="190" y="430" width="220" height="44" rx="22" fill="#ffbd08"/>
+  <text x="300" y="460" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#111">FOTO EM BREVE</text>
+</svg>
