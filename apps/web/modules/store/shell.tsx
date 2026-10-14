@@ -31,10 +31,11 @@ import { StoreAlert } from './store-alert';
 import { StoreSearch } from './store-search';
 
 // Barra de categorias do cabeçalho: some ao descer mais que o limiar e volta ao subir.
+const FULLSCREEN_PATHS = ['/entrar', '/cadastro'];
 const NAV_SCROLL_THRESHOLD = 8;
 const NAV_ALWAYS_VISIBLE_Y = 80;
 
-export type NavCategory = { name: string; slug: string };
+export type NavCategory = { name: string; slug: string; path: string };
 
 const ICON_BTN =
   'place-items-center size-[39px] min-w-[39px] rounded-[10px] p-0 text-white hover:bg-white/8 max-md:size-[34px] max-md:min-w-[34px]';
@@ -116,6 +117,16 @@ export function Shell({
   }, [path]);
 
   const count = store.lines.reduce((sum, line) => sum + line.qty, 0);
+
+  // Entrar e cadastrar ocupam a tela inteira, sem cabeçalho nem rodapé da loja.
+  if (FULLSCREEN_PATHS.some((prefix) => path.startsWith(prefix))) {
+    return (
+      <>
+        <CustomerSessionBootstrap />
+        <main>{children}</main>
+      </>
+    );
+  }
 
   return (
     <>
@@ -203,11 +214,7 @@ export function Shell({
           <div className="wrap flex h-10 items-center justify-between text-sm text-night-fg">
             <nav className="flex gap-[27px] font-bold max-md:w-full max-md:gap-[22px] max-md:overflow-x-auto max-md:text-xs max-md:whitespace-nowrap">
               {categories.map((category) => (
-                <Link
-                  key={category.slug}
-                  href={`/catalogo/?categoria=${category.slug}`}
-                  className={NAV_LINK}
-                >
+                <Link key={category.slug} href={category.path} className={NAV_LINK}>
                   {category.name}
                 </Link>
               ))}

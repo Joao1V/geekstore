@@ -30,6 +30,14 @@ export function useRegister() {
   });
 }
 
+export function useGoogleLogin() {
+  return useMutation({
+    mutationFn: (credential: string) =>
+      api.post<CustomerSession>('/api/customer/auth/google', { credential }),
+    onSuccess: storeSession,
+  });
+}
+
 export function useLogin() {
   return useMutation({
     mutationFn: (body: CustomerLoginBody) =>

@@ -131,7 +131,7 @@ export function StoreSearch() {
                   {results.map((product) => (
                     <Link
                       key={product.product_id}
-                      href={`/produto/${product.slug}/`}
+                      href={product.path}
                       onClick={() => {
                         remember(search);
                         setFocused(false);

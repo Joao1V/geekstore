@@ -18,7 +18,7 @@ async function loadNavCategories(): Promise<NavCategory[]> {
     return [...home.categories]
       .sort((a, b) => b.product_count - a.product_count)
       .slice(0, NAV_CATEGORIES)
-      .map(({ name, slug }) => ({ name, slug }));
+      .map(({ name, slug, path }) => ({ name, slug, path }));
   } catch {
     return [];
   }

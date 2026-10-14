@@ -9,6 +9,13 @@ import { storeProductQuery, storeProductsQuery } from './services/catalog/querie
 
 const RELATED = 4;
 
+/** Endereço da categoria na posição `index` do caminho: `/colecionaveis/funko/`. */
+const categoryHref = (path: { slug: string }[], index: number): string =>
+  `/${path
+    .slice(0, index + 1)
+    .map((item) => item.slug)
+    .join('/')}/`;
+
 /** Dados estruturados (JSON-LD) para o Google: preço, moeda e disponibilidade (RF-VIT-06). */
 function jsonLd(product: StoreProductDetail, url: string) {
   const prices = product.skus.map((sku) => sku.price_cents / 100);
@@ -53,10 +60,7 @@ export async function ProductDetail({ slug }: { slug: string }) {
         type="application/ld+json"
         // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD gerado por nós a partir de dados da API, sem HTML do usuário
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd(product, `/produto/${product.slug}/`)).replace(
-            /</g,
-            '\\u003c'
-          ),
+          __html: JSON.stringify(jsonLd(product, product.path)).replace(/</g, '\\u003c'),
         }}
       />
       <nav
@@ -66,10 +70,10 @@ export async function ProductDetail({ slug }: { slug: string }) {
         <Link href="/">Início</Link>
         <ChevronRight size={14} aria-hidden="true" />
         <Link href="/catalogo/">Catálogo</Link>
-        {product.category_path.map((item) => (
+        {product.category_path.map((item, index) => (
           <span key={item.slug} className="flex items-center gap-2.5">
             <ChevronRight size={14} aria-hidden="true" />
-            <Link href={`/catalogo/?categoria=${item.slug}`}>{item.name}</Link>
+            <Link href={categoryHref(product.category_path, index)}>{item.name}</Link>
           </span>
         ))}
       </nav>
@@ -111,7 +115,7 @@ export async function ProductDetail({ slug }: { slug: string }) {
               <p className="eyebrow orange">Continue explorando</p>
               <h2 className="section-title">Mais de {category?.name}</h2>
             </div>
-            <Link href={`/catalogo/?categoria=${category?.slug}`}>
+            <Link href={categoryHref(product.category_path, product.category_path.length - 1)}>
               Ver todos <ArrowRight size={18} />
             </Link>
           </div>

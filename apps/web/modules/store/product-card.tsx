@@ -55,10 +55,7 @@ export function ProductCard({
         </p>
         <h3 className="line-clamp-2 min-h-[2.7em] text-[15px] leading-[1.35] font-extrabold max-md:text-sm">
           {/* O ::after estica o link por cima do cartão inteiro; o coração (z-10) fica acima dele. */}
-          <Link
-            href={`/produto/${p.slug}/`}
-            className="after:absolute after:inset-0 after:content-['']"
-          >
+          <Link href={p.path} className="after:absolute after:inset-0 after:content-['']">
             {p.name}
           </Link>
         </h3>

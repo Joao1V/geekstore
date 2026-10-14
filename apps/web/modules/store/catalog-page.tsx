@@ -327,7 +327,7 @@ export async function CatalogPage({ state }: { state: CatalogState }) {
                   .map((item) => (
                     <Link
                       key={item.category_id}
-                      href={`/catalogo/?categoria=${item.slug}`}
+                      href={item.path}
                       className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-sm font-extrabold hover:border-ink"
                     >
                       {item.name}

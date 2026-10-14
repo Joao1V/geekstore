@@ -2,18 +2,16 @@
 
 import { isValidDocument, maskDocument, maskPhone, onlyDigits } from '@geekstore/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
-import Image from 'next/image';
+import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { Action, FieldInput } from '@/components/ui';
-import { getMascot } from '@/lib/mascot';
+import { Action, AuthSplit, FieldInput, GoogleSignIn } from '@/components/ui';
 import { getErrorMessage } from './lib/errors';
-import { useLogin, useRegister } from './services/customer/mutations';
+import { useGoogleLogin, useLogin, useRegister } from './services/customer/mutations';
 import { useCustomerStore } from './state/customer-store';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -237,6 +235,8 @@ export function Account({ register = false }: { register?: boolean }) {
   const params = useSearchParams();
   const next = safeNext(params.get('next'));
   const status = useCustomerStore((state) => state.status);
+  const googleLogin = useGoogleLogin();
+  const [googleError, setGoogleError] = useState('');
   const suffix = params.get('next') ? `?next=${encodeURIComponent(next)}` : '';
 
   // Quem já está logado não precisa ver esta tela.
@@ -245,53 +245,58 @@ export function Account({ register = false }: { register?: boolean }) {
   }, [status, next, router]);
 
   return (
-    <section className="wrap section">
-      <div className="mx-auto grid max-w-[1040px] grid-cols-[1fr_1.05fr] overflow-hidden rounded-[22px] border-2 border-ink [box-shadow:8px_8px_var(--ink-shadow)] max-md:grid-cols-1">
-        <div className="relative flex flex-col overflow-hidden bg-geek-yellow p-[38px] pb-0 text-ink max-md:min-h-[210px] max-md:p-[25px]">
-          <Link href="/" className="back-link max-md:mb-2.5">
-            <ArrowLeft size={17} /> Voltar para a loja
-          </Link>
-          <p className="eyebrow mt-8 max-md:mt-[5px] max-md:text-2xs">
-            Seu lado geek tem um lugar.
-          </p>
-          <h2 className="font-display relative z-1 my-5 text-7xl leading-[1.02] max-md:my-3.5 max-md:text-5xl max-md:leading-[0.95]">
-            Entre.
-            <br />O universo
-            <br />é seu.
-          </h2>
-          <Image
-            {...getMascot('welcome')}
-            width={400}
-            height={475}
-            className="relative -mr-2.5 mt-2 min-h-[260px] w-full flex-1 object-contain object-bottom max-md:absolute max-md:right-0 max-md:-bottom-4 max-md:mt-0 max-md:h-[170px] max-md:min-h-0 max-md:w-[140px] max-md:flex-none"
-          />
-        </div>
-        <div className="bg-surface p-[42px] max-md:px-5 max-md:py-[25px]">
-          <p className="eyebrow orange">Conta GeekStore</p>
-          <h1 className="section-title text-5xl max-md:text-4xl">
-            {register ? 'Comece sua coleção' : 'Bom te ver de novo!'}
-          </h1>
-          <p className="muted text-sm">
-            {register
-              ? 'Uma conta para acompanhar seus pedidos e comprar mais rápido.'
-              : 'Seus pedidos, endereços e favoritos esperam por você.'}
-          </p>
-          {register ? (
-            <RegisterForm onDone={() => router.replace(next)} />
-          ) : (
-            <LoginForm onDone={() => router.replace(next)} />
-          )}
-          <p className="muted text-sm">
-            {register ? 'Já tem uma conta?' : 'Ainda não tem conta?'}{' '}
-            <Link className="orange" href={`${register ? '/entrar/' : '/cadastro/'}${suffix}`}>
-              {register ? 'Entrar' : 'Cadastre-se'}
-            </Link>
-          </p>
-          <Link href="/catalogo/" className="back-link mt-6">
-            Continuar sem entrar <ArrowRight size={16} />
-          </Link>
-        </div>
+    <AuthSplit
+      kicker="Seu lado geek tem um lugar."
+      headline={
+        <>
+          Entre.
+          <br />O universo
+          <br />é seu.
+        </>
+      }
+    >
+      <p className="eyebrow orange">Conta GeekStore</p>
+      <h1 className="section-title text-5xl max-md:text-4xl">
+        {register ? 'Comece sua coleção' : 'Bom te ver de novo!'}
+      </h1>
+      <p className="muted text-sm">
+        {register
+          ? 'Uma conta para acompanhar seus pedidos e comprar mais rápido.'
+          : 'Seus pedidos, endereços e favoritos esperam por você.'}
+      </p>
+      <GoogleSignIn
+        disabled={googleLogin.isPending}
+        onCredential={async (credential) => {
+          setGoogleError('');
+          try {
+            await googleLogin.mutateAsync(credential);
+            router.replace(next);
+          } catch (err) {
+            setGoogleError(getErrorMessage(err));
+          }
+        }}
+      />
+      {googleError && (
+        <p role="alert" className="error mt-3">
+          {googleError}
+        </p>
+      )}
+      {register ? (
+        <RegisterForm onDone={() => router.replace(next)} />
+      ) : (
+        <LoginForm onDone={() => router.replace(next)} />
+      )}
+      <p className="muted text-center text-sm">
+        {register ? 'Já tem uma conta?' : 'Ainda não tem conta?'}{' '}
+        <Link className="orange" href={`${register ? '/entrar/' : '/cadastro/'}${suffix}`}>
+          {register ? 'Entrar' : 'Cadastre-se'}
+        </Link>
+      </p>
+      <div className="mt-6 text-center">
+        <Link href="/catalogo/" className="back-link">
+          Continuar sem entrar <ArrowRight size={16} />
+        </Link>
       </div>
-    </section>
+    </AuthSplit>
   );
 }

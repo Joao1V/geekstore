@@ -30,6 +30,12 @@ const MAX_UNIVERSES = 6;
 const BRAND_ROWS = 2;
 const BRAND_ROW_SIZE = 4;
 const NEW_ARRIVALS_SHOWN = 8;
+// Destaque dos card games (Pokémon, Yu-Gi-Oh!, Magic...): subcategoria "Cartas e Baralhos".
+const CARD_GAMES = {
+  slug: 'cartas-e-baralhos',
+  path: '/jogos-e-cartas/cartas-e-baralhos/',
+  shown: 8,
+};
 
 // Ícone por categoria raiz (pelo endereço); categoria nova sem ícone cai em "pacote".
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
@@ -72,6 +78,13 @@ export async function Home() {
     }))
   );
 
+  const cardGames = await client
+    .fetchQuery(
+      storeProductsQuery({ category: CARD_GAMES.slug, in_stock: true, page_size: CARD_GAMES.shown })
+    )
+    .then((result) => result.data)
+    .catch(() => []);
+
   return (
     <>
       <div className="flex items-center justify-center gap-6 bg-geek-yellow px-5 py-[9px] text-xs font-black text-ink max-tablet:gap-[15px] max-md:flex-wrap max-md:gap-2.5 max-md:px-[5px] max-md:py-2 max-md:text-2xs">
@@ -90,7 +103,7 @@ export async function Home() {
             return (
               <Link
                 key={category.category_id}
-                href={`/catalogo/?categoria=${category.slug}`}
+                href={category.path}
                 className="flex flex-1 items-center justify-between gap-2.5 rounded-xl border-2 border-foreground bg-surface px-[15px] py-[17px] text-sm font-black transition-transform duration-200 [box-shadow:3px_3px_var(--ink-shadow)] hover:-translate-y-[3px] hover:bg-geek-yellow hover:text-ink max-md:min-w-[145px] max-md:px-3 max-md:py-[13px] max-md:text-xs max-md:[&>svg:first-child]:w-5 max-md:[&>svg:last-child]:hidden"
               >
                 <Icon size={24} />
@@ -115,6 +128,26 @@ export async function Home() {
           <ProductGrid items={home.new_arrivals.slice(0, NEW_ARRIVALS_SHOWN)} />
         </Reveal>
       </section>
+      {cardGames.length > 0 ? (
+        <section className="mb-[40px] bg-night py-10 max-md:mb-[30px] max-md:py-[30px]">
+          <div className="wrap">
+            <div className="section-heading text-night-fg">
+              <div>
+                <p className="eyebrow orange">Pokémon, Yu-Gi-Oh!, Magic e mais</p>
+                <h2 className="section-title flex items-center gap-3">
+                  <Dices size={32} /> Card games
+                </h2>
+              </div>
+              <Link href={CARD_GAMES.path}>
+                Ver todos os card games <ArrowRight size={18} />
+              </Link>
+            </div>
+            <Reveal>
+              <ProductGrid items={cardGames} />
+            </Reveal>
+          </div>
+        </section>
+      ) : null}
       {brandRows.map(({ brand, products }) =>
         products.length > 0 ? (
           <section key={brand.slug} className="wrap pb-[40px] max-md:pb-[30px]">

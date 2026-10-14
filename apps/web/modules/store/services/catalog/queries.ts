@@ -6,6 +6,7 @@ import type {
   StoreProductCard,
   StoreProductDetail,
   StoreProductsQuery,
+  StoreResolve,
 } from '@geekstore/shared';
 import { queryOptions } from '@tanstack/react-query';
 
@@ -53,4 +54,11 @@ export const storeProductQuery = (slug: string) =>
         undefined,
         server
       ),
+  });
+
+/** O que é este endereço (`/categoria/sub/slug`)? Devolve também o endereço canônico. */
+export const storeResolveQuery = (path: string) =>
+  queryOptions({
+    queryKey: ['store', 'resolve', path],
+    queryFn: () => api.get<StoreResolve>('/api/store/resolve', { path }, server),
   });
