@@ -13,6 +13,20 @@ export type ParsedNfeItem = {
   quantity: number;
   unitCostCents: number;
   totalCostCents: number;
+  /** Encargos do próprio item (o frete, seguro e outras despesas só vêm no cabeçalho). */
+  discountCents: number;
+  ipiCents: number;
+  icmsStCents: number;
+};
+
+/** Totais do cabeçalho (`ICMSTot`), em centavos; ausente na nota = 0. */
+export type ParsedCharges = {
+  freightCents: number;
+  insuranceCents: number;
+  otherCents: number;
+  discountCents: number;
+  ipiCents: number;
+  icmsStCents: number;
 };
 
 export type ParsedNfe = {
@@ -22,6 +36,7 @@ export type ParsedNfe = {
   issuedAt: Date | null;
   supplier: { document: string | null; name: string };
   totalCents: number;
+  charges: ParsedCharges;
   items: ParsedNfeItem[];
 };
 
@@ -58,6 +73,17 @@ function gtinOf(value: unknown): string | null {
 type Raw = Record<string, unknown>;
 const obj = (value: unknown): Raw => (value && typeof value === 'object' ? (value as Raw) : {});
 
+/** Valor monetário opcional: tag ausente ou vazia vale 0 (a maioria das notas não tem todos). */
+const optionalCents = (value: unknown, what: string): number =>
+  text(value) === null ? 0 : toCents(value, what);
+
+/** `vICMSST` mora dentro de um filho que muda com o regime (ICMS00, ICMS10, ICMSSN202...). */
+function icmsStOf(imposto: Raw): unknown {
+  const group = obj(imposto.ICMS);
+  const first = Object.values(group).find((child) => child && typeof child === 'object');
+  return obj(first).vICMSST;
+}
+
 function parseItem(det: Raw, index: number): ParsedNfeItem {
   const line = Number(det['@_nItem'] ?? index + 1);
   const prod = obj(det.prod);
@@ -72,6 +98,7 @@ function parseItem(det: Raw, index: number): ParsedNfeItem {
   }
   const totalCostCents = toCents(prod.vProd, `o item ${line}`);
   const ncm = text(prod.NCM)?.replace(DIGITS, '');
+  const imposto = obj(det.imposto);
   return {
     line,
     supplierCode: text(prod.cProd),
@@ -81,6 +108,20 @@ function parseItem(det: Raw, index: number): ParsedNfeItem {
     quantity,
     unitCostCents: Math.round(totalCostCents / quantity),
     totalCostCents,
+    discountCents: optionalCents(prod.vDesc, `o desconto do item ${line}`),
+    ipiCents: optionalCents(obj(obj(imposto.IPI).IPITrib).vIPI, `o IPI do item ${line}`),
+    icmsStCents: optionalCents(icmsStOf(imposto), `o ICMS-ST do item ${line}`),
+  };
+}
+
+function parseCharges(icmsTot: Raw): ParsedCharges {
+  return {
+    freightCents: optionalCents(icmsTot.vFrete, 'o frete'),
+    insuranceCents: optionalCents(icmsTot.vSeg, 'o seguro'),
+    otherCents: optionalCents(icmsTot.vOutro, 'as outras despesas'),
+    discountCents: optionalCents(icmsTot.vDesc, 'o desconto'),
+    ipiCents: optionalCents(icmsTot.vIPI, 'o IPI'),
+    icmsStCents: optionalCents(icmsTot.vST, 'o ICMS-ST'),
   };
 }
 
@@ -111,6 +152,7 @@ export function parseNfe(xml: string): ParsedNfe {
   const document =
     text(emit.CNPJ)?.replace(DIGITS, '') ?? text(emit.CPF)?.replace(DIGITS, '') ?? null;
   const items = dets.map(parseItem);
+  const icmsTot = obj(obj(info.total).ICMSTot);
   return {
     accessKey,
     number: text(ide.nNF),
@@ -118,9 +160,10 @@ export function parseNfe(xml: string): ParsedNfe {
     issuedAt,
     supplier: { document, name: text(emit.xNome) ?? 'Fornecedor sem nome' },
     totalCents: toCents(
-      obj(obj(info.total).ICMSTot).vNF ?? items.reduce((s, i) => s + i.totalCostCents, 0) / 100,
+      icmsTot.vNF ?? items.reduce((s, i) => s + i.totalCostCents, 0) / 100,
       'o total'
     ),
+    charges: parseCharges(icmsTot),
     items,
   };
 }

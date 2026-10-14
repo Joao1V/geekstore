@@ -1,6 +1,6 @@
 import type { Prisma } from '@geekstore/db';
 import { v7 as uuidv7 } from 'uuid';
-
+import type { MovementRow } from '../../stock/movement-writer';
 import { type AttributeValueIds, attributeKey } from './load-attributes';
 import type { PlannedItem } from './plan-types';
 
@@ -39,7 +39,7 @@ export function buildBatchRows(items: LoadItem[], ctx: BatchContext) {
     skuAttributes: [] as Prisma.SkuAttributeValueCreateManyInput[],
     prices: [] as Prisma.PriceCreateManyInput[],
     levels: [] as Prisma.StockLevelCreateManyInput[],
-    movements: [] as Prisma.StockMovementCreateManyInput[],
+    movements: [] as MovementRow[],
     media: [] as Prisma.MediaCreateManyInput[],
   };
 
@@ -153,6 +153,9 @@ export function buildBatchRows(items: LoadItem[], ctx: BatchContext) {
         quantity: item.stock,
         reason: ctx.stock?.reason ?? STOCK_REASON,
         reference_type: ctx.stock?.reference ?? STOCK_REFERENCE,
+        // Carga inicial: o par nasce com este saldo e nenhuma reserva.
+        on_hand_after: item.stock,
+        reserved_after: 0,
       });
     }
   }

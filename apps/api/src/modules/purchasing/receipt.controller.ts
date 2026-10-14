@@ -3,6 +3,8 @@ import type {
   ReceiptItemUpdateBody,
   ReceiptListQuery,
   ReceiptManualBody,
+  ReceiptRevertBody,
+  ReceiptUpdateBody,
   SkuSuggestionQuery,
 } from '@geekstore/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
@@ -12,9 +14,12 @@ import {
   deleteReceipt,
   getReceipt,
   importReceiptXml,
+  listReceiptEvents,
   listReceipts,
   postReceipt,
+  revertReceipt,
   suggestForItem,
+  updateReceiptCharges,
   updateReceiptItem,
 } from './receipt.service';
 
@@ -47,6 +52,14 @@ export async function createManualReceiptController(
   return reply.status(201).send({ data });
 }
 
+export async function updateReceiptController(
+  request: FastifyRequest<{ Params: ReceiptParams; Body: ReceiptUpdateBody }>
+) {
+  return {
+    data: await updateReceiptCharges(request.user.sub, request.params.receipt_id, request.body),
+  };
+}
+
 export async function updateReceiptItemController(
   request: FastifyRequest<{ Params: ItemParams; Body: ReceiptItemUpdateBody }>
 ) {
@@ -63,6 +76,18 @@ export async function suggestionsController(
 
 export async function postReceiptController(request: FastifyRequest<{ Params: ReceiptParams }>) {
   return { data: await postReceipt(request.user.sub, request.params.receipt_id) };
+}
+
+export async function revertReceiptController(
+  request: FastifyRequest<{ Params: ReceiptParams; Body: ReceiptRevertBody }>
+) {
+  return { data: await revertReceipt(request.user.sub, request.params.receipt_id, request.body) };
+}
+
+export async function listReceiptEventsController(
+  request: FastifyRequest<{ Params: ReceiptParams }>
+) {
+  return { data: await listReceiptEvents(request.params.receipt_id) };
 }
 
 export async function deleteReceiptController(

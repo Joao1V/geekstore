@@ -13,6 +13,7 @@ import type {
 import { BadRequestError, NotFoundError } from '../../core/_errors';
 import { type AuditEntry, writeAuditLog, writeAuditLogs } from '../../core/audit';
 import { buildMeta, parseSort, skipTake } from '../../core/http/pagination';
+import { type MovementRow, movementRow, recordMovement, recordMovements } from './movement-writer';
 import { toLocation, toStockLevel, toStockMovement } from './stock.mappers';
 import { movementDelta } from './stock-delta';
 import { addOnHand, lockLevel, setOnHand, subtractOnHand } from './stock-ledger';
@@ -92,14 +93,15 @@ export async function createMovement(
   return prisma.$transaction(async (tx) => {
     await assertSlotsExist(tx, [body.sku_id], [body.location_id]);
 
-    if (delta > 0) await addOnHand(tx, slot, delta);
-    else await subtractOnHand(tx, slot, -delta);
+    const after =
+      delta > 0 ? await addOnHand(tx, slot, delta) : await subtractOnHand(tx, slot, -delta);
 
     const level = await tx.stockLevel.findUniqueOrThrow({
       where: { sku_id_location_id: { sku_id: body.sku_id, location_id: body.location_id } },
     });
-    const movement = await tx.stockMovement.create({
-      data: {
+    const movement = await recordMovement(
+      tx,
+      {
         sku_id: body.sku_id,
         location_id: body.location_id,
         type: body.type,
@@ -107,7 +109,8 @@ export async function createMovement(
         reason: body.reason,
         user_id: actorId,
       },
-    });
+      after
+    );
     await writeAuditLog(tx, {
       userId: actorId,
       entity: 'stock_level',
@@ -152,7 +155,7 @@ export async function bulkSetOnHand(actorId: string, body: StockBulkBody): Promi
         items.map((item) => item.location_id)
       );
 
-      const movements: Prisma.StockMovementCreateManyInput[] = [];
+      const movements: MovementRow[] = [];
       const audits: AuditEntry[] = [];
 
       for (const item of items) {
@@ -161,15 +164,20 @@ export async function bulkSetOnHand(actorId: string, body: StockBulkBody): Promi
         const delta = item.on_hand - locked.on_hand;
         if (delta === 0) continue;
 
-        await setOnHand(tx, slot, item.on_hand);
-        movements.push({
-          sku_id: item.sku_id,
-          location_id: item.location_id,
-          type: 'adjustment',
-          quantity: delta,
-          reason: body.reason,
-          user_id: actorId,
-        });
+        const after = await setOnHand(tx, slot, item.on_hand);
+        movements.push(
+          movementRow(
+            {
+              sku_id: item.sku_id,
+              location_id: item.location_id,
+              type: 'adjustment',
+              quantity: delta,
+              reason: body.reason,
+              user_id: actorId,
+            },
+            after
+          )
+        );
         audits.push({
           userId: actorId,
           entity: 'stock_level',
@@ -180,7 +188,7 @@ export async function bulkSetOnHand(actorId: string, body: StockBulkBody): Promi
         });
       }
 
-      await tx.stockMovement.createMany({ data: movements });
+      await recordMovements(tx, movements);
       await writeAuditLogs(tx, audits);
       return movements.length;
     },

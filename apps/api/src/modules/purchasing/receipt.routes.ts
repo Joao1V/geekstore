@@ -1,4 +1,5 @@
 import {
+  receiptEventListResponseSchema,
   receiptImportBodySchema,
   receiptItemParamsSchema,
   receiptItemUpdateBodySchema,
@@ -7,6 +8,8 @@ import {
   receiptManualBodySchema,
   receiptParamsSchema,
   receiptResponseSchema,
+  receiptRevertBodySchema,
+  receiptUpdateBodySchema,
   skuSuggestionListResponseSchema,
   skuSuggestionQuerySchema,
 } from '@geekstore/shared';
@@ -19,9 +22,12 @@ import {
   deleteReceiptController,
   getReceiptController,
   importReceiptController,
+  listReceiptEventsController,
   listReceiptsController,
   postReceiptController,
+  revertReceiptController,
   suggestionsController,
+  updateReceiptController,
   updateReceiptItemController,
 } from './receipt.controller';
 
@@ -89,6 +95,21 @@ export async function purchasingRoutes(fastify: FastifyInstance): Promise<void> 
     createManualReceiptController
   );
   app.patch(
+    '/receipts/:receipt_id',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary:
+          'Ajusta frete, seguro, outras despesas, desconto, IPI, ICMS-ST e a política de custo da nota (só rascunho)',
+        params: receiptParamsSchema,
+        body: receiptUpdateBodySchema,
+        response: { 200: receiptResponseSchema },
+      },
+    },
+    updateReceiptController
+  );
+  app.patch(
     '/receipts/:receipt_id/items/:item_id',
     {
       ...write,
@@ -123,12 +144,41 @@ export async function purchasingRoutes(fastify: FastifyInstance): Promise<void> 
       ...write,
       schema: {
         tags,
-        summary: 'Lança a nota: gera as entradas no estoque e atualiza o custo médio',
+        summary:
+          'Lança a nota: gera as entradas no estoque, rateia os encargos e atualiza o custo médio do SKU (com e sem encargos)',
         params: receiptParamsSchema,
         response: { 200: receiptResponseSchema },
       },
     },
     postReceiptController
+  );
+  app.post(
+    '/receipts/:receipt_id/revert',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary:
+          'Desprocessa a nota lançada (com motivo): tira a entrada do estoque, refaz o custo e devolve a nota a rascunho. Recusa se o estoque não cobre a saída',
+        params: receiptParamsSchema,
+        body: receiptRevertBodySchema,
+        response: { 200: receiptResponseSchema },
+      },
+    },
+    revertReceiptController
+  );
+  app.get(
+    '/receipts/:receipt_id/events',
+    {
+      ...read,
+      schema: {
+        tags,
+        summary: 'Linha do tempo da nota: lançamentos e desprocessamentos, com o motivo',
+        params: receiptParamsSchema,
+        response: { 200: receiptEventListResponseSchema },
+      },
+    },
+    listReceiptEventsController
   );
   app.delete(
     '/receipts/:receipt_id',

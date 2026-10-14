@@ -142,4 +142,21 @@ describe('stock.service (integration — requires a live DATABASE_URL)', () => {
     });
     await prisma.stockLevel.updateMany({ where: { sku_id: fx.skuId }, data: { on_hand: 4 } });
   });
+  it('every movement records the balance right after it, and the last one equals the level', async () => {
+    const rows = await prisma.stockMovement.findMany({
+      where: { sku_id: fx.skuId, location_id: fx.locationId },
+      orderBy: [{ created_at: 'asc' }, { stock_movement_id: 'asc' }],
+    });
+    expect(rows.length).toBeGreaterThan(0);
+
+    let onHand = 0;
+    for (const row of rows) {
+      onHand += row.quantity;
+      expect(row.on_hand_after).toBe(onHand);
+      expect(row.reserved_after).not.toBeNull();
+    }
+    const level = await getLevel();
+    expect(rows.at(-1)?.on_hand_after).toBe(level.on_hand);
+    expect(rows.at(-1)?.reserved_after).toBe(level.reserved);
+  });
 });

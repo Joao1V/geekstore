@@ -4,13 +4,13 @@ import { NfeParseError, parseNfe } from './nfe-parser';
 
 const KEY = '35261012345678000190550010000001231000000019';
 
-const nfe = (items: string, extra = '') => `<?xml version="1.0" encoding="UTF-8"?>
+const nfe = (items: string, extra = '', totals = '') => `<?xml version="1.0" encoding="UTF-8"?>
 <nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
   <NFe><infNFe Id="NFe${KEY}" versao="4.00">
     <ide><nNF>123</nNF><serie>1</serie><dhEmi>2026-10-01T10:00:00-03:00</dhEmi></ide>
     <emit><CNPJ>12.345.678/0001-90</CNPJ><xNome>Distribuidora Geek Ltda</xNome></emit>
     ${items}
-    <total><ICMSTot><vNF>${extra || '255.50'}</vNF></ICMSTot></total>
+    <total><ICMSTot>${totals}<vNF>${extra || '255.50'}</vNF></ICMSTot></total>
   </infNFe></NFe>
 </nfeProc>`;
 
@@ -90,5 +90,36 @@ describe('parseNfe', () => {
     expect(() => parseNfe(nfe(det(1, prod())).replace(KEY, '123'))).toThrow(/chave de acesso/);
     expect(() => parseNfe('<html><body>oi</body></html>')).toThrow(NfeParseError);
     expect(() => parseNfe('isto não é xml')).toThrow(NfeParseError);
+  });
+  it('reads the header charges and the per-item discount, IPI and ICMS-ST', () => {
+    const item = `<det nItem="1"><prod>${prod({ vDesc: '5.00' })}</prod><imposto>
+      <ICMS><ICMS10><vICMSST>3.21</vICMSST></ICMS10></ICMS>
+      <IPI><IPITrib><vIPI>1.50</vIPI></IPITrib></IPI></imposto></det>`;
+    const totals =
+      '<vST>3.21</vST><vFrete>12.34</vFrete><vSeg>1.00</vSeg><vDesc>5.00</vDesc><vOutro>2.00</vOutro><vIPI>1.50</vIPI>';
+    const parsed = parseNfe(nfe(item, '150.00', totals));
+
+    expect(parsed.charges).toEqual({
+      freightCents: 1234,
+      insuranceCents: 100,
+      otherCents: 200,
+      discountCents: 500,
+      ipiCents: 150,
+      icmsStCents: 321,
+    });
+    expect(parsed.items[0]).toMatchObject({ discountCents: 500, ipiCents: 150, icmsStCents: 321 });
+  });
+
+  it('treats absent charges as zero', () => {
+    const parsed = parseNfe(nfe(det(1, prod())));
+    expect(parsed.charges).toEqual({
+      freightCents: 0,
+      insuranceCents: 0,
+      otherCents: 0,
+      discountCents: 0,
+      ipiCents: 0,
+      icmsStCents: 0,
+    });
+    expect(parsed.items[0]).toMatchObject({ discountCents: 0, ipiCents: 0, icmsStCents: 0 });
   });
 });

@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { prisma } from '@geekstore/db';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-
 import { buildTestApp } from '../../test-support/build-test-app';
 import { type CatalogFixture, createCatalogFixture, createUser } from '../../test-support/fixtures';
+import { reconcileStock } from '../stock/stock-reconcile.service';
 
 const ADDRESS = {
   recipient: 'Maria Teste',
@@ -142,7 +142,7 @@ describe('admin orders (integration — requires a live DATABASE_URL)', () => {
     const movement = await prisma.stockMovement.findFirst({
       where: { reference_id: order.order_id, type: 'outbound' },
     });
-    expect(movement?.quantity).toBe(2);
+    expect(movement?.quantity).toBe(-2);
 
     expect(
       (await call('POST', `/${order.number}/ship`, owner, { carrier: 'Correios' })).statusCode
@@ -181,6 +181,43 @@ describe('admin orders (integration — requires a live DATABASE_URL)', () => {
     ).toBe(409);
     expect((await call('POST', `/${order.number}/cancel`, owner, { reason: 'x' })).statusCode).toBe(
       400
+    );
+  });
+
+  it('keeps the ledger consistent with the stock after reserving, cancelling and shipping', async () => {
+    // O saldo da fixture nasce sem movimento: o que a conferência mede é que os pedidos não mudem a
+    // diferença entre saldo e livro-razão (nem em `on_hand`, nem em `reserved`).
+    const gap = async () => {
+      const rows = (await reconcileStock()).divergences.filter((row) => row.sku_id === fx.skuId);
+      const row = rows[0];
+      return {
+        on_hand: (row?.level_on_hand ?? 0) - (row?.ledger_on_hand ?? 0),
+        reserved: (row?.level_reserved ?? 0) - (row?.ledger_reserved ?? 0),
+      };
+    };
+    const gapBefore = await gap();
+    const shipped = await paidOrder(2);
+    await call('POST', `/${shipped.number}/ship`, owner, { carrier: 'Correios' });
+    const cancelled = await paidOrder(1);
+    await call('POST', `/${cancelled.number}/cancel`, owner, {
+      reason: 'Conferência do livro-razão',
+    });
+
+    expect(await gap()).toEqual(gapBefore);
+
+    const movements = await prisma.stockMovement.findMany({
+      where: { sku_id: fx.skuId, reference_id: { in: [shipped.order_id, cancelled.order_id] } },
+      orderBy: [{ created_at: 'asc' }, { stock_movement_id: 'asc' }],
+    });
+    // Reserva (+) e liberação (-) pelo cancelamento; reserva, baixa da reserva e saída pela expedição.
+    expect(movements.map((m) => [m.type, Math.sign(m.quantity)]).sort()).toEqual(
+      [
+        ['reservation', 1],
+        ['reservation', 1],
+        ['release', -1],
+        ['release', -1],
+        ['outbound', -1],
+      ].sort()
     );
   });
 

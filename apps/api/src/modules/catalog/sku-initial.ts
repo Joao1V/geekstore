@@ -1,6 +1,7 @@
 import type { Prisma } from '@geekstore/db';
 
 import { writeAuditLog } from '../../core/audit';
+import { recordMovement } from '../stock/movement-writer';
 import { addOnHand } from '../stock/stock-ledger';
 
 const SITE_CHANNEL_CODE = 'site';
@@ -50,9 +51,10 @@ export async function applyInitialValues(
 
   if (initial.initial_stock !== null && initial.initial_stock > 0) {
     const slot = { skuId, locationId: context.warehouseId };
-    await addOnHand(tx, slot, initial.initial_stock);
-    await tx.stockMovement.create({
-      data: {
+    const after = await addOnHand(tx, slot, initial.initial_stock);
+    await recordMovement(
+      tx,
+      {
         sku_id: skuId,
         location_id: context.warehouseId,
         type: 'inbound',
@@ -60,6 +62,7 @@ export async function applyInitialValues(
         reason: INITIAL_STOCK_REASON,
         user_id: actorId,
       },
-    });
+      after
+    );
   }
 }

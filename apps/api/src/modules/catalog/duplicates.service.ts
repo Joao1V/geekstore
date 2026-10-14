@@ -16,6 +16,7 @@ import { BadRequestError, ConflictError, NotFoundError } from '../../core/_error
 import { writeAuditLog } from '../../core/audit';
 import { utcNow } from '../../core/db/sql';
 import { buildMeta, skipTake } from '../../core/http/pagination';
+import { movementRow, recordMovements } from '../stock/movement-writer';
 import { addOnHand, lockLevel, subtractOnHand } from '../stock/stock-ledger';
 
 const MERGE_REFERENCE = 'sku_merge';
@@ -228,14 +229,14 @@ async function mergeInTransaction(
         );
       }
       if (locked.on_hand <= 0) continue;
-      await subtractOnHand(tx, slot, locked.on_hand);
-      await addOnHand(
+      const outAfter = await subtractOnHand(tx, slot, locked.on_hand);
+      const inAfter = await addOnHand(
         tx,
         { skuId: survivor.sku_id, locationId: level.location_id },
         locked.on_hand
       );
-      await tx.stockMovement.createMany({
-        data: [
+      await recordMovements(tx, [
+        movementRow(
           {
             sku_id: duplicate.sku_id,
             location_id: level.location_id,
@@ -246,6 +247,9 @@ async function mergeInTransaction(
             reference_id: survivor.sku_id,
             user_id: actorId,
           },
+          outAfter
+        ),
+        movementRow(
           {
             sku_id: survivor.sku_id,
             location_id: level.location_id,
@@ -256,8 +260,9 @@ async function mergeInTransaction(
             reference_id: duplicate.sku_id,
             user_id: actorId,
           },
-        ],
-      });
+          inAfter
+        ),
+      ]);
       unitsMoved += locked.on_hand;
     }
 

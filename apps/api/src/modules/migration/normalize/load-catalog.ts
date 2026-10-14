@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { ensureAttributeCatalog, ensureCategoryCatalog, type Prisma, prisma } from '@geekstore/db';
 import { v7 as uuidv7 } from 'uuid';
+import { recordMovements } from '../../stock/movement-writer';
 import {
   ensureAttributeValues,
   ensureBrands,
@@ -34,7 +35,7 @@ async function insertBatch(tx: Prisma.TransactionClient, rows: ReturnType<typeof
   }
   await tx.price.createMany({ data: rows.prices });
   await tx.stockLevel.createMany({ data: rows.levels });
-  if (rows.movements.length > 0) await tx.stockMovement.createMany({ data: rows.movements });
+  await recordMovements(tx, rows.movements);
   if (rows.media.length > 0) await tx.media.createMany({ data: rows.media });
 }
 

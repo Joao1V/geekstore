@@ -1,7 +1,13 @@
 import { type Prisma, prisma } from '@geekstore/db';
 
 import { ConflictError } from '../../core/_errors';
-import { consumeReserved, releaseReserved, reserveOnHand } from '../stock/stock-ledger';
+import { recordMovement } from '../stock/movement-writer';
+import {
+  consumeReserved,
+  type LevelSnapshot,
+  releaseReserved,
+  reserveOnHand,
+} from '../stock/stock-ledger';
 
 type Tx = Prisma.TransactionClient;
 const MS_PER_MINUTE = 60_000;
@@ -22,8 +28,9 @@ export async function reserveItems(
 ): Promise<void> {
   const ordered = [...items].sort((a, b) => a.sku_id.localeCompare(b.sku_id));
   for (const item of ordered) {
+    let after: LevelSnapshot;
     try {
-      await reserveOnHand(tx, { skuId: item.sku_id, locationId }, item.quantity);
+      after = await reserveOnHand(tx, { skuId: item.sku_id, locationId }, item.quantity);
     } catch (error) {
       if (error instanceof ConflictError) {
         throw new ConflictError(`Sem estoque suficiente de "${item.name}". Ajuste o carrinho.`);
@@ -41,8 +48,9 @@ export async function reserveItems(
         idempotency_key: `${orderId}:${item.sku_id}:${attempt}`,
       },
     });
-    await tx.stockMovement.create({
-      data: {
+    await recordMovement(
+      tx,
+      {
         sku_id: item.sku_id,
         location_id: locationId,
         type: 'reservation',
@@ -51,7 +59,8 @@ export async function reserveItems(
         reference_type: 'order',
         reference_id: orderId,
       },
-    });
+      after
+    );
   }
 }
 
@@ -85,22 +94,25 @@ export async function cancelOrder(tx: Tx, orderId: string, reason: string): Prom
     where: { order_id: orderId, status: { in: ['active', 'committed'] } },
   });
   for (const reservation of reservations) {
-    await releaseReserved(
+    const after = await releaseReserved(
       tx,
       { skuId: reservation.sku_id, locationId: reservation.location_id },
       reservation.quantity
     );
-    await tx.stockMovement.create({
-      data: {
+    await recordMovement(
+      tx,
+      {
         sku_id: reservation.sku_id,
         location_id: reservation.location_id,
         type: 'release',
-        quantity: reservation.quantity,
+        // Delta com sinal na coluna `reserved`: liberar reduz.
+        quantity: -reservation.quantity,
         reason,
         reference_type: 'order',
         reference_id: orderId,
       },
-    });
+      after
+    );
   }
   await tx.stockReservation.updateMany({
     where: { order_id: orderId, status: { in: ['active', 'committed'] } },
@@ -122,22 +134,41 @@ export async function consumeOrderStock(tx: Tx, orderId: string): Promise<void> 
     where: { order_id: orderId, status: 'committed' },
   });
   for (const reservation of reservations) {
-    await consumeReserved(
+    const after = await consumeReserved(
       tx,
       { skuId: reservation.sku_id, locationId: reservation.location_id },
       reservation.quantity
     );
-    await tx.stockMovement.create({
-      data: {
+    // A expedição baixa as duas colunas, e cada coluna tem o seu movimento (a conferência RF-EST-10
+    // soma `reserved` por reserva/liberação e `on_hand` por entrada/saída): primeiro a reserva
+    // deixa de existir, depois a unidade sai.
+    await recordMovement(
+      tx,
+      {
+        sku_id: reservation.sku_id,
+        location_id: reservation.location_id,
+        type: 'release',
+        quantity: -reservation.quantity,
+        reason: 'Reserva consumida na expedição',
+        reference_type: 'order',
+        reference_id: orderId,
+      },
+      { on_hand: after.on_hand + reservation.quantity, reserved: after.reserved }
+    );
+    await recordMovement(
+      tx,
+      {
         sku_id: reservation.sku_id,
         location_id: reservation.location_id,
         type: 'outbound',
-        quantity: reservation.quantity,
+        // Delta com sinal em `on_hand`: a saída física reduz.
+        quantity: -reservation.quantity,
         reason: 'Expedição do pedido',
         reference_type: 'order',
         reference_id: orderId,
       },
-    });
+      after
+    );
   }
   await tx.stockReservation.updateMany({
     where: { order_id: orderId, status: 'committed' },

@@ -2,29 +2,30 @@ import { type Prisma, prisma } from '@geekstore/db';
 import type {
   Paginated,
   ReceiptDetail,
+  ReceiptEvent,
   ReceiptImportBody,
   ReceiptItem,
   ReceiptItemUpdateBody,
   ReceiptListQuery,
   ReceiptManualBody,
+  ReceiptRevertBody,
   ReceiptSummary,
+  ReceiptUpdateBody,
   SkuSuggestion,
 } from '@geekstore/shared';
 import { v7 as uuidv7 } from 'uuid';
 import { BadRequestError, ConflictError, NotFoundError } from '../../core/_errors';
 import { writeAuditLog } from '../../core/audit/write-audit-log';
-import { asUuid } from '../../core/db/sql';
 import { buildMeta, skipTake } from '../../core/http/pagination';
-import { addOnHand } from '../stock/stock-ledger';
 import { pickWithAi } from './ai-suggester';
 import { NfeParseError, type ParsedNfe, parseNfe } from './nfe-parser';
 import { suggestSkusByName } from './receipt-matching';
+import { applyReceiptEntries } from './receipt-post';
+import { revertReceiptEntries } from './receipt-revert';
 
 const MAX_SUGGESTIONS = 5;
 // Quantos candidatos por nome a IA recebe para escolher.
 const AI_CANDIDATES = 15;
-const POSTED_REASON = 'Entrada de nota de compra';
-const REFERENCE_TYPE = 'purchase_receipt';
 
 const itemInclude = {
   sku: { select: { sku_id: true, code: true, product: { select: { name: true } } } },
@@ -46,9 +47,14 @@ function toItem(row: ItemRow): ReceiptItem {
     description: row.description,
     ean: row.ean,
     ncm: row.ncm,
+    xml_quantity: row.xml_quantity,
+    unit_factor: row.unit_factor,
     quantity: row.quantity,
     unit_cost_cents: row.unit_cost_cents,
     total_cost_cents: row.total_cost_cents,
+    discount_cents: row.discount_cents,
+    ipi_cents: row.ipi_cents,
+    icms_st_cents: row.icms_st_cents,
     match_method: row.match_method,
     ignored: row.ignored,
     sku: row.sku
@@ -85,6 +91,17 @@ function toDetail(row: ReceiptRow): ReceiptDetail {
     ...toSummary(row),
     location_id: row.location_id,
     notes: row.notes,
+    charges: {
+      freight_cents: row.freight_cents,
+      insurance_cents: row.insurance_cents,
+      other_cents: row.other_cents,
+      discount_cents: row.discount_cents,
+      ipi_cents: row.ipi_cents,
+      icms_st_cents: row.icms_st_cents,
+      include_ipi: row.include_ipi,
+      include_icms_st: row.include_icms_st,
+      apportion_basis: row.apportion_basis,
+    },
     items: row.items.map(toItem),
   };
 }
@@ -119,7 +136,12 @@ async function assertDraft(row: { status: string }): Promise<void> {
     throw new ConflictError('Esta nota já foi lançada e não pode mais mudar.');
 }
 
-type Match = { skuId: string; method: 'mapping' | 'ean' };
+/** Custo unitário em centavos a partir do total da linha e da quantidade em unidades nossas. */
+function unitCostOf(totalCostCents: number, quantity: number): number {
+  return Math.round(totalCostCents / quantity);
+}
+
+type Match = { skuId: string; method: 'mapping' | 'ean'; unitFactor: number };
 
 /**
  * Liga cada item da nota a um SKU sem perguntar: primeiro pelo que já foi aprendido do fornecedor
@@ -137,7 +159,7 @@ async function autoMatch(
     supplierId && codes.length > 0
       ? tx.supplierSku.findMany({
           where: { supplier_id: supplierId, supplier_code: { in: codes } },
-          select: { supplier_code: true, sku_id: true },
+          select: { supplier_code: true, sku_id: true, unit_factor: true },
         })
       : [],
     eans.length > 0
@@ -147,16 +169,24 @@ async function autoMatch(
         })
       : [],
   ]);
-  const mapped = new Map(mappings.map((row) => [row.supplier_code, row.sku_id]));
+  const mapped = new Map(mappings.map((row) => [row.supplier_code, row]));
   const eanOwners = new Map<string, string[]>();
   for (const sku of bySku) {
     if (sku.ean) eanOwners.set(sku.ean, [...(eanOwners.get(sku.ean) ?? []), sku.sku_id]);
   }
   return items.map((item) => {
     const viaMapping = item.supplierCode ? mapped.get(item.supplierCode) : undefined;
-    if (viaMapping) return { skuId: viaMapping, method: 'mapping' as const };
+    if (viaMapping) {
+      return {
+        skuId: viaMapping.sku_id,
+        method: 'mapping' as const,
+        unitFactor: viaMapping.unit_factor,
+      };
+    }
     const owners = item.ean ? eanOwners.get(item.ean) : undefined;
-    return owners?.length === 1 ? { skuId: owners[0] as string, method: 'ean' as const } : null;
+    return owners?.length === 1
+      ? { skuId: owners[0] as string, method: 'ean' as const, unitFactor: 1 }
+      : null;
   }) as Match[] | null[];
 }
 
@@ -215,22 +245,37 @@ export async function importReceiptXml(
         access_key: parsed.accessKey,
         issued_at: parsed.issuedAt,
         total_cents: parsed.totalCents,
+        freight_cents: parsed.charges.freightCents,
+        insurance_cents: parsed.charges.insuranceCents,
+        other_cents: parsed.charges.otherCents,
+        discount_cents: parsed.charges.discountCents,
+        ipi_cents: parsed.charges.ipiCents,
+        icms_st_cents: parsed.charges.icmsStCents,
         location_id: locationId,
         xml: body.xml,
         created_by: actorId,
         items: {
-          create: parsed.items.map((item, index) => ({
-            line: item.line,
-            supplier_code: item.supplierCode,
-            description: item.description,
-            ean: item.ean,
-            ncm: item.ncm,
-            quantity: item.quantity,
-            unit_cost_cents: item.unitCostCents,
-            total_cost_cents: item.totalCostCents,
-            sku_id: matches[index]?.skuId ?? null,
-            match_method: matches[index]?.method ?? null,
-          })),
+          create: parsed.items.map((item, index) => {
+            const unitFactor = matches[index]?.unitFactor ?? 1;
+            const quantity = item.quantity * unitFactor;
+            return {
+              line: item.line,
+              supplier_code: item.supplierCode,
+              description: item.description,
+              ean: item.ean,
+              ncm: item.ncm,
+              xml_quantity: item.quantity,
+              unit_factor: unitFactor,
+              quantity,
+              unit_cost_cents: unitCostOf(item.totalCostCents, quantity),
+              total_cost_cents: item.totalCostCents,
+              discount_cents: item.discountCents,
+              ipi_cents: item.ipiCents,
+              icms_st_cents: item.icmsStCents,
+              sku_id: matches[index]?.skuId ?? null,
+              match_method: matches[index]?.method ?? null,
+            };
+          }),
         },
       },
     });
@@ -272,12 +317,16 @@ export async function createManualReceipt(
           (sum, item) => sum + item.quantity * item.unit_cost_cents,
           0
         ),
+        freight_cents: body.freight_cents ?? 0,
+        insurance_cents: body.insurance_cents ?? 0,
+        other_cents: body.other_cents ?? 0,
         location_id: locationId,
         created_by: actorId,
         items: {
           create: body.items.map((item, index) => ({
             line: index + 1,
             description: item.description,
+            xml_quantity: item.quantity,
             quantity: item.quantity,
             unit_cost_cents: item.unit_cost_cents,
             total_cost_cents: item.quantity * item.unit_cost_cents,
@@ -328,6 +377,31 @@ export async function getReceipt(receiptId: string): Promise<ReceiptDetail> {
   return toDetail(await loadReceipt(prisma, receiptId));
 }
 
+/** Encargos e política de custo da nota (frete, IPI incluído ou não, base do rateio). Só rascunho. */
+export async function updateReceiptCharges(
+  actorId: string,
+  receiptId: string,
+  body: ReceiptUpdateBody
+): Promise<ReceiptDetail> {
+  return prisma.$transaction(async (tx) => {
+    const receipt = await loadReceipt(tx, receiptId);
+    await assertDraft(receipt);
+    await tx.purchaseReceipt.update({ where: { purchase_receipt_id: receiptId }, data: body });
+    const before = Object.fromEntries(
+      Object.keys(body).map((key) => [key, receipt[key as keyof typeof receipt]])
+    );
+    await writeAuditLog(tx, {
+      userId: actorId,
+      entity: 'purchase_receipt',
+      entityId: receiptId,
+      action: 'update',
+      before,
+      after: body,
+    });
+    return toDetail(await loadReceipt(tx, receiptId));
+  });
+}
+
 /** Liga o item a um SKU, ignora o item (frete, brinde) ou corrige quantidade e custo (caixa -> unidades). */
 export async function updateReceiptItem(
   actorId: string,
@@ -350,9 +424,22 @@ export async function updateReceiptItem(
       if (sku.merged_into_sku_id)
         throw new ConflictError('Este SKU foi mesclado em outro; use o SKU de destino.');
     }
-    const quantity = body.quantity ?? item.quantity;
-    const unitCost = body.unit_cost_cents ?? item.unit_cost_cents;
-    const repriced = body.quantity !== undefined || body.unit_cost_cents !== undefined;
+    // Fator novo refaz a quantidade; o total da linha (o que o fornecedor cobrou) não muda, então o
+    // custo unitário acompanha, a menos que a pessoa informe o custo na mesma chamada.
+    const unitFactor = body.unit_factor ?? item.unit_factor;
+    const quantity =
+      body.unit_factor !== undefined
+        ? item.xml_quantity * unitFactor
+        : (body.quantity ?? item.quantity);
+    const unitCost =
+      body.unit_cost_cents ??
+      (body.unit_factor !== undefined
+        ? unitCostOf(item.total_cost_cents, quantity)
+        : item.unit_cost_cents);
+    const repriced =
+      body.unit_factor !== undefined ||
+      body.quantity !== undefined ||
+      body.unit_cost_cents !== undefined;
     await tx.purchaseReceiptItem.update({
       where: { purchase_receipt_item_id: itemId },
       data: {
@@ -360,8 +447,18 @@ export async function updateReceiptItem(
           ? { sku_id: body.sku_id, match_method: body.sku_id ? ('manual' as const) : null }
           : {}),
         ...(body.ignored !== undefined ? { ignored: body.ignored } : {}),
+        ...(body.unit_factor !== undefined ? { unit_factor: unitFactor } : {}),
         ...(repriced
-          ? { quantity, unit_cost_cents: unitCost, total_cost_cents: quantity * unitCost }
+          ? {
+              quantity,
+              unit_cost_cents: unitCost,
+              // O total só muda quando o custo ou a quantidade são sobrescritos; trocar o fator
+              // preserva o que o fornecedor cobrou.
+              total_cost_cents:
+                body.unit_factor !== undefined && body.unit_cost_cents === undefined
+                  ? item.total_cost_cents
+                  : quantity * unitCost,
+            }
           : {}),
       },
     });
@@ -375,6 +472,7 @@ export async function updateReceiptItem(
         sku_id: item.sku_id,
         ignored: item.ignored,
         quantity: item.quantity,
+        unit_factor: item.unit_factor,
       },
       after: { line: item.line, ...body },
     });
@@ -409,17 +507,6 @@ export async function suggestForItem(
   return [...(pick ? [pick] : []), ...rest].slice(0, MAX_SUGGESTIONS);
 }
 
-/** Custo médio ponderado pelo saldo físico total do SKU (todos os locais). */
-export function averageCost(
-  currentCostCents: number | null,
-  onHand: number,
-  quantity: number,
-  unitCostCents: number
-): number {
-  if (currentCostCents === null || onHand <= 0) return unitCostCents;
-  return Math.round((currentCostCents * onHand + unitCostCents * quantity) / (onHand + quantity));
-}
-
 /**
  * Lança a nota: cada item ligado vira uma entrada no livro-razão, o custo médio do SKU é atualizado
  * e o código do fornecedor passa a apontar para o SKU. Tudo na mesma transação; o UPDATE condicional
@@ -441,55 +528,10 @@ export async function postReceipt(actorId: string, receiptId: string): Promise<R
       );
     }
 
-    for (const item of receipt.items.filter((row) => row.sku_id && !row.ignored)) {
-      const skuId = item.sku_id as string;
-      // Trava o SKU: duas notas lançando o mesmo SKU ao mesmo tempo calculam o custo em fila.
-      await tx.$queryRaw`SELECT sku_id FROM sku WHERE sku_id = ${asUuid(skuId)} FOR UPDATE`;
-      const [sku, onHand] = await Promise.all([
-        tx.sku.findUniqueOrThrow({ where: { sku_id: skuId }, select: { cost_cents: true } }),
-        tx.stockLevel.aggregate({ where: { sku_id: skuId }, _sum: { on_hand: true } }),
-      ]);
-      await addOnHand(tx, { skuId, locationId: receipt.location_id }, item.quantity);
-      await tx.stockMovement.create({
-        data: {
-          sku_id: skuId,
-          location_id: receipt.location_id,
-          type: 'inbound',
-          quantity: item.quantity,
-          reason: `${POSTED_REASON}${receipt.number ? ` ${receipt.number}` : ''}`.slice(0, 255),
-          reference_type: REFERENCE_TYPE,
-          reference_id: receiptId,
-          user_id: actorId,
-        },
-      });
-      await tx.sku.update({
-        where: { sku_id: skuId },
-        data: {
-          cost_cents: averageCost(
-            sku.cost_cents,
-            onHand._sum.on_hand ?? 0,
-            item.quantity,
-            item.unit_cost_cents
-          ),
-        },
-      });
-      if (receipt.supplier_id && item.supplier_code) {
-        await tx.supplierSku.upsert({
-          where: {
-            supplier_id_supplier_code: {
-              supplier_id: receipt.supplier_id,
-              supplier_code: item.supplier_code,
-            },
-          },
-          create: {
-            supplier_id: receipt.supplier_id,
-            supplier_code: item.supplier_code,
-            sku_id: skuId,
-          },
-          update: { sku_id: skuId },
-        });
-      }
-    }
+    const entered = await applyReceiptEntries(tx, receipt, actorId);
+    await tx.purchaseReceiptEvent.create({
+      data: { purchase_receipt_id: receiptId, type: 'posted', user_id: actorId },
+    });
     await writeAuditLog(tx, {
       userId: actorId,
       entity: 'purchase_receipt',
@@ -498,11 +540,73 @@ export async function postReceipt(actorId: string, receiptId: string): Promise<R
       before: { status: 'draft' },
       after: {
         status: 'posted',
-        items: receipt.items.filter((i) => i.sku_id && !i.ignored).length,
+        items: entered,
       },
     });
     return toDetail(await loadReceipt(tx, receiptId));
   });
+}
+
+/**
+ * Desprocessa uma nota lançada com motivo: a nota volta a rascunho (editável e relançável), o estoque
+ * perde a entrada e o custo dos SKUs é refeito sem ela. Recusa se algum item já foi vendido ou reservado
+ * (o saldo disponível não cobre a saída). O UPDATE condicional do status impede duas reversões juntas.
+ */
+export async function revertReceipt(
+  actorId: string,
+  receiptId: string,
+  body: ReceiptRevertBody
+): Promise<ReceiptDetail> {
+  return prisma.$transaction(async (tx) => {
+    await loadReceipt(tx, receiptId);
+    const claimed = await tx.purchaseReceipt.updateMany({
+      where: { purchase_receipt_id: receiptId, status: 'posted' },
+      data: { status: 'draft', posted_at: null, posted_by: null },
+    });
+    if (claimed.count === 0) throw new ConflictError('Esta nota não está lançada.');
+
+    const receipt = await tx.purchaseReceipt.findUniqueOrThrow({
+      where: { purchase_receipt_id: receiptId },
+      include: { items: { orderBy: { line: 'asc' } } },
+    });
+    const reverted = await revertReceiptEntries(tx, receipt, body.reason, actorId);
+    await tx.purchaseReceiptItem.updateMany({
+      where: { purchase_receipt_id: receiptId },
+      data: { landed_unit_cost_e4: null },
+    });
+    await tx.purchaseReceiptEvent.create({
+      data: {
+        purchase_receipt_id: receiptId,
+        type: 'reverted',
+        reason: body.reason,
+        user_id: actorId,
+      },
+    });
+    await writeAuditLog(tx, {
+      userId: actorId,
+      entity: 'purchase_receipt',
+      entityId: receiptId,
+      action: 'update',
+      before: { status: 'posted' },
+      after: { status: 'draft', reason: body.reason, items: reverted },
+    });
+    return toDetail(await loadReceipt(tx, receiptId));
+  });
+}
+
+export async function listReceiptEvents(receiptId: string): Promise<ReceiptEvent[]> {
+  await loadReceipt(prisma, receiptId);
+  const rows = await prisma.purchaseReceiptEvent.findMany({
+    where: { purchase_receipt_id: receiptId },
+    orderBy: [{ created_at: 'asc' }, { purchase_receipt_event_id: 'asc' }],
+  });
+  return rows.map((row) => ({
+    event_id: row.purchase_receipt_event_id,
+    type: row.type,
+    reason: row.reason,
+    user_id: row.user_id,
+    created_at: row.created_at.toISOString(),
+  }));
 }
 
 export async function deleteReceipt(actorId: string, receiptId: string): Promise<void> {

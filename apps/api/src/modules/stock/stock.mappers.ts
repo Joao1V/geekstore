@@ -27,6 +27,8 @@ export function toStockMovement(row: MovementRow): StockMovement {
     quantity: row.quantity,
     reason: row.reason,
     user_id: row.user_id,
+    on_hand_after: row.on_hand_after,
+    reserved_after: row.reserved_after,
     created_at: row.created_at.toISOString(),
   };
 }
