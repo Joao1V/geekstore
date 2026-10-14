@@ -406,7 +406,7 @@ test('calculates installment total correctly', () => {
 ```typescript
 // PASS: GOOD: Descriptive test names
 test('returns empty array when no SKUs match query', () => { })
-test('throws error when the Vindi API key is missing', () => { })
+test('throws error when the Mercado Pago access token is missing', () => { })
 test('falls back to PostgreSQL full-text search when Meilisearch is unavailable', () => { })
 
 // FAIL: BAD: Vague test names

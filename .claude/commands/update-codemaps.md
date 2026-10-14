@@ -42,7 +42,7 @@ apps/api/src/modules/auth/auth.routes.ts (HTTP layer)
 ## Dependencies
 - PostgreSQL 18 (primary data store, Prisma)
 - Redis (BullMQ queues, rate limiting)
-- Vindi (payments, from F3)
+- Mercado Pago (payments, from F3)
 ```
 
 ## Step 3: Diff Detection

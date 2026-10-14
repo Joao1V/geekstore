@@ -8,6 +8,7 @@ import { useState } from 'react';
 
 import { Action } from '@/components/ui';
 import { getMascot } from '@/lib/mascot';
+import { PAYMENTS_ARE_REAL } from '@/lib/mercado-pago';
 import { getErrorMessage } from './lib/errors';
 import { formatOrderDate, OrderStatusBadge, OrderView } from './order-view';
 import { useSimulatePayment } from './services/checkout/mutations';
@@ -16,7 +17,7 @@ import { useCustomerStore } from './state/customer-store';
 
 const POLL_MS = 4_000;
 // O botão de "pagar" do teste só existe fora de produção (a API também recusa em produção).
-const CAN_SIMULATE = process.env.NODE_ENV !== 'production';
+const CAN_SIMULATE = process.env.NODE_ENV !== 'production' && !PAYMENTS_ARE_REAL;
 
 /** Página do pedido logo depois da compra: instruções de pagamento e acompanhamento do status. */
 export function OrderConfirmation({ orderId }: { orderId: string }) {
@@ -110,6 +111,16 @@ export function OrderConfirmation({ orderId }: { orderId: string }) {
               {payment.expires_at &&
                 ` Reservamos seus itens até ${formatOrderDate(payment.expires_at)}.`}
             </p>
+            {typeof payment.details?.pix_qr_base64 === 'string' && (
+              // biome-ignore lint/performance/noImgElement: QR code em base64 (data URI), não há o que otimizar
+              <img
+                src={`data:image/png;base64,${payment.details.pix_qr_base64}`}
+                alt="QR code do Pix"
+                width={200}
+                height={200}
+                className="mb-4 rounded-lg border border-border bg-white p-2"
+              />
+            )}
             <code className="mb-4 block break-all rounded-lg bg-surface-secondary p-3.5 font-mono text-xs">
               {code}
             </code>
@@ -117,6 +128,16 @@ export function OrderConfirmation({ orderId }: { orderId: string }) {
               <Action onPress={copy}>
                 <Copy size={17} /> {copied ? 'Copiado!' : 'Copiar código'}
               </Action>
+              {typeof payment.details?.boleto_url === 'string' && (
+                <a
+                  className="action action-outline"
+                  href={payment.details.boleto_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Abrir o boleto
+                </a>
+              )}
               {CAN_SIMULATE && (
                 <Action className="action-outline" onPress={pay} disabled={simulate.isPending}>
                   {simulate.isPending ? 'Pagando…' : 'Simular pagamento (teste)'}

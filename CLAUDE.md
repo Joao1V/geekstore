@@ -64,7 +64,7 @@ Infra: Dokploy num VPS, Traefik, Cloudflare. Fila BullMQ + Redis. Busca Meilisea
 
 - Referência da API: antes de assumir o formato de um payload, leia `docs/api/README.md` (por recurso, com as regras de negócio). É gerada da spec da `apps/api` (`/documentation/json`) pelo comando `/openapi-docs`; não edite à mão. Se o front precisa de algo que não está lá, é pedido ao backend.
 - Antes de implementar um módulo, leia a seção dele no @docs/SPEC.md e o critério de saída da fase.
-- Fase atual: F1. Atualize esta linha quando mudar de fase.
+- Fase atual: F3 (compra). Já no ar: catálogo, estoque com livro-razão e custo, vitrine, conta, carrinho, checkout, pedidos, cupons, frete real (Melhor Envio) e Mercado Pago. Faltam o Outbox, e-mails, jobs de expiração e conferência de estoque e os eventos de analytics. Atualize esta linha quando mudar de fase.
 - Comandos (raiz): `pnpm dev`, `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm lint:fix`, `pnpm format`. Por app: `pnpm --filter @geekstore/db generate` (Prisma client). Testes: `pnpm test` (unitários); integração com banco real em `apps/api`: `pnpm test:integration` (precisa do PostgreSQL no ar e das migrações aplicadas: `pnpm --filter @geekstore/db exec prisma migrate deploy`).
 - Banco local: `docker compose up -d` (PostgreSQL 18, porta 5434; as portas 5432/5433 costumam estar ocupadas por outros projetos). Copie `packages/db/.env.example` para `packages/db/.env`.
 - Não crie documentação além da pedida.

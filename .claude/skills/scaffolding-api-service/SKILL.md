@@ -74,7 +74,7 @@ api.post<T>(path, body?, options?)        // also put / patch / delete (204 → 
   (`rewrites` in `next.config.ts` → `API_INTERNAL_URL`), so there is no CORS and the refresh cookie
   is first-party. The client appends the trailing slash the rewrite needs (`trailingSlash: true`).
   **Server (RSC/prefetch) calls go straight to `API_INTERNAL_URL`**, never through the proxy.
-  `NEXT_PUBLIC_API_URL` no longer exists. Webhooks (Vindi, marketplaces) hit the API's public URL
+  `NEXT_PUBLIC_API_URL` no longer exists. Webhooks (Mercado Pago, marketplaces) hit the API's public URL
   directly, not the Next proxy.
 - `GET /health` is the one exception: it returns a bare `{ status: 'ok' }` for uptime checkers and is not called through `api`.
 - Failures throw `ApiError` (`status`, `code`, `message`, `details`, `requestId`) built from the

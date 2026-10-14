@@ -50,6 +50,9 @@ export const checkoutBodySchema = z.object({
     method: paymentMethodSchema,
     installments: z.number().int().min(1).max(MAX_INSTALLMENTS).default(1),
     card_token: z.string().trim().max(100).optional(),
+    /** Bandeira do cartão no provedor (`visa`, `master`...), devolvida pelo SDK junto do token. */
+    card_payment_method_id: z.string().trim().max(40).optional(),
+    card_issuer_id: z.string().trim().max(40).optional(),
   }),
 });
 export type CheckoutBody = z.infer<typeof checkoutBodySchema>;

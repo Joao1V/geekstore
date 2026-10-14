@@ -18,6 +18,7 @@ import {
   couponCheckController,
   customerOrderController,
   customerOrdersController,
+  mercadoPagoWebhookController,
   mockWebhookController,
   orderByIdController,
   simulatePaymentController,
@@ -145,5 +146,21 @@ export async function webhookRoutes(fastify: FastifyInstance): Promise<void> {
       },
     },
     mockWebhookController
+  );
+
+  fastify.withTypeProvider<ZodTypeProvider>().post(
+    '/mercadopago',
+    {
+      // O Mercado Pago reenvia até receber 200; o limite protege só contra abuso.
+      config: { rateLimit: { max: 300, timeWindow: '1 minute' } },
+      schema: {
+        tags,
+        summary:
+          'Aviso de pagamento do Mercado Pago (assinado; idempotente por pagamento e estado)',
+        querystring: z.object({ 'data.id': z.string().max(100).optional() }).passthrough(),
+        body: z.unknown().optional(),
+      },
+    },
+    mercadoPagoWebhookController
   );
 }

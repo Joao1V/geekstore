@@ -1,6 +1,8 @@
 import { isFutureExpiry, isValidDocument, mockCardToken, onlyDigits } from '@geekstore/shared';
 import { z } from 'zod';
 
+import { PAYMENTS_ARE_REAL } from '@/lib/mercado-pago';
+
 const ZIP_DIGITS = 8;
 
 /** Todos os campos do checkout; o que vale em cada etapa é conferido na hora de avançar. */
@@ -45,6 +47,10 @@ export const checkoutFormSchema = z
       if (!values.neighborhood.trim()) fail('neighborhood', 'Informe o bairro');
       if (!values.city.trim()) fail('city', 'Informe a cidade');
       if (!values.state) fail('state', 'Escolha o estado');
+    }
+    // O Mercado Pago exige CPF/CNPJ no cartão e no boleto.
+    if (PAYMENTS_ARE_REAL && values.method !== 'pix' && !isValidDocument(values.document)) {
+      fail('document', 'Informe o CPF ou CNPJ para pagar com cartão ou boleto');
     }
     if (values.method === 'card') {
       if (!mockCardToken(values.card_number)) fail('card_number', 'Número de cartão inválido');

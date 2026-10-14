@@ -3,7 +3,7 @@ import type { PaymentMethod } from '@geekstore/shared';
 
 import { BadRequestError } from '../../core/_errors';
 
-// Todo pagamento passa por esta interface (RF-PAG-01): trocar o gateway (Vindi) não mexe no checkout.
+// Todo pagamento passa por esta interface (RF-PAG-01): trocar o gateway (Mercado Pago) não mexe no checkout.
 export type ChargeInput = {
   orderNumber: number;
   amountCents: number;
@@ -11,6 +11,27 @@ export type ChargeInput = {
   installments: number;
   /** Cartão: o token do provedor, nunca o número do cartão. */
   cardToken?: string;
+  /** Bandeira e emissor do cartão no provedor. */
+  cardPaymentMethodId?: string;
+  cardIssuerId?: string;
+  /** Repetir a mesma cobrança (clique duplo, timeout) nunca cobra duas vezes. */
+  idempotencyKey: string;
+  payer: ChargePayer;
+};
+
+export type ChargePayer = {
+  name: string;
+  email: string;
+  /** CPF ou CNPJ, só dígitos. */
+  document: string | null;
+  address: {
+    zip: string;
+    street: string;
+    number: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+  } | null;
 };
 
 export type ChargeResult = {
@@ -72,5 +93,3 @@ export const mockProvider: PaymentProvider = {
     };
   },
 };
-
-export const paymentProvider: PaymentProvider = mockProvider;

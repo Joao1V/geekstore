@@ -31,6 +31,9 @@ import { usersRoutes } from '../modules/users/users.routes';
  * sem Redis/fila (o CI de integração só tem PostgreSQL).
  */
 export async function buildTestApp() {
+  // Os testes nunca falam com Melhor Envio nem Mercado Pago, mesmo que o .env local tenha as chaves.
+  delete process.env.MELHOR_ENVIO_TOKEN;
+  process.env.PAYMENT_PROVIDER = 'mock';
   const app = Fastify();
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);

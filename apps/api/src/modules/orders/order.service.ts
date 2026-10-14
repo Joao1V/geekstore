@@ -8,7 +8,8 @@ import {
 } from '@geekstore/shared';
 import { BadRequestError, ConflictError, NotFoundError } from '../../core/_errors';
 import { envConfig } from '../../core/config/env';
-import { paymentProvider, ttlMinutesOf } from '../payments/payment-provider';
+import { getPaymentProvider } from '../payments/get-payment-provider';
+import { ttlMinutesOf } from '../payments/payment-provider';
 import { toShippingItem } from '../shipping/shipping.service';
 import { shippingOptionsFor } from '../shipping/shipping-options';
 import { loadCartSkus } from './cart-lines';
@@ -160,12 +161,32 @@ export async function createOrder({
       );
       if (coupon) await consumeCoupon(tx, coupon.code);
 
-      const charge = await paymentProvider.createCharge({
+      const provider = getPaymentProvider();
+      const charge = await provider.createCharge({
         orderNumber: order.number,
         amountCents: total,
         method: payment.method,
         installments: payment.installments,
         cardToken: payment.card_token,
+        cardPaymentMethodId: payment.card_payment_method_id,
+        cardIssuerId: payment.card_issuer_id,
+        idempotencyKey,
+        payer: {
+          name: body.contact.name,
+          email: body.contact.email,
+          document: body.contact.document ? body.contact.document.replace(/\D/g, '') : null,
+          address:
+            isPickup || !body.shipping_address
+              ? null
+              : {
+                  zip: body.shipping_address.zip,
+                  street: body.shipping_address.street,
+                  number: body.shipping_address.number,
+                  neighborhood: body.shipping_address.neighborhood,
+                  city: body.shipping_address.city,
+                  state: body.shipping_address.state,
+                },
+        },
       });
       // Cartão recusado: a compra inteira é desfeita (sem pedido, sem reserva); o cliente tenta de novo.
       if (charge.status === 'declined') {
@@ -176,7 +197,7 @@ export async function createOrder({
       const created = await tx.payment.create({
         data: {
           order_id: order.order_id,
-          provider: paymentProvider.name,
+          provider: provider.name,
           external_id: charge.externalId,
           method: payment.method,
           status: charge.status,

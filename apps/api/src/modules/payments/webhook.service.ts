@@ -13,6 +13,7 @@ export type PaymentEvent = {
 };
 export type PaymentEventResult = { duplicate: boolean };
 
+const PAYMENT_NOT_FOUND = 'Pagamento não encontrado';
 const NO_STOCK_NOTE =
   'Pagamento aprovado depois de a reserva expirar e sem estoque: estornar ou atender.';
 
@@ -77,10 +78,19 @@ export async function applyPaymentEvent(event: PaymentEvent): Promise<PaymentEve
     });
     webhookId = created.webhook_event_id;
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+      throw error;
+    }
+    // Já recebido: se terminou, é repetição. Se o pagamento ainda não existia (o aviso chegou antes de
+    // ele ser gravado), o provedor reenviando é a chance de processar de novo (RF-PAG-08). Falha por
+    // falta de estoque não se reprocessa: é uma exceção operacional.
+    const previous = await prisma.webhookEvent.findUniqueOrThrow({
+      where: { provider_event_id: { provider: event.provider, event_id: event.eventId } },
+    });
+    if (previous.state !== 'failed' || previous.error !== PAYMENT_NOT_FOUND) {
       return { duplicate: true };
     }
-    throw error;
+    webhookId = previous.webhook_event_id;
   }
 
   const payment = await prisma.payment.findUnique({
@@ -90,7 +100,7 @@ export async function applyPaymentEvent(event: PaymentEvent): Promise<PaymentEve
   if (!payment) {
     await prisma.webhookEvent.update({
       where: { webhook_event_id: webhookId },
-      data: { state: 'failed', error: 'Pagamento não encontrado', processed_at: new Date() },
+      data: { state: 'failed', error: PAYMENT_NOT_FOUND, processed_at: new Date() },
     });
     throw new NotFoundError('Pagamento não encontrado.');
   }

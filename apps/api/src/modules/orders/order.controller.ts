@@ -5,7 +5,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { BadRequestError, NotFoundError } from '../../core/_errors';
 import { envConfig } from '../../core/config';
 import { optionalCustomerId, requireCustomerId } from '../customers/customer-token';
-import { paymentProvider } from '../payments/payment-provider';
+import { handleMercadoPagoNotification } from '../payments/mercado-pago-webhook';
 import { applyPaymentEvent } from '../payments/webhook.service';
 import { loadCartSkus } from './cart-lines';
 import { checkCoupon } from './coupon.service';
@@ -40,8 +40,10 @@ export async function simulatePaymentController(
     orderBy: { created_at: 'desc' },
   });
   if (!payment) throw new NotFoundError('Pedido não encontrado.');
+  // Pagamento de verdade (Mercado Pago) só se aprova pelo aviso do provedor, nunca por aqui.
+  if (payment.provider !== 'mock') throw new NotFoundError('Rota não encontrada.');
   await applyPaymentEvent({
-    provider: paymentProvider.name,
+    provider: payment.provider,
     eventId: `sim-${randomUUID()}`,
     externalId: payment.external_id,
     state: 'approved',
@@ -81,6 +83,24 @@ export async function mockWebhookController(
     eventId: request.body.event_id,
     externalId: request.body.payment_id,
     state: request.body.state,
+  });
+  return { data: result };
+}
+
+export async function mercadoPagoWebhookController(
+  request: FastifyRequest<{ Querystring: { 'data.id'?: string }; Body: unknown }>
+) {
+  const header = (name: string) => {
+    const value = request.headers[name];
+    return Array.isArray(value) ? value[0] : value;
+  };
+  const result = await handleMercadoPagoNotification({
+    signatureHeader: header('x-signature'),
+    requestId: header('x-request-id'),
+    queryDataId: request.query['data.id'],
+    body: (request.body ?? undefined) as Parameters<
+      typeof handleMercadoPagoNotification
+    >[0]['body'],
   });
   return { data: result };
 }

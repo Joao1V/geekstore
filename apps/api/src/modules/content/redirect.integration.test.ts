@@ -132,10 +132,9 @@ describe('redirects (integration — requires a live DATABASE_URL)', () => {
       from_path: path('e1'),
       to_path: `${path('e2')}/`,
     });
-    const loop = await admin('PATCH', `/${a.redirect_id}`, owner, {
-      from_path: path('e3'),
-      to_path: path('e1'),
-    });
+    // e4 -> e1 já existe: apontar e1 para e4 fecha o laço (a edição sai do mapa antes de conferir).
+    await create(path('e4'), path('e1'));
+    const loop = await admin('PATCH', `/${a.redirect_id}`, owner, { to_path: path('e4') });
     expect(loop.statusCode).toBe(400);
   });
 

@@ -22,6 +22,7 @@ import { useForm, useWatch } from 'react-hook-form';
 
 import { Action } from '@/components/ui';
 import { getMascot } from '@/lib/mascot';
+import { PAYMENTS_ARE_REAL, type TokenizedCard, tokenizeCard } from '@/lib/mercado-pago';
 import { useCartSync } from '../cart-sync';
 import { getErrorMessage } from '../lib/errors';
 import { installmentPlan } from '../lib/money';
@@ -175,10 +176,28 @@ export function Checkout() {
 
   const place = async (values: CheckoutFormValues) => {
     setFormError('');
-    const token = values.method === 'card' ? mockCardToken(values.card_number) : null;
-    if (values.method === 'card' && !token) {
-      setError('card_number', { message: 'Número de cartão inválido' });
-      return;
+    let card: TokenizedCard | null = null;
+    if (values.method === 'card') {
+      const mock = mockCardToken(values.card_number);
+      if (!mock) {
+        setError('card_number', { message: 'Número de cartão inválido' });
+        return;
+      }
+      try {
+        // Com o Mercado Pago, o cartão é trocado por um token direto lá: o número não passa por nós.
+        card = PAYMENTS_ARE_REAL
+          ? await tokenizeCard({
+              number: values.card_number,
+              holder: values.card_holder,
+              expiry: values.card_expiry,
+              cvv: values.card_cvv,
+              document: values.document,
+            })
+          : { token: mock };
+      } catch {
+        setFormError('Não consegui validar o cartão. Confira os dados e tente de novo.');
+        return;
+      }
     }
     const pickup = values.shipping_service === 'pickup';
     const body: CheckoutBody = {
@@ -206,7 +225,9 @@ export function Checkout() {
       payment: {
         method: values.method,
         installments: values.method === 'card' ? Number(values.installments) : 1,
-        card_token: token ?? undefined,
+        card_token: card?.token,
+        card_payment_method_id: card?.paymentMethodId,
+        card_issuer_id: card?.issuerId,
       },
     };
     try {
@@ -250,13 +271,15 @@ export function Checkout() {
           <h1 className="section-title">Quase na sua coleção.</h1>
         </div>
         <span className="muted flex gap-2">
-          <LockKeyhole size={17} /> Pagamento simulado
+          <LockKeyhole size={17} /> {PAYMENTS_ARE_REAL ? 'Pagamento seguro' : 'Pagamento simulado'}
         </span>
       </div>
-      <p className="notice">
-        Ambiente de demonstração: o pagamento é simulado e nenhuma cobrança real acontece. O pedido,
-        o estoque e o frete são de verdade no sistema.
-      </p>
+      {!PAYMENTS_ARE_REAL && (
+        <p className="notice">
+          Ambiente de demonstração: o pagamento é simulado e nenhuma cobrança real acontece. O
+          pedido, o estoque e o frete são de verdade no sistema.
+        </p>
+      )}
       <div className="mt-[30px] grid grid-cols-[1.35fr_1fr] items-start gap-9 max-tablet:gap-[22px] max-md:grid-cols-1">
         <div>
           <div ref={stepsRef} className="mb-6 flex gap-7 max-md:gap-[15px]">
