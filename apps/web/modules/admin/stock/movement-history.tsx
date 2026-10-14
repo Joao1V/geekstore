@@ -9,7 +9,7 @@ import { getErrorMessage } from '../lib/errors';
 import { formatDateTime } from '../lib/format';
 import { movementListQueryOptions } from '../services/stock/queries';
 import { PaginationBar } from '../ui/pagination-bar';
-import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { AdminTable, EmptyRow, TBody, Td, THead, Th, Tr } from '../ui/table';
 import { MOVEMENT_TYPE_LABELS } from './movement-labels';
 
 const PAGE_SIZE = 10;
@@ -33,29 +33,27 @@ function History({ row, locations }: { row: SkuGridRow; locations: Location[] })
           {getErrorMessage(error)}
         </p>
       )}
-      <AdminTable>
-        <thead>
-          <tr>
-            <Th>Data</Th>
-            <Th>Tipo</Th>
-            <Th align="right">Qtd.</Th>
-            <Th>Local</Th>
-            <Th>Motivo</Th>
-          </tr>
-        </thead>
-        <tbody>
+      <AdminTable label="Movimentações">
+        <THead>
+          <Th isRowHeader>Data</Th>
+          <Th>Tipo</Th>
+          <Th align="right">Qtd.</Th>
+          <Th>Local</Th>
+          <Th>Motivo</Th>
+        </THead>
+        <TBody>
           {isPending && <EmptyRow colSpan={5}>Carregando…</EmptyRow>}
           {data?.data.map((movement) => (
-            <tr key={movement.stock_movement_id}>
+            <Tr key={movement.stock_movement_id}>
               <Td>{formatDateTime(movement.created_at)}</Td>
               <Td>{MOVEMENT_TYPE_LABELS[movement.type] ?? movement.type}</Td>
               <Td align="right">{movement.quantity}</Td>
               <Td>{locationName.get(movement.location_id) ?? '—'}</Td>
               <Td>{movement.reason ?? '—'}</Td>
-            </tr>
+            </Tr>
           ))}
           {data && !data.data.length && <EmptyRow colSpan={5}>Sem movimentações.</EmptyRow>}
-        </tbody>
+        </TBody>
       </AdminTable>
       {data && <PaginationBar meta={data.meta} onPage={setPage} />}
     </div>

@@ -5,7 +5,7 @@ import { FolderInput, X } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { Action } from '@/components/ui';
+import { Action, LinkAction } from '@/components/ui';
 import { CategoryAutocomplete } from '../categories/category-autocomplete';
 import { formatInteger } from '../lib/format';
 
@@ -52,17 +52,13 @@ export function ProductBulkBar({
           {formatInteger(count)} {count === 1 ? 'produto selecionado' : 'produtos selecionados'}
         </strong>
         {pageFullySelected && !allMatching && total > selectedCount && (
-          <button type="button" className="font-extrabold underline" onClick={onSelectAllMatching}>
+          <LinkAction onPress={onSelectAllMatching}>
             Selecionar todos os {formatInteger(total)} resultados
-          </button>
+          </LinkAction>
         )}
-        <button
-          type="button"
-          className="ml-auto inline-flex items-center gap-1 font-extrabold underline"
-          onClick={onClear}
-        >
+        <LinkAction onPress={onClear} className="ml-auto inline-flex items-center gap-1">
           <X size={14} /> Limpar seleção
-        </button>
+        </LinkAction>
       </div>
       <form
         onSubmit={handleSubmit((values) => onMove(values.category_id))}

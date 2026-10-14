@@ -1,11 +1,13 @@
 'use client';
 
 import type { ProductListQuery } from '@geekstore/shared';
+import { Checkbox } from '@heroui/react';
 import { useQuery } from '@tanstack/react-query';
 import { Pencil, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { LinkAction } from '@/components/ui';
 
 import { CategoryAutocomplete } from '../categories/category-autocomplete';
 import { categoryLabels } from '../lib/category-tree';
@@ -25,7 +27,7 @@ import { PageHeader } from '../ui/page-header';
 import { PaginationBar } from '../ui/pagination-bar';
 import { SearchBox } from '../ui/search-box';
 import { SortHeader } from '../ui/sort-header';
-import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { AdminTable, EmptyRow, TBody, Td, THead, Th, Tr } from '../ui/table';
 import { Thumbnail } from '../ui/thumbnail';
 import { ISSUE_LABELS } from './labels';
 import { type ChipId, chipFromParams, extraIssue, paramsFromChip } from './list-filters';
@@ -156,13 +158,12 @@ export function ProductList() {
         <p className="mb-4 flex flex-wrap items-center gap-2 text-sm">
           <span className="muted">Filtrando por pendência:</span>
           <Badge tone="warning">{ISSUE_LABELS[extra]}</Badge>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 text-xs font-extrabold underline"
-            onClick={() => setParams({ issue: null })}
+          <LinkAction
+            onPress={() => setParams({ issue: null })}
+            className="inline-flex items-center gap-1"
           >
             <X size={13} /> Limpar
-          </button>
+          </LinkAction>
         </p>
       )}
       <div className="mb-5 grid grid-cols-[2fr_1fr] items-start gap-4 max-md:grid-cols-1">
@@ -210,58 +211,67 @@ export function ProductList() {
           onMove={runMove}
         />
       )}
-      <AdminTable>
-        <thead>
-          <tr>
-            {canWrite && (
-              <Th>
-                <input
-                  type="checkbox"
-                  aria-label="Selecionar os produtos desta página"
-                  className="size-4 accent-geek-yellow"
-                  checked={pageFullySelected}
-                  onChange={togglePage}
-                />
-              </Th>
-            )}
-            <SortHeader
-              label="Produto"
-              field="name"
-              sort={sort}
-              onSort={(field) => setParams({ sort: nextSort(sort, field) }, false)}
-            />
-            <Th>SKU</Th>
-            <Th>Categoria</Th>
-            <Th>Preço</Th>
-            <Th>Estoque</Th>
-            <Th>Situação</Th>
-            <SortHeader
-              label="Atualizado"
-              field="updated_at"
-              sort={sort}
-              onSort={(field) => setParams({ sort: nextSort(sort, field) }, false)}
-            />
-            <Th align="right">
-              <span className="sr-only">Ações</span>
+      <AdminTable label="Produtos">
+        <THead>
+          {canWrite && (
+            <Th>
+              <Checkbox
+                slot={null}
+                aria-label="Selecionar os produtos desta página"
+                isSelected={pageFullySelected}
+                onChange={togglePage}
+              >
+                <Checkbox.Content>
+                  <Checkbox.Control>
+                    <Checkbox.Indicator />
+                  </Checkbox.Control>
+                </Checkbox.Content>
+              </Checkbox>
             </Th>
-          </tr>
-        </thead>
-        <tbody>
+          )}
+          <SortHeader
+            label="Produto"
+            field="name"
+            isRowHeader
+            sort={sort}
+            onSort={(field) => setParams({ sort: nextSort(sort, field) }, false)}
+          />
+          <Th>SKU</Th>
+          <Th>Categoria</Th>
+          <Th>Preço</Th>
+          <Th>Estoque</Th>
+          <Th>Situação</Th>
+          <SortHeader
+            label="Atualizado"
+            field="updated_at"
+            sort={sort}
+            onSort={(field) => setParams({ sort: nextSort(sort, field) }, false)}
+          />
+          <Th align="right">
+            <span className="sr-only">Ações</span>
+          </Th>
+        </THead>
+        <TBody>
           {isPending && <EmptyRow colSpan={COLUMNS}>Carregando…</EmptyRow>}
           {rows.map((product) => (
-            <tr
+            <Tr
               key={product.product_id}
               className={`hover:bg-surface-secondary/50 ${selected.has(product.product_id) || allMatching ? 'bg-geek-yellow/10' : ''}`}
             >
               {canWrite && (
                 <Td>
-                  <input
-                    type="checkbox"
+                  <Checkbox
+                    slot={null}
                     aria-label={`Selecionar ${product.name}`}
-                    className="size-4 accent-geek-yellow"
-                    checked={allMatching || selected.has(product.product_id)}
+                    isSelected={allMatching || selected.has(product.product_id)}
                     onChange={() => toggleRow(product.product_id)}
-                  />
+                  >
+                    <Checkbox.Content>
+                      <Checkbox.Control>
+                        <Checkbox.Indicator />
+                      </Checkbox.Control>
+                    </Checkbox.Content>
+                  </Checkbox>
                 </Td>
               )}
               <Td className="min-w-[260px]">
@@ -311,25 +321,24 @@ export function ProductList() {
                   <Pencil size={16} />
                 </Link>
               </Td>
-            </tr>
+            </Tr>
           ))}
           {data && !data.data.length && (
             <EmptyRow colSpan={COLUMNS}>
               Nenhum produto encontrado.
               {hasFilters && (
-                <button
-                  type="button"
-                  className="ml-2 font-extrabold text-foreground underline"
-                  onClick={() =>
+                <LinkAction
+                  onPress={() =>
                     setParams({ q: null, category_id: null, status: null, issue: null })
                   }
+                  className="ml-2  text-foreground"
                 >
                   Limpar filtros
-                </button>
+                </LinkAction>
               )}
             </EmptyRow>
           )}
-        </tbody>
+        </TBody>
       </AdminTable>
       {data && (
         <PaginationBar meta={data.meta} onPage={(next) => setParams({ page: next }, false)} />

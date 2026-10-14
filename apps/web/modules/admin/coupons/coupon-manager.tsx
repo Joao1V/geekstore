@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Pencil, Plus, Power, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-import { Action } from '@/components/ui';
+import { Action, IconAction } from '@/components/ui';
 import { getErrorMessage } from '../lib/errors';
 import { formatDateTime } from '../lib/format';
 import { useCan } from '../lib/use-can';
@@ -24,7 +24,7 @@ import { type FilterChip, FilterChips } from '../ui/filter-chips';
 import { PageHeader } from '../ui/page-header';
 import { PaginationBar } from '../ui/pagination-bar';
 import { SearchBox } from '../ui/search-box';
-import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { AdminTable, EmptyRow, TBody, Td, THead, Th, Tr } from '../ui/table';
 import { CouponForm, type CouponFormTarget } from './coupon-form';
 
 const PAGE_SIZE = 20;
@@ -127,23 +127,21 @@ export function CouponManager() {
           {actionError || getErrorMessage(error)}
         </p>
       )}
-      <AdminTable>
-        <thead>
-          <tr>
-            <Th>Cupom</Th>
-            <Th>Pedido mínimo</Th>
-            <Th align="right">Usos</Th>
-            <Th>Validade</Th>
-            <Th>Situação</Th>
-            <Th align="right">
-              <span className="sr-only">Ações</span>
-            </Th>
-          </tr>
-        </thead>
-        <tbody>
+      <AdminTable label="Cupons">
+        <THead>
+          <Th isRowHeader>Cupom</Th>
+          <Th>Pedido mínimo</Th>
+          <Th align="right">Usos</Th>
+          <Th>Validade</Th>
+          <Th>Situação</Th>
+          <Th align="right">
+            <span className="sr-only">Ações</span>
+          </Th>
+        </THead>
+        <TBody>
           {isPending && <EmptyRow colSpan={COLUMNS}>Carregando…</EmptyRow>}
           {data?.data.map((coupon) => (
-            <tr key={coupon.coupon_id} className="hover:bg-surface-secondary/50">
+            <Tr key={coupon.coupon_id} className="hover:bg-surface-secondary/50">
               <Td>
                 <strong className="font-mono">{coupon.code}</strong>
                 <span className="muted block text-xs">
@@ -166,43 +164,35 @@ export function CouponManager() {
               <Td align="right">
                 {canWrite && (
                   <div className="inline-flex gap-2">
-                    <button
-                      type="button"
-                      aria-label={`${coupon.is_active ? 'Desativar' : 'Ativar'} ${coupon.code}`}
-                      title={coupon.is_active ? 'Desativar' : 'Ativar'}
-                      className="inline-flex size-9 items-center justify-center rounded-lg border border-border hover:border-ink"
-                      onClick={() => toggle(coupon)}
+                    <IconAction
+                      label={`${coupon.is_active ? 'Desativar' : 'Ativar'} ${coupon.code}`}
+                      onPress={() => toggle(coupon)}
                     >
                       <Power
                         size={16}
                         className={coupon.is_active ? 'text-status-success' : 'text-muted'}
                       />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Editar ${coupon.code}`}
-                      title="Editar"
-                      className="inline-flex size-9 items-center justify-center rounded-lg border border-border hover:border-ink"
-                      onClick={() => setFormTarget({ coupon })}
+                    </IconAction>
+                    <IconAction
+                      label={`Editar ${coupon.code}`}
+                      onPress={() => setFormTarget({ coupon })}
                     >
                       <Pencil size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Apagar ${coupon.code}`}
-                      title="Apagar"
-                      className="inline-flex size-9 items-center justify-center rounded-lg border border-border hover:border-status-error hover:text-status-error"
-                      onClick={() => {
+                    </IconAction>
+                    <IconAction
+                      label={`Apagar ${coupon.code}`}
+                      onPress={() => {
                         setActionError('');
                         setToDelete(coupon);
                       }}
+                      tone="danger"
                     >
                       <Trash2 size={16} />
-                    </button>
+                    </IconAction>
                   </div>
                 )}
               </Td>
-            </tr>
+            </Tr>
           ))}
           {data && data.data.length === 0 && (
             <EmptyRow colSpan={COLUMNS}>
@@ -211,7 +201,7 @@ export function CouponManager() {
                 : 'Nenhum cupom ainda. Crie o primeiro.'}
             </EmptyRow>
           )}
-        </tbody>
+        </TBody>
       </AdminTable>
       {data && (
         <PaginationBar meta={data.meta} onPage={(next) => setParams({ page: String(next) })} />

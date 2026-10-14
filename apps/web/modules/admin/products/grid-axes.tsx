@@ -1,11 +1,12 @@
 'use client';
 
 import type { Attribute } from '@geekstore/shared';
+import { ToggleButton } from '@heroui/react';
 import { Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { type Control, Controller } from 'react-hook-form';
 
-import { Action, FieldSelect } from '@/components/ui';
+import { Action, FieldSelect, IconAction } from '@/components/ui';
 import type { ProductFormValues } from './product-form-schema';
 
 const MAX_AXES = 4;
@@ -34,7 +35,7 @@ export function GridAxes({
     new Set(axes.flatMap((axis, i) => (i !== index && axis.attribute ? [axis.attribute] : [])));
 
   return (
-    <div className="grid gap-4 rounded-2xl border border-border p-4">
+    <div className="grid gap-4 rounded-xl border border-border p-4">
       <p className="text-sm font-extrabold">O que varia neste produto</p>
       {axes.map((axis, index) => {
         const taken = usedElsewhere(index);
@@ -71,16 +72,12 @@ export function GridAxes({
                     .map((value) => {
                       const selected = axis.values.includes(value.code);
                       return (
-                        <button
+                        <ToggleButton
                           key={value.attribute_value_id}
-                          type="button"
-                          aria-pressed={selected}
-                          onClick={() => onToggleValue(index, value.code)}
-                          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-extrabold transition-colors ${
-                            selected
-                              ? 'border-geek-yellow bg-geek-yellow text-ink'
-                              : 'border-border bg-surface hover:border-ink'
-                          }`}
+                          size="sm"
+                          isSelected={selected}
+                          onChange={() => onToggleValue(index, value.code)}
+                          className="gap-2 rounded-md font-extrabold data-[selected=true]:bg-geek-yellow data-[selected=true]:text-ink"
                         >
                           {value.color_hex && (
                             <span
@@ -90,7 +87,7 @@ export function GridAxes({
                             />
                           )}
                           {value.label}
-                        </button>
+                        </ToggleButton>
                       );
                     })}
                 </div>
@@ -103,14 +100,9 @@ export function GridAxes({
                 </Link>
               )}
             </div>
-            <button
-              type="button"
-              aria-label="Remover atributo da grade"
-              className="mt-7 flex size-10 items-center justify-center rounded-lg border border-border"
-              onClick={() => onRemoveAxis(index)}
-            >
+            <IconAction label="Remover atributo da grade" onPress={() => onRemoveAxis(index)}>
               <Trash2 size={16} />
-            </button>
+            </IconAction>
           </div>
         );
       })}

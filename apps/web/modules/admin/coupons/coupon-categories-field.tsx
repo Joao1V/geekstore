@@ -1,7 +1,7 @@
 'use client';
 
+import { CloseButton } from '@heroui/react';
 import { useQuery } from '@tanstack/react-query';
-import { X } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
@@ -43,18 +43,14 @@ export function CouponCategoriesField({
           {value.map((id) => (
             <li
               key={id}
-              className="inline-flex items-center gap-1 rounded-full bg-surface-secondary py-1 pr-1 pl-3 text-xs font-bold"
+              className="inline-flex items-center gap-1 rounded-md bg-surface-secondary py-1 pr-1 pl-3 text-xs font-bold"
             >
               {labelOf(id)}
-              <button
-                type="button"
+              <CloseButton
                 aria-label={`Tirar ${labelOf(id)}`}
-                title="Tirar a restrição a esta categoria"
-                className="grid size-5 place-items-center rounded-full hover:bg-status-error/15 hover:text-status-error"
-                onClick={() => onChange(value.filter((other) => other !== id))}
-              >
-                <X size={12} />
-              </button>
+                className="size-5 min-w-5 hover:text-status-error"
+                onPress={() => onChange(value.filter((other) => other !== id))}
+              />
             </li>
           ))}
         </ul>

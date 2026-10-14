@@ -5,7 +5,7 @@ import { ArrowDown, ArrowUp, ImagePlus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
-import { Action, FieldInput } from '@/components/ui';
+import { Action, FieldInput, IconAction } from '@/components/ui';
 import { getErrorMessage } from '../lib/errors';
 import {
   useDeleteMedia,
@@ -179,33 +179,28 @@ export function ProductImages({
             <AltForm media={item} canWrite={canWrite} />
             {canWrite && (
               <div className="flex gap-2 max-md:col-span-2">
-                <button
-                  type="button"
-                  aria-label="Mover para cima"
-                  className="flex size-9 items-center justify-center rounded-lg border border-border disabled:opacity-40"
+                <IconAction
+                  label="Mover para cima"
+                  onPress={() => move(index, index - 1)}
                   disabled={index === 0 || updateMedia.isPending}
-                  onClick={() => move(index, index - 1)}
                 >
                   <ArrowUp size={16} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Mover para baixo"
-                  className="flex size-9 items-center justify-center rounded-lg border border-border disabled:opacity-40"
+                </IconAction>
+                <IconAction
+                  label="Mover para baixo"
+                  onPress={() => move(index, index + 1)}
                   disabled={index === sorted.length - 1 || updateMedia.isPending}
-                  onClick={() => move(index, index + 1)}
                 >
                   <ArrowDown size={16} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Excluir imagem"
-                  className="flex size-9 items-center justify-center rounded-lg border border-border text-status-error"
+                </IconAction>
+                <IconAction
+                  label="Excluir imagem"
+                  onPress={() => remove(item.media_id)}
                   disabled={deleteMedia.isPending}
-                  onClick={() => remove(item.media_id)}
+                  tone="danger"
                 >
                   <Trash2 size={16} />
-                </button>
+                </IconAction>
               </div>
             )}
           </li>

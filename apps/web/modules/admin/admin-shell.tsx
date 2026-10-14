@@ -17,6 +17,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const collapsed = useAdminUiStore((state) => state.sidebarCollapsed);
   const toggleTheme = useAdminUiStore((state) => state.toggleTheme);
   const toggleSidebar = useAdminUiStore((state) => state.toggleSidebar);
+  const collapsedGroups = useAdminUiStore((state) => state.collapsedGroups);
+  const toggleGroup = useAdminUiStore((state) => state.toggleGroup);
   const logout = useLogout();
   // A animação só liga depois de ler o estado salvo: sem isso, quem deixou o menu recolhido veria
   // ele "fechar" a cada recarga da página.
@@ -58,6 +60,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <AdminSidebar
         collapsed={collapsed}
         onToggleCollapsed={toggleSidebar}
+        collapsedGroups={collapsedGroups}
+        onToggleGroup={toggleGroup}
         theme={theme}
         onToggleTheme={toggleTheme}
         user={user}

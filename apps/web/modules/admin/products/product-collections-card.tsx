@@ -1,8 +1,8 @@
 'use client';
 
 import type { ProductDetail } from '@geekstore/shared';
+import { CloseButton } from '@heroui/react';
 import { useQuery } from '@tanstack/react-query';
-import { X } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -61,20 +61,16 @@ export function ProductCollectionsCard({ product }: { product: ProductDetail }) 
           {linked.map((collection) => (
             <li
               key={collection.collection_id}
-              className="inline-flex items-center gap-1 rounded-full bg-surface-secondary py-1 pr-1 pl-3 text-xs font-bold"
+              className="inline-flex items-center gap-1 rounded-md bg-surface-secondary py-1 pr-1 pl-3 text-xs font-bold"
             >
               {collection.name}
               {canWrite && (
-                <button
-                  type="button"
+                <CloseButton
                   aria-label={`Tirar de ${collection.name}`}
-                  title="Tirar da coleção"
-                  disabled={setCollections.isPending}
-                  className="grid size-5 place-items-center rounded-full hover:bg-status-error/15 hover:text-status-error disabled:opacity-50"
-                  onClick={() => save(linkedIds.filter((id) => id !== collection.collection_id))}
-                >
-                  <X size={12} />
-                </button>
+                  isDisabled={setCollections.isPending}
+                  className="size-5 min-w-5 hover:text-status-error"
+                  onPress={() => save(linkedIds.filter((id) => id !== collection.collection_id))}
+                />
               )}
             </li>
           ))}

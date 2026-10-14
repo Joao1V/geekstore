@@ -1,13 +1,14 @@
 'use client';
 
 import type { Attribute, AttributeBody } from '@geekstore/shared';
+import { Button } from '@heroui/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { Action, Dialog, FieldInput, FieldSwitch } from '@/components/ui';
+import { Action, Dialog, FieldInput, FieldSwitch, IconAction } from '@/components/ui';
 import { getErrorMessage } from '../lib/errors';
 import { useCreateAttribute, useUpdateAttribute } from '../services/catalog/mutations';
 
@@ -185,24 +186,26 @@ export function AttributeForm({
                 }`}
               >
                 <span className="mt-6 grid gap-0.5 max-md:hidden">
-                  <button
-                    type="button"
+                  <Button
+                    isIconOnly
+                    variant="ghost"
                     aria-label="Subir"
-                    disabled={index === 0}
-                    className="text-muted disabled:opacity-30"
-                    onClick={() => values.move(index, index - 1)}
+                    isDisabled={index === 0}
+                    className="size-5 min-w-5 text-muted"
+                    onPress={() => values.move(index, index - 1)}
                   >
                     <ArrowUp size={15} />
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    isIconOnly
+                    variant="ghost"
                     aria-label="Descer"
-                    disabled={index === values.fields.length - 1}
-                    className="text-muted disabled:opacity-30"
-                    onClick={() => values.move(index, index + 1)}
+                    isDisabled={index === values.fields.length - 1}
+                    className="size-5 min-w-5 text-muted"
+                    onPress={() => values.move(index, index + 1)}
                   >
                     <ArrowDown size={15} />
-                  </button>
+                  </Button>
                 </span>
                 <Controller
                   control={control}
@@ -265,14 +268,13 @@ export function AttributeForm({
                     />
                   )}
                 />
-                <button
-                  type="button"
-                  aria-label={`Excluir ${getValues(`values.${index}.label`) || 'valor'}`}
-                  className="mt-7 flex size-10 items-center justify-center rounded-lg border border-border text-status-error"
-                  onClick={() => values.remove(index)}
+                <IconAction
+                  label={`Excluir ${getValues(`values.${index}.label`) || 'valor'}`}
+                  onPress={() => values.remove(index)}
+                  tone="danger"
                 >
                   <Trash2 size={16} />
-                </button>
+                </IconAction>
               </div>
             ))}
             <Action className="action-outline w-max" onPress={() => values.append(emptyValue())}>

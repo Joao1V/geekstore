@@ -1,12 +1,13 @@
 'use client';
 
 import type { AuthUser } from '@geekstore/shared';
-import { LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
+import { Tooltip } from '@heroui/react';
+import { ChevronDown, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
 import Link from 'next/link';
 
+import { AdminProfileMenu } from './admin-profile-menu';
 import { ADMIN_NAV_GROUPS } from './lib/nav';
 import type { AdminTheme } from './state/ui-store';
-import { ROLE_LABELS } from './users/role-labels';
 
 const ROW =
   'flex items-center rounded-lg px-3 py-2 text-sm font-extrabold whitespace-nowrap max-md:px-2.5';
@@ -24,9 +25,37 @@ function Label({ collapsed, children }: { collapsed: boolean; children: React.Re
   );
 }
 
+/** Com o menu recolhido só sobram ícones: o tooltip diz o nome e o que a tela faz. */
+function NavTip({
+  enabled,
+  title,
+  description,
+  children,
+}: {
+  enabled: boolean;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  if (!enabled) return children;
+  return (
+    <Tooltip delay={0}>
+      <Tooltip.Trigger aria-label={title} className="max-md:contents">
+        {children}
+      </Tooltip.Trigger>
+      <Tooltip.Content placement="right" offset={12} className="w-max max-w-60 max-md:hidden">
+        <p className="text-sm font-extrabold">{title}</p>
+        {description && <p className="text-xs text-muted">{description}</p>}
+      </Tooltip.Content>
+    </Tooltip>
+  );
+}
+
 export function AdminSidebar({
   collapsed,
   onToggleCollapsed,
+  collapsedGroups,
+  onToggleGroup,
   theme,
   onToggleTheme,
   user,
@@ -35,6 +64,8 @@ export function AdminSidebar({
 }: {
   collapsed: boolean;
   onToggleCollapsed: () => void;
+  collapsedGroups: string[];
+  onToggleGroup: (label: string) => void;
   theme: AdminTheme;
   onToggleTheme: () => void;
   user: AuthUser | null;
@@ -106,80 +137,81 @@ export function AdminSidebar({
         aria-label="Painel"
         className="flex min-h-0 flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto max-md:-mx-1 max-md:flex-none max-md:flex-row max-md:overflow-x-auto max-md:overflow-y-hidden [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
       >
-        {groups.map((group) => (
-          <div key={group.label ?? 'top'} className="flex flex-col gap-1 max-md:contents">
-            {group.label && (
-              <>
-                <p
-                  className={`px-3 pt-2.5 pb-0.5 text-2xs font-extrabold tracking-widest whitespace-nowrap text-night-muted uppercase transition-opacity duration-300 max-md:hidden ${
-                    collapsed ? 'hidden' : ''
+        {groups.map((group) => {
+          const label = group.label;
+          // Recolhido (só ícones) mostra tudo: o acordeão só vale com o menu aberto.
+          const isOpen = !label || collapsed || !collapsedGroups.includes(label);
+          const hasActive = group.items.some((item) => isActive(item.href));
+          return (
+            <div key={label ?? 'top'} className="flex flex-col gap-1 max-md:contents">
+              {label && !collapsed && (
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  className="flex items-center justify-between rounded-lg px-3 pt-2.5 pb-1 text-2xs font-extrabold tracking-widest whitespace-nowrap text-night-muted uppercase hover:text-night-fg max-md:hidden"
+                  onClick={() => onToggleGroup(label)}
+                >
+                  <span className="flex items-center gap-2">
+                    {label}
+                    {!isOpen && hasActive && (
+                      <span aria-hidden className="size-1.5 rounded-full bg-geek-yellow" />
+                    )}
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={`transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`}
+                  />
+                </button>
+              )}
+              {label && collapsed && (
+                <div aria-hidden className="mx-2 my-2 h-px bg-night-dim max-md:hidden" />
+              )}
+              <div
+                className={`grid transition-[grid-template-rows] duration-200 ease-out max-md:contents ${
+                  isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                }`}
+              >
+                <div
+                  className={`flex min-h-0 flex-col gap-1 overflow-hidden max-md:contents ${
+                    label && !collapsed
+                      ? 'ml-4 border-l border-night-dim pl-2 max-md:ml-0 max-md:border-0 max-md:pl-0'
+                      : ''
                   }`}
                 >
-                  {group.label}
-                </p>
-                {collapsed && (
-                  <div aria-hidden className="mx-2 my-2 h-px bg-night-dim max-md:hidden" />
-                )}
-              </>
-            )}
-            {group.items.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                title={collapsed ? label : undefined}
-                aria-label={collapsed ? label : undefined}
-                aria-current={isActive(href) ? 'page' : undefined}
-                className={`${ROW} ${collapsed ? 'md:justify-center' : ''} ${isActive(href) ? 'bg-geek-yellow text-ink' : idle}`}
-              >
-                <Icon size={17} className="shrink-0" />
-                <Label collapsed={collapsed}>{label}</Label>
-              </Link>
-            ))}
-          </div>
-        ))}
+                  {group.items.map(({ href, label: itemLabel, description, icon: Icon }) => (
+                    <NavTip
+                      key={href}
+                      enabled={collapsed}
+                      title={itemLabel}
+                      description={description}
+                    >
+                      <Link
+                        href={href}
+                        aria-label={collapsed ? itemLabel : undefined}
+                        aria-current={isActive(href) ? 'page' : undefined}
+                        tabIndex={isOpen ? undefined : -1}
+                        className={`${ROW} ${collapsed ? 'md:justify-center' : ''} ${isActive(href) ? 'bg-geek-yellow text-ink' : idle}`}
+                      >
+                        <Icon size={17} className="shrink-0" />
+                        <Label collapsed={collapsed}>{itemLabel}</Label>
+                      </Link>
+                    </NavTip>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </nav>
 
-      <div className="grid gap-1 border-t border-night-dim pt-2 max-md:hidden">
-        <button
-          type="button"
-          title={collapsed ? nextThemeLabel : undefined}
-          aria-label={nextThemeLabel}
-          className={`${ROW} ${collapsed ? 'justify-center' : ''} ${idle}`}
-          onClick={onToggleTheme}
-        >
-          <ThemeIcon size={17} className="shrink-0" />
-          <Label collapsed={collapsed}>{nextThemeLabel}</Label>
-        </button>
-        <div
-          className={`flex items-center gap-2.5 py-0.5 ${collapsed ? 'justify-center' : 'px-3'}`}
-        >
-          <span
-            aria-hidden
-            className="grid size-8 shrink-0 place-items-center rounded-full bg-night-raised text-xs font-extrabold text-geek-yellow"
-          >
-            {user?.name.slice(0, 1).toUpperCase()}
-          </span>
-          <div
-            className={`min-w-0 overflow-hidden transition-[max-width,opacity] duration-300 ${
-              collapsed ? 'max-w-0 opacity-0' : 'max-w-40 opacity-100'
-            }`}
-          >
-            <p className="truncate text-sm font-extrabold text-white">{user?.name}</p>
-            <p className="truncate text-xs text-night-muted">
-              {user ? ROLE_LABELS[user.role] : ''}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          title={collapsed ? 'Sair' : undefined}
-          aria-label="Sair"
-          className={`${ROW} border border-night-dim ${collapsed ? 'justify-center' : ''} ${idle}`}
-          onClick={onLogout}
-        >
-          <LogOut size={16} className="shrink-0" />
-          <Label collapsed={collapsed}>Sair</Label>
-        </button>
+      <div className="border-t border-night-dim pt-2 max-md:hidden">
+        <AdminProfileMenu
+          collapsed={collapsed}
+          user={user}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+          onLogout={onLogout}
+        />
       </div>
     </aside>
   );

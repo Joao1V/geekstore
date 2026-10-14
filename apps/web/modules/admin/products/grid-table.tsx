@@ -5,10 +5,10 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { type Control, Controller, useWatch } from 'react-hook-form';
 
-import { FieldInput, FieldNumber, FieldSwitch } from '@/components/ui';
+import { FieldInput, FieldNumber, FieldSwitch, IconAction } from '@/components/ui';
 import { describeAttributes } from '../lib/attribute-labels';
 import { formatBRL } from '../lib/format';
-import { AdminTable, Td, Th } from '../ui/table';
+import { AdminTable, TBody, Td, THead, Th, Tr } from '../ui/table';
 import type { ProductFormValues } from './product-form-schema';
 
 const BRL = { style: 'currency', currency: 'BRL' } as const;
@@ -41,22 +41,20 @@ export function GridTable({
   const columns = showCombination ? 8 : 7;
 
   return (
-    <AdminTable>
-      <thead>
-        <tr>
-          {showCombination && <Th>Combinação</Th>}
-          <Th>Código do SKU</Th>
-          <Th>EAN</Th>
-          <Th>Peso (g)</Th>
-          <Th>Preço</Th>
-          <Th>Estoque</Th>
-          <Th>Ativo</Th>
-          <Th align="right">
-            <span className="sr-only">Detalhes</span>
-          </Th>
-        </tr>
-      </thead>
-      <tbody>
+    <AdminTable label="Grade de variações">
+      <THead>
+        {showCombination && <Th>Combinação</Th>}
+        <Th isRowHeader>Código do SKU</Th>
+        <Th>EAN</Th>
+        <Th>Peso (g)</Th>
+        <Th>Preço</Th>
+        <Th>Estoque</Th>
+        <Th>Ativo</Th>
+        <Th align="right">
+          <span className="sr-only">Detalhes</span>
+        </Th>
+      </THead>
+      <TBody>
         {rowIds.map((id, index) => {
           const row = rows[index];
           if (!row) return null;
@@ -77,7 +75,7 @@ export function GridTable({
             />
           );
         })}
-      </tbody>
+      </TBody>
     </AdminTable>
   );
 }
@@ -106,7 +104,7 @@ function GridRow({
 }) {
   return (
     <>
-      <tr className="align-top">
+      <Tr className="align-top">
         {showCombination && (
           <Td className="min-w-[8rem] pt-5 font-extrabold whitespace-nowrap">{combination}</Td>
         )}
@@ -243,19 +241,13 @@ function GridRow({
           />
         </Td>
         <Td align="right" className="pt-3">
-          <button
-            type="button"
-            aria-expanded={expanded}
-            aria-label="Mais campos do SKU"
-            className="inline-flex size-9 items-center justify-center rounded-lg border border-border"
-            onClick={onToggle}
-          >
+          <IconAction label="Mais campos do SKU" onPress={onToggle}>
             {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </button>
+          </IconAction>
         </Td>
-      </tr>
+      </Tr>
       {expanded && (
-        <tr>
+        <Tr>
           <Td colSpan={columns} className="bg-surface-secondary/40">
             <div className="grid grid-cols-6 gap-4 max-tablet:grid-cols-3 max-md:grid-cols-2">
               <Controller
@@ -323,7 +315,7 @@ function GridRow({
               />
             </div>
           </Td>
-        </tr>
+        </Tr>
       )}
     </>
   );

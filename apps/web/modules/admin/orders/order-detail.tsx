@@ -20,7 +20,7 @@ import {
 } from '../services/orders/mutations';
 import { orderDetailQueryOptions } from '../services/orders/queries';
 import { PageHeader } from '../ui/page-header';
-import { AdminTable, Td, Th } from '../ui/table';
+import { AdminTable, TBody, Td, THead, Th, Tr } from '../ui/table';
 import { OrderStatusBadge } from './order-status';
 
 type Dialogs = 'ship' | 'cancel' | null;
@@ -165,19 +165,17 @@ export function OrderDetail({ number }: { number: number }) {
           <dd className="m-0 mt-1 font-extrabold">{formatBRL(order.total_cents)}</dd>
         </div>
       </dl>
-      <AdminTable>
-        <thead>
-          <tr>
-            <Th>Item</Th>
-            <Th>SKU</Th>
-            <Th align="right">Qtde</Th>
-            <Th align="right">Unitário</Th>
-            <Th align="right">Total</Th>
-          </tr>
-        </thead>
-        <tbody>
+      <AdminTable label="Itens do pedido">
+        <THead>
+          <Th isRowHeader>Item</Th>
+          <Th>SKU</Th>
+          <Th align="right">Qtde</Th>
+          <Th align="right">Unitário</Th>
+          <Th align="right">Total</Th>
+        </THead>
+        <TBody>
           {order.items.map((item) => (
-            <tr key={item.sku_id}>
+            <Tr key={item.sku_id}>
               <Td>
                 <strong>{item.name}</strong>
                 {item.variant && <small className="muted block text-xs">{item.variant}</small>}
@@ -188,25 +186,25 @@ export function OrderDetail({ number }: { number: number }) {
               <Td align="right">{item.quantity}</Td>
               <Td align="right">{formatBRL(item.unit_price_cents)}</Td>
               <Td align="right">{formatBRL(item.total_cents)}</Td>
-            </tr>
+            </Tr>
           ))}
-          <tr>
+          <Tr>
             <Td colSpan={4} align="right">
               Frete ({order.shipping_service})
             </Td>
             <Td align="right">
               {order.shipping_cents ? formatBRL(order.shipping_cents) : 'Grátis'}
             </Td>
-          </tr>
+          </Tr>
           {order.discount_cents > 0 && (
-            <tr>
+            <Tr>
               <Td colSpan={4} align="right">
                 Descontos{order.coupon_code ? ` (${order.coupon_code})` : ''}
               </Td>
               <Td align="right">−{formatBRL(order.discount_cents)}</Td>
-            </tr>
+            </Tr>
           )}
-        </tbody>
+        </TBody>
       </AdminTable>
       <div className="mt-4 grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <div className="surface p-4 text-sm">

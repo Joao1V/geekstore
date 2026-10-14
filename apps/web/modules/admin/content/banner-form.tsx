@@ -119,14 +119,9 @@ function ImageField({ value, onChange }: { value: string; onChange: (url: string
           />
         </label>
         {value && (
-          <button
-            type="button"
-            className="action action-outline"
-            disabled={busy}
-            onClick={() => onChange('')}
-          >
+          <Action onPress={() => onChange('')} disabled={busy} className="action-outline">
             <Trash2 size={17} /> Tirar
-          </button>
+          </Action>
         )}
       </div>
       {error && (

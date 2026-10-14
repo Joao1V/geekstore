@@ -1,6 +1,7 @@
 'use client';
 
 import { type DuplicateGroup, formatBRL } from '@geekstore/shared';
+import { Radio, RadioGroup } from '@heroui/react';
 import { Merge } from 'lucide-react';
 import { useState } from 'react';
 
@@ -51,50 +52,51 @@ export function DuplicateGroupCard({
           <strong className="tabular-nums">{formatInteger(group.total_stock)}</strong>
         </p>
       </header>
-      <fieldset className="m-0 grid gap-2 border-0 p-0">
-        <legend className="sr-only">Qual produto fica?</legend>
+      <RadioGroup
+        aria-label="Qual produto fica?"
+        value={survivorId}
+        onChange={setSurvivorId}
+        isDisabled={!canWrite}
+        className="grid gap-2"
+      >
         {group.items.map((item) => {
           const keeps = item.sku_id === survivorId;
           return (
-            <label
-              key={item.sku_id}
-              className={`grid cursor-pointer grid-cols-[auto_56px_1fr_auto] items-center gap-3 rounded-xl border-2 p-3 max-md:grid-cols-[auto_48px_1fr] ${keeps ? 'border-geek-yellow bg-geek-yellow/10' : 'border-border'}`}
-            >
-              <input
-                type="radio"
-                name={`keep-${group.key}`}
-                checked={keeps}
-                onChange={() => setSurvivorId(item.sku_id)}
-                className="size-4 accent-geek-yellow"
-                disabled={!canWrite}
-              />
-              <Thumbnail src={item.thumbnail_url} />
-              <span className="min-w-0">
-                <strong className="block truncate">{item.name}</strong>
-                <span className="muted block font-mono text-2xs">
-                  {item.code}
-                  {item.legacy_code && ` · ERP ${item.legacy_code}`}
-                  {item.ean && ` · EAN ${item.ean}`}
+            <Radio key={item.sku_id} value={item.sku_id} className="block">
+              <Radio.Content
+                className={`grid w-full cursor-pointer grid-cols-[auto_56px_1fr_auto] items-center gap-3 rounded-xl border-2 p-3 max-md:grid-cols-[auto_48px_1fr] ${keeps ? 'border-geek-yellow bg-geek-yellow/10' : 'border-border'}`}
+              >
+                <Radio.Control>
+                  <Radio.Indicator />
+                </Radio.Control>
+                <Thumbnail src={item.thumbnail_url} />
+                <span className="min-w-0">
+                  <strong className="block truncate">{item.name}</strong>
+                  <span className="muted block font-mono text-2xs">
+                    {item.code}
+                    {item.legacy_code && ` · ERP ${item.legacy_code}`}
+                    {item.ean && ` · EAN ${item.ean}`}
+                  </span>
+                  <span className="text-xs">
+                    {keeps ? (
+                      <strong className="text-status-success">Este fica</strong>
+                    ) : (
+                      <span className="muted">Será mesclado neste</span>
+                    )}
+                    {item.photos === 0 && <span className="muted"> · sem foto</span>}
+                  </span>
                 </span>
-                <span className="text-xs">
-                  {keeps ? (
-                    <strong className="text-status-success">Este fica</strong>
-                  ) : (
-                    <span className="muted">Será mesclado neste</span>
-                  )}
-                  {item.photos === 0 && <span className="muted"> · sem foto</span>}
+                <span className="text-right text-sm max-md:col-span-3 max-md:text-left">
+                  <strong className="block tabular-nums">
+                    {item.price_cents === null ? 'Sem preço' : formatBRL(item.price_cents)}
+                  </strong>
+                  <span className="muted tabular-nums">{formatInteger(item.stock)} un.</span>
                 </span>
-              </span>
-              <span className="text-right text-sm max-md:col-span-3 max-md:text-left">
-                <strong className="block tabular-nums">
-                  {item.price_cents === null ? 'Sem preço' : formatBRL(item.price_cents)}
-                </strong>
-                <span className="muted tabular-nums">{formatInteger(item.stock)} un.</span>
-              </span>
-            </label>
+              </Radio.Content>
+            </Radio>
           );
         })}
-      </fieldset>
+      </RadioGroup>
       {error && (
         <p className="error m-0" role="alert">
           {error}

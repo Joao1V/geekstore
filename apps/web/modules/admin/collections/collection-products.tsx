@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 
-import { Action, Dialog } from '@/components/ui';
+import { Action, Dialog, IconAction } from '@/components/ui';
 import { getErrorMessage } from '../lib/errors';
 import { useSetCollectionProducts } from '../services/catalog/mutations';
 import {
@@ -16,9 +16,6 @@ import { SearchBox } from '../ui/search-box';
 
 const MIN_SEARCH_LENGTH = 2;
 const SEARCH_PAGE_SIZE = 8;
-const ICON_BUTTON =
-  'flex size-8 items-center justify-center rounded-lg border border-border disabled:opacity-40';
-
 type Item = Pick<Product, 'product_id' | 'name'>;
 
 function Editor({
@@ -77,14 +74,13 @@ function Editor({
                 className="flex items-center justify-between gap-3 px-3 py-2"
               >
                 <span className="text-sm">{product.name}</span>
-                <button
-                  type="button"
-                  className={ICON_BUTTON}
-                  aria-label={`Adicionar ${product.name}`}
-                  onClick={() => setItems((current) => [...current, product])}
+                <IconAction
+                  label={`Adicionar ${product.name}`}
+                  onPress={() => setItems((current) => [...current, product])}
+                  size="sm"
                 >
                   <Plus size={15} />
-                </button>
+                </IconAction>
               </li>
             ))}
           </ul>
@@ -107,34 +103,32 @@ function Editor({
                 {item.name}
               </span>
               <span className="flex gap-1.5">
-                <button
-                  type="button"
-                  className={ICON_BUTTON}
-                  aria-label="Mover para cima"
+                <IconAction
+                  label="Mover para cima"
+                  onPress={() => move(index, index - 1)}
                   disabled={index === 0}
-                  onClick={() => move(index, index - 1)}
+                  size="sm"
                 >
                   <ArrowUp size={14} />
-                </button>
-                <button
-                  type="button"
-                  className={ICON_BUTTON}
-                  aria-label="Mover para baixo"
+                </IconAction>
+                <IconAction
+                  label="Mover para baixo"
+                  onPress={() => move(index, index + 1)}
                   disabled={index === items.length - 1}
-                  onClick={() => move(index, index + 1)}
+                  size="sm"
                 >
                   <ArrowDown size={14} />
-                </button>
-                <button
-                  type="button"
-                  className={`${ICON_BUTTON} text-status-error`}
-                  aria-label={`Remover ${item.name}`}
-                  onClick={() =>
+                </IconAction>
+                <IconAction
+                  label={`Remover ${item.name}`}
+                  onPress={() =>
                     setItems((current) => current.filter((c) => c.product_id !== item.product_id))
                   }
+                  tone="danger"
+                  size="sm"
                 >
                   <X size={14} />
-                </button>
+                </IconAction>
               </span>
             </li>
           ))}

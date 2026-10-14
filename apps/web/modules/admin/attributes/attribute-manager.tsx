@@ -5,13 +5,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 
-import { Action } from '@/components/ui';
+import { Action, IconAction } from '@/components/ui';
 import { getErrorMessage } from '../lib/errors';
 import { useCan } from '../lib/use-can';
 import { attributesQueryOptions } from '../services/catalog/queries';
 import { Badge } from '../ui/badge';
 import { PageHeader } from '../ui/page-header';
-import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { AdminTable, EmptyRow, TBody, Td, THead, Th, Tr } from '../ui/table';
 import { AttributeForm, type AttributeFormTarget } from './attribute-form';
 
 const PREVIEW_VALUES = 8;
@@ -51,22 +51,20 @@ export function AttributeManager() {
           {getErrorMessage(error)}
         </p>
       )}
-      <AdminTable>
-        <thead>
-          <tr>
-            <Th>Atributo</Th>
-            <Th>Valores</Th>
-            <Th>Qtde.</Th>
-            <Th>Situação</Th>
-            <Th align="right">
-              <span className="sr-only">Ações</span>
-            </Th>
-          </tr>
-        </thead>
-        <tbody>
+      <AdminTable label="Atributos">
+        <THead>
+          <Th isRowHeader>Atributo</Th>
+          <Th>Valores</Th>
+          <Th>Qtde.</Th>
+          <Th>Situação</Th>
+          <Th align="right">
+            <span className="sr-only">Ações</span>
+          </Th>
+        </THead>
+        <TBody>
           {isPending && <EmptyRow colSpan={5}>Carregando…</EmptyRow>}
           {data?.map((attribute) => (
-            <tr key={attribute.attribute_id} className="hover:bg-surface-secondary/50">
+            <Tr key={attribute.attribute_id} className="hover:bg-surface-secondary/50">
               <Td className="whitespace-nowrap">
                 <strong>{attribute.name}</strong>
                 <span className="muted block font-mono text-2xs">{attribute.code}</span>
@@ -80,20 +78,18 @@ export function AttributeManager() {
               </Td>
               <Td align="right">
                 {canWrite && (
-                  <button
-                    type="button"
-                    aria-label={`Editar ${attribute.name}`}
-                    className="inline-flex size-9 items-center justify-center rounded-lg border border-border hover:border-ink"
-                    onClick={() => setTarget({ attribute })}
+                  <IconAction
+                    label={`Editar ${attribute.name}`}
+                    onPress={() => setTarget({ attribute })}
                   >
                     <Pencil size={16} />
-                  </button>
+                  </IconAction>
                 )}
               </Td>
-            </tr>
+            </Tr>
           ))}
           {data && !data.length && <EmptyRow colSpan={5}>Nenhum atributo ainda.</EmptyRow>}
-        </tbody>
+        </TBody>
       </AdminTable>
       <AttributeForm target={target} onClose={() => setTarget(null)} />
     </>

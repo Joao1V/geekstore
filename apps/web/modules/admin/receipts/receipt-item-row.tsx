@@ -2,10 +2,11 @@
 
 import type { ReceiptItem } from '@geekstore/shared';
 import { formatBRL } from '@geekstore/shared';
+import { Button } from '@heroui/react';
 import { useState } from 'react';
 
 import { Badge } from '../ui/badge';
-import { Td } from '../ui/table';
+import { Td, Tr } from '../ui/table';
 import { SkuPicker } from './sku-picker';
 
 const METHOD_LABEL = { mapping: 'pelo fornecedor', ean: 'pelo EAN', manual: 'manual' } as const;
@@ -31,7 +32,7 @@ export function ReceiptItemRow({
 
   return (
     <>
-      <tr className={item.ignored ? 'opacity-60' : ''}>
+      <Tr className={item.ignored ? 'opacity-60' : ''}>
         <Td className="w-10 text-muted">{item.line}</Td>
         <Td className="min-w-[16rem]">
           <p className="m-0 font-extrabold">{item.description}</p>
@@ -61,29 +62,31 @@ export function ReceiptItemRow({
           {editable && (
             <div className="flex justify-end gap-2">
               {!item.ignored && (
-                <button
-                  type="button"
-                  className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-extrabold"
-                  onClick={() => setPicking((open) => !open)}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs font-extrabold"
+                  onPress={() => setPicking((open) => !open)}
                 >
                   {item.sku ? 'Trocar SKU' : 'Ligar SKU'}
-                </button>
+                </Button>
               )}
-              <button
-                type="button"
-                className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-extrabold"
-                disabled={isUpdating}
-                onClick={() => onIgnore(item.receipt_item_id, !item.ignored)}
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs font-extrabold"
+                isDisabled={isUpdating}
+                onPress={() => onIgnore(item.receipt_item_id, !item.ignored)}
               >
                 {item.ignored ? 'Considerar' : 'Ignorar'}
-              </button>
+              </Button>
             </div>
           )}
         </Td>
-      </tr>
+      </Tr>
       {picking && editable && (
-        <tr>
-          <td colSpan={7} className="border-b border-border bg-surface-secondary/20 px-3 py-3">
+        <Tr>
+          <Td colSpan={7} className="bg-surface-secondary/20">
             <SkuPicker
               receiptId={receiptId}
               itemId={item.receipt_item_id}
@@ -93,8 +96,8 @@ export function ReceiptItemRow({
                 setPicking(false);
               }}
             />
-          </td>
-        </tr>
+          </Td>
+        </Tr>
       )}
     </>
   );

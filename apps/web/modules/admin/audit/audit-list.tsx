@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { Action, FieldInput } from '@/components/ui';
+import { Action, FieldInput, LinkAction } from '@/components/ui';
 import { getErrorMessage } from '../lib/errors';
 import { formatDateTime } from '../lib/format';
 import { useUrlState } from '../lib/use-url-state';
@@ -15,7 +15,7 @@ import { auditLogsQueryOptions } from '../services/audit/queries';
 import { Badge } from '../ui/badge';
 import { PageHeader } from '../ui/page-header';
 import { PaginationBar } from '../ui/pagination-bar';
-import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { AdminTable, EmptyRow, TBody, Td, THead, Th, Tr } from '../ui/table';
 
 const PAGE_SIZE = 20;
 const ACTION_LABELS = { create: 'Criou', update: 'Alterou', delete: 'Excluiu' } as const;
@@ -33,14 +33,9 @@ function Changes({ log }: { log: AuditLog }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
-        type="button"
-        className="text-xs font-extrabold underline"
-        aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
-      >
+      <LinkAction onPress={() => setOpen((value) => !value)}>
         {open ? 'Ocultar' : 'Ver antes/depois'}
-      </button>
+      </LinkAction>
       {open && (
         <div className="mt-2 grid grid-cols-2 gap-3 max-md:grid-cols-1">
           {(['before', 'after'] as const).map((side) => (
@@ -132,20 +127,18 @@ export function AuditList() {
           {getErrorMessage(error)}
         </p>
       )}
-      <AdminTable>
-        <thead>
-          <tr>
-            <Th>Quando</Th>
-            <Th>Quem</Th>
-            <Th>Ação</Th>
-            <Th>Entidade</Th>
-            <Th>Alterações</Th>
-          </tr>
-        </thead>
-        <tbody>
+      <AdminTable label="Auditoria">
+        <THead>
+          <Th isRowHeader>Quando</Th>
+          <Th>Quem</Th>
+          <Th>Ação</Th>
+          <Th>Entidade</Th>
+          <Th>Alterações</Th>
+        </THead>
+        <TBody>
           {isPending && <EmptyRow colSpan={5}>Carregando…</EmptyRow>}
           {data?.data.map((log) => (
-            <tr key={log.audit_log_id}>
+            <Tr key={log.audit_log_id}>
               <Td className="whitespace-nowrap">{formatDateTime(log.created_at)}</Td>
               <Td>{log.user_name ?? 'Sistema'}</Td>
               <Td>
@@ -158,10 +151,10 @@ export function AuditList() {
               <Td className="align-top">
                 <Changes log={log} />
               </Td>
-            </tr>
+            </Tr>
           ))}
           {data && !data.data.length && <EmptyRow colSpan={5}>Nenhum registro.</EmptyRow>}
-        </tbody>
+        </TBody>
       </AdminTable>
       {data && (
         <PaginationBar meta={data.meta} onPage={(next) => setParams({ page: next }, false)} />

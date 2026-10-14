@@ -18,7 +18,7 @@ import {
 import { receiptDetailQueryOptions } from '../services/purchasing/queries';
 import { ConfirmDialog } from '../ui/confirm-dialog';
 import { PageHeader } from '../ui/page-header';
-import { AdminTable, Th } from '../ui/table';
+import { AdminTable, TBody, THead, Th } from '../ui/table';
 import { ReceiptItemRow } from './receipt-item-row';
 import { ReceiptStatusBadge } from './receipt-status';
 
@@ -111,19 +111,17 @@ export function ReceiptDetail({ receiptId }: { receiptId: string }) {
           {actionError}
         </p>
       )}
-      <AdminTable>
-        <thead>
-          <tr>
-            <Th>#</Th>
-            <Th>Item da nota</Th>
-            <Th align="right">Qtde</Th>
-            <Th align="right">Custo un.</Th>
-            <Th align="right">Total</Th>
-            <Th>SKU</Th>
-            <Th />
-          </tr>
-        </thead>
-        <tbody>
+      <AdminTable label="Itens da nota">
+        <THead>
+          <Th isRowHeader>#</Th>
+          <Th>Item da nota</Th>
+          <Th align="right">Qtde</Th>
+          <Th align="right">Custo un.</Th>
+          <Th align="right">Total</Th>
+          <Th>SKU</Th>
+          <Th />
+        </THead>
+        <TBody>
           {receipt.items.map((item) => (
             <ReceiptItemRow
               key={item.receipt_item_id}
@@ -139,7 +137,7 @@ export function ReceiptDetail({ receiptId }: { receiptId: string }) {
               }
             />
           ))}
-        </tbody>
+        </TBody>
       </AdminTable>
       <ConfirmDialog
         open={confirm === 'post'}

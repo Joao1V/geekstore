@@ -1,13 +1,14 @@
 'use client';
 
 import type { Location, SkuGridRow } from '@geekstore/shared';
+import { Input } from '@heroui/react';
 import { useQuery } from '@tanstack/react-query';
 import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { ArrowLeftRight, History, RotateCcw, Save } from 'lucide-react';
 import { Fragment, useCallback, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
-import { Action, FieldInput } from '@/components/ui';
+import { Action, FieldInput, IconAction } from '@/components/ui';
 import { describeAttributes } from '../lib/attribute-labels';
 import { getErrorMessage } from '../lib/errors';
 import { useCan } from '../lib/use-can';
@@ -21,7 +22,7 @@ import { PageHeader } from '../ui/page-header';
 import { PaginationBar } from '../ui/pagination-bar';
 import { SearchBox } from '../ui/search-box';
 import { SortHeader } from '../ui/sort-header';
-import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { AdminTable, EmptyRow, TBody, Td, THead, Th, Tr } from '../ui/table';
 import { Thumbnail } from '../ui/thumbnail';
 import { type EditMap, formatPriceInput, type RowEdit, rowState } from './grid-edits';
 import { MovementDialog } from './movement-dialog';
@@ -32,9 +33,6 @@ const MAX_BATCH = 500;
 const DEFAULT_REASON = 'Ajuste pela grade';
 const CELL_INPUT =
   'w-28 rounded-lg border bg-surface-secondary px-2.5 py-1.5 text-right text-sm text-foreground';
-const ICON_BUTTON =
-  'flex size-8 items-center justify-center rounded-lg border border-border bg-surface disabled:opacity-40';
-
 type ColumnKey = 'price' | 'on_hand';
 type SaveStatus = { tone: 'success' | 'error' | 'partial'; text: string } | null;
 
@@ -71,13 +69,14 @@ function GridInput({
       ? 'border-geek-yellow bg-geek-yellow/15'
       : 'border-border';
   return (
-    <input
-      ref={(element) => registerInput(`${rowIndex}:${column}`, element)}
+    <Input
+      ref={(element: HTMLInputElement | null) => registerInput(`${rowIndex}:${column}`, element)}
       aria-label={`${label} de ${row.code}`}
       aria-invalid={isInvalid}
       inputMode={column === 'price' ? 'decimal' : 'numeric'}
       disabled={disabled}
       value={value}
+      variant="secondary"
       className={`${CELL_INPUT} ${tone} disabled:opacity-60`}
       onChange={(event) => onChange(event.target.value)}
       onFocus={(event) => event.target.select()}
@@ -161,6 +160,7 @@ export function StockGrid() {
           <SortHeader
             label="SKU"
             field="code"
+            isRowHeader
             sort={sort}
             onSort={(field) => setParams({ sort: nextSort(sort, field) }, false)}
           />
@@ -298,36 +298,30 @@ export function StockGrid() {
           return (
             <Td align="right">
               <span className="inline-flex gap-1.5">
-                <button
-                  type="button"
-                  className={ICON_BUTTON}
-                  aria-label={`Desfazer alterações de ${row.original.code}`}
-                  title="Desfazer (Esc)"
+                <IconAction
+                  label={`Desfazer alterações de ${row.original.code}`}
+                  onPress={() => undoRow(row.original.sku_id)}
                   disabled={!isEdited}
-                  onClick={() => undoRow(row.original.sku_id)}
+                  size="sm"
                 >
                   <RotateCcw size={14} />
-                </button>
+                </IconAction>
                 {canStockWrite && (
-                  <button
-                    type="button"
-                    className={ICON_BUTTON}
-                    aria-label={`Movimentar ${row.original.code}`}
-                    title="Entrada, saída ou ajuste"
-                    onClick={() => setMoving(row.original)}
+                  <IconAction
+                    label={`Movimentar ${row.original.code}`}
+                    onPress={() => setMoving(row.original)}
+                    size="sm"
                   >
                     <ArrowLeftRight size={14} />
-                  </button>
+                  </IconAction>
                 )}
-                <button
-                  type="button"
-                  className={ICON_BUTTON}
-                  aria-label={`Histórico de ${row.original.code}`}
-                  title="Histórico de movimentações"
-                  onClick={() => setHistory(row.original)}
+                <IconAction
+                  label={`Histórico de ${row.original.code}`}
+                  onPress={() => setHistory(row.original)}
+                  size="sm"
                 >
                   <History size={14} />
-                </button>
+                </IconAction>
               </span>
             </Td>
           );
@@ -503,33 +497,33 @@ export function StockGrid() {
           {getErrorMessage(error)}
         </p>
       )}
-      <AdminTable>
-        <thead>
-          {table.getHeaderGroups().map((group) => (
-            <tr key={group.id}>
-              {group.headers.map((header) => (
+      <AdminTable label="Estoque e preços">
+        <THead>
+          {table
+            .getHeaderGroups()
+            .flatMap((group) =>
+              group.headers.map((header) => (
                 <Fragment key={header.id}>
                   {flexRender(header.column.columnDef.header, header.getContext())}
                 </Fragment>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
+              ))
+            )}
+        </THead>
+        <TBody>
           {isPending && <EmptyRow colSpan={columns.length}>Carregando…</EmptyRow>}
           {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
+            <Tr key={row.id}>
               {row.getVisibleCells().map((cell) => (
                 <Fragment key={cell.id}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </Fragment>
               ))}
-            </tr>
+            </Tr>
           ))}
           {data && !data.data.length && (
             <EmptyRow colSpan={columns.length}>Nenhum SKU encontrado.</EmptyRow>
           )}
-        </tbody>
+        </TBody>
       </AdminTable>
       <p className="demo-note">
         Enter desce para a linha de baixo (Shift+Enter sobe), Tab avança entre células e Esc desfaz

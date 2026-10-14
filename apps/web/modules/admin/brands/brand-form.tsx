@@ -74,9 +74,9 @@ function LogoField({ brand }: { brand: Brand }) {
           />
         </label>
         {logoUrl && (
-          <button type="button" className="action action-outline" disabled={busy} onClick={remove}>
+          <Action onPress={remove} disabled={busy} className="action-outline">
             <Trash2 size={17} /> Remover
-          </button>
+          </Action>
         )}
       </div>
       {error && (

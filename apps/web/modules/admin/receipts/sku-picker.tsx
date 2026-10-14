@@ -1,6 +1,7 @@
 'use client';
 
 import type { SkuGridRow, SkuSuggestion } from '@geekstore/shared';
+import { Button } from '@heroui/react';
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles } from 'lucide-react';
 import { useState } from 'react';
@@ -84,15 +85,15 @@ export function SkuPicker({
           initialValue=""
           onSearch={(value) => setTerm(value)}
         />
-        <button
-          type="button"
-          onClick={() => setAskAi(true)}
-          disabled={disabled || ai.isFetching || askAi}
-          className="inline-flex h-[46px] items-center gap-2 rounded-xl border border-border bg-surface px-4 text-sm font-extrabold disabled:opacity-60"
+        <Button
+          variant="outline"
+          onPress={() => setAskAi(true)}
+          isDisabled={disabled || ai.isFetching || askAi}
+          className="h-[46px] rounded-xl px-4 text-sm font-extrabold"
         >
           <Sparkles size={16} aria-hidden="true" />
           {ai.isFetching ? 'Pensando…' : 'Perguntar à IA'}
-        </button>
+        </Button>
       </div>
       {ai.error && (
         <p className="error m-0" role="alert">

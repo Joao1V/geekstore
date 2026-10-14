@@ -20,7 +20,7 @@ import { type FilterChip, FilterChips } from '../ui/filter-chips';
 import { PageHeader } from '../ui/page-header';
 import { PaginationBar } from '../ui/pagination-bar';
 import { SearchBox } from '../ui/search-box';
-import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { AdminTable, EmptyRow, TBody, Td, THead, Th, Tr } from '../ui/table';
 import { ReceiptStatusBadge } from './receipt-status';
 
 const PAGE_SIZE = 20;
@@ -108,21 +108,19 @@ export function ReceiptList() {
           {getErrorMessage(error)}
         </p>
       )}
-      <AdminTable>
-        <thead>
-          <tr>
-            <Th>Nota</Th>
-            <Th>Fornecedor</Th>
-            <Th>Emissão</Th>
-            <Th align="right">Itens</Th>
-            <Th align="right">Total</Th>
-            <Th>Situação</Th>
-          </tr>
-        </thead>
-        <tbody>
+      <AdminTable label="Notas de entrada">
+        <THead>
+          <Th isRowHeader>Nota</Th>
+          <Th>Fornecedor</Th>
+          <Th>Emissão</Th>
+          <Th align="right">Itens</Th>
+          <Th align="right">Total</Th>
+          <Th>Situação</Th>
+        </THead>
+        <TBody>
           {isPending && <EmptyRow colSpan={COLUMNS}>Carregando…</EmptyRow>}
           {data?.data.map((receipt) => (
-            <tr key={receipt.receipt_id} className="hover:bg-surface-secondary/50">
+            <Tr key={receipt.receipt_id} className="hover:bg-surface-secondary/50">
               <Td>
                 <Link
                   href={`/admin/notas/${receipt.receipt_id}/`}
@@ -146,14 +144,14 @@ export function ReceiptList() {
               <Td>
                 <ReceiptStatusBadge status={receipt.status} />
               </Td>
-            </tr>
+            </Tr>
           ))}
           {data && data.data.length === 0 && (
             <EmptyRow colSpan={COLUMNS}>
               Nenhuma nota ainda. Importe o XML de uma NF-e de compra para dar entrada no estoque.
             </EmptyRow>
           )}
-        </tbody>
+        </TBody>
       </AdminTable>
       {data && (
         <PaginationBar meta={data.meta} onPage={(next) => setParams({ page: String(next) })} />

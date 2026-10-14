@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Pencil, Plus, Power, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-import { Action } from '@/components/ui';
+import { Action, IconAction } from '@/components/ui';
 import { getErrorMessage } from '../lib/errors';
 import { formatDateTime } from '../lib/format';
 import { useCan } from '../lib/use-can';
@@ -14,7 +14,7 @@ import { bannerListQueryOptions } from '../services/content/queries';
 import { Badge } from '../ui/badge';
 import { ConfirmDialog } from '../ui/confirm-dialog';
 import { PageHeader } from '../ui/page-header';
-import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { AdminTable, EmptyRow, TBody, Td, THead, Th, Tr } from '../ui/table';
 import { BannerForm, type BannerFormTarget } from './banner-form';
 
 type BannerStatus = 'active' | 'scheduled' | 'expired' | 'inactive';
@@ -48,9 +48,6 @@ function windowOf(banner: Banner): string {
     .filter(Boolean)
     .join(' ');
 }
-
-const ICON_BUTTON =
-  'inline-flex size-9 items-center justify-center rounded-lg border border-border hover:border-ink disabled:opacity-40';
 
 /** Banners do carrossel da home: ordem, ativar, datas e imagem. */
 export function BannerManager() {
@@ -106,46 +103,40 @@ export function BannerManager() {
           {actionError || getErrorMessage(error)}
         </p>
       )}
-      <AdminTable>
-        <thead>
-          <tr>
-            <Th>Ordem</Th>
-            <Th>Banner</Th>
-            <Th>Botão</Th>
-            <Th>Exibição</Th>
-            <Th>Situação</Th>
-            <Th align="right">
-              <span className="sr-only">Ações</span>
-            </Th>
-          </tr>
-        </thead>
-        <tbody>
+      <AdminTable label="Banners">
+        <THead>
+          <Th isRowHeader>Ordem</Th>
+          <Th>Banner</Th>
+          <Th>Botão</Th>
+          <Th>Exibição</Th>
+          <Th>Situação</Th>
+          <Th align="right">
+            <span className="sr-only">Ações</span>
+          </Th>
+        </THead>
+        <TBody>
           {isPending && <EmptyRow colSpan={6}>Carregando…</EmptyRow>}
           {rows.map((banner, index) => {
             const status = statusOf(banner);
             return (
-              <tr key={banner.banner_id} className="hover:bg-surface-secondary/50">
+              <Tr key={banner.banner_id} className="hover:bg-surface-secondary/50">
                 <Td>
                   {canWrite ? (
                     <div className="inline-flex gap-1">
-                      <button
-                        type="button"
-                        aria-label={`Subir ${banner.headline.split('\n')[0]}`}
-                        className={ICON_BUTTON}
+                      <IconAction
+                        label={`Subir ${banner.headline.split('\n')[0]}`}
+                        onPress={() => move(index, -1)}
                         disabled={busy || index === 0}
-                        onClick={() => move(index, -1)}
                       >
                         <ArrowUp size={15} />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Descer ${banner.headline.split('\n')[0]}`}
-                        className={ICON_BUTTON}
+                      </IconAction>
+                      <IconAction
+                        label={`Descer ${banner.headline.split('\n')[0]}`}
+                        onPress={() => move(index, 1)}
                         disabled={busy || index === rows.length - 1}
-                        onClick={() => move(index, 1)}
                       >
                         <ArrowDown size={15} />
-                      </button>
+                      </IconAction>
                     </div>
                   ) : (
                     index + 1
@@ -178,13 +169,9 @@ export function BannerManager() {
                 <Td align="right">
                   {canWrite && (
                     <div className="inline-flex gap-2">
-                      <button
-                        type="button"
-                        aria-label={`${banner.is_active ? 'Desativar' : 'Ativar'} banner`}
-                        title={banner.is_active ? 'Desativar' : 'Ativar'}
-                        className={ICON_BUTTON}
-                        disabled={busy}
-                        onClick={() =>
+                      <IconAction
+                        label={`${banner.is_active ? 'Desativar' : 'Ativar'} banner`}
+                        onPress={() =>
                           run(() =>
                             updateBanner.mutateAsync({
                               banner_id: banner.banner_id,
@@ -192,43 +179,36 @@ export function BannerManager() {
                             })
                           )
                         }
+                        disabled={busy}
                       >
                         <Power
                           size={16}
                           className={banner.is_active ? 'text-status-success' : 'text-muted'}
                         />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Editar banner"
-                        title="Editar"
-                        className={ICON_BUTTON}
-                        onClick={() => setFormTarget({ banner })}
-                      >
+                      </IconAction>
+                      <IconAction label="Editar banner" onPress={() => setFormTarget({ banner })}>
                         <Pencil size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Apagar banner"
-                        title="Apagar"
-                        className={`${ICON_BUTTON} hover:border-status-error hover:text-status-error`}
-                        onClick={() => {
+                      </IconAction>
+                      <IconAction
+                        label="Apagar banner"
+                        onPress={() => {
                           setActionError('');
                           setToDelete(banner);
                         }}
+                        tone="danger"
                       >
                         <Trash2 size={16} />
-                      </button>
+                      </IconAction>
                     </div>
                   )}
                 </Td>
-              </tr>
+              </Tr>
             );
           })}
           {data && rows.length === 0 && (
             <EmptyRow colSpan={6}>Nenhum banner. A loja mostra os dois padrões.</EmptyRow>
           )}
-        </tbody>
+        </TBody>
       </AdminTable>
       <BannerForm target={formTarget} onClose={() => setFormTarget(null)} />
       <ConfirmDialog

@@ -1,3 +1,5 @@
+import { ToggleButton, ToggleButtonGroup } from '@heroui/react';
+
 import { formatInteger } from '../lib/format';
 
 export type FilterChip = {
@@ -24,21 +26,26 @@ export function FilterChips({
   onSelect: (id: string) => void;
 }) {
   return (
-    <fieldset className="m-0 mb-4 flex min-w-0 flex-wrap gap-2 border-0 p-0">
-      <legend className="sr-only">{label}</legend>
+    <ToggleButtonGroup
+      aria-label={label}
+      selectionMode="single"
+      disallowEmptySelection
+      isDetached
+      size="sm"
+      selectedKeys={[active]}
+      onSelectionChange={(keys) => {
+        const [next] = [...keys];
+        if (next !== undefined) onSelect(String(next));
+      }}
+      className="mb-4 flex-wrap"
+    >
       {chips.map((chip) => {
         const isActive = chip.id === active;
         return (
-          <button
+          <ToggleButton
             key={chip.id}
-            type="button"
-            aria-pressed={isActive}
-            onClick={() => onSelect(chip.id)}
-            className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-extrabold transition-colors ${
-              isActive
-                ? 'border-geek-yellow bg-geek-yellow text-ink'
-                : 'border-border bg-surface hover:border-ink'
-            }`}
+            id={chip.id}
+            className="gap-2 font-extrabold data-[selected=true]:bg-geek-yellow data-[selected=true]:text-ink"
           >
             {chip.attention && Boolean(chip.count) && (
               <span aria-hidden="true" className={`size-2 rounded-full ${DOT[chip.attention]}`} />
@@ -46,16 +53,16 @@ export function FilterChips({
             {chip.label}
             {chip.count !== undefined && (
               <span
-                className={`rounded-full px-2 py-0.5 text-2xs tabular-nums ${
+                className={`rounded px-2 py-0.5 text-2xs tabular-nums ${
                   isActive ? 'bg-ink/15' : 'bg-surface-secondary text-muted'
                 }`}
               >
                 {formatInteger(chip.count)}
               </span>
             )}
-          </button>
+          </ToggleButton>
         );
       })}
-    </fieldset>
+    </ToggleButtonGroup>
   );
 }

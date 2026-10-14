@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-import { Action } from '@/components/ui';
+import { Action, IconAction } from '@/components/ui';
 import { getErrorMessage } from '../lib/errors';
 import { formatDateTime } from '../lib/format';
 import { useCan } from '../lib/use-can';
@@ -17,14 +17,11 @@ import { Badge } from '../ui/badge';
 import { ConfirmDialog } from '../ui/confirm-dialog';
 import { PageHeader } from '../ui/page-header';
 import { PaginationBar } from '../ui/pagination-bar';
-import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { AdminTable, EmptyRow, TBody, Td, THead, Th, Tr } from '../ui/table';
 import { ROLE_LABELS } from './role-labels';
 import { UserForm, type UserFormTarget } from './user-form';
 
 const PAGE_SIZE = 20;
-const ICON_BUTTON =
-  'flex size-9 items-center justify-center rounded-lg border border-border bg-surface';
-
 export function UserManager() {
   const canWrite = useCan('users:write');
   const me = useAdminAuthStore((state) => state.user);
@@ -66,22 +63,20 @@ export function UserManager() {
           {getErrorMessage(error)}
         </p>
       )}
-      <AdminTable>
-        <thead>
-          <tr>
-            <Th>Nome</Th>
-            <Th>E-mail</Th>
-            <Th>Perfil</Th>
-            <Th>Criado em</Th>
-            <Th align="right">
-              <span className="sr-only">Ações</span>
-            </Th>
-          </tr>
-        </thead>
-        <tbody>
+      <AdminTable label="Usuários">
+        <THead>
+          <Th isRowHeader>Nome</Th>
+          <Th>E-mail</Th>
+          <Th>Perfil</Th>
+          <Th>Criado em</Th>
+          <Th align="right">
+            <span className="sr-only">Ações</span>
+          </Th>
+        </THead>
+        <TBody>
           {isPending && <EmptyRow colSpan={5}>Carregando…</EmptyRow>}
           {data?.data.map((user) => (
-            <tr key={user.user_id}>
+            <Tr key={user.user_id}>
               <Td className="font-extrabold">
                 {user.name}
                 {user.user_id === me?.user_id && <span className="muted ml-2 text-xs">(você)</span>}
@@ -96,34 +91,31 @@ export function UserManager() {
               <Td align="right">
                 {canWrite && (
                   <span className="inline-flex gap-2">
-                    <button
-                      type="button"
-                      className={ICON_BUTTON}
-                      aria-label={`Editar ${user.name}`}
-                      onClick={() => setFormTarget({ user })}
+                    <IconAction
+                      label={`Editar ${user.name}`}
+                      onPress={() => setFormTarget({ user })}
                     >
                       <Pencil size={16} />
-                    </button>
+                    </IconAction>
                     {user.user_id !== me?.user_id && (
-                      <button
-                        type="button"
-                        className={`${ICON_BUTTON} text-status-error`}
-                        aria-label={`Excluir ${user.name}`}
-                        onClick={() => {
+                      <IconAction
+                        label={`Excluir ${user.name}`}
+                        onPress={() => {
                           setDeleteError('');
                           setToDelete(user);
                         }}
+                        tone="danger"
                       >
                         <Trash2 size={16} />
-                      </button>
+                      </IconAction>
                     )}
                   </span>
                 )}
               </Td>
-            </tr>
+            </Tr>
           ))}
           {data && !data.data.length && <EmptyRow colSpan={5}>Nenhum usuário.</EmptyRow>}
-        </tbody>
+        </TBody>
       </AdminTable>
       {data && (
         <PaginationBar meta={data.meta} onPage={(next) => setParams({ page: next }, false)} />

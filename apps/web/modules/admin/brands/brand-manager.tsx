@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Pencil, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { Action } from '@/components/ui';
+import { Action, IconAction } from '@/components/ui';
 import { getErrorMessage } from '../lib/errors';
 import { formatInteger } from '../lib/format';
 import { useCan } from '../lib/use-can';
@@ -13,7 +13,7 @@ import { brandsQueryOptions } from '../services/catalog/queries';
 import { Badge } from '../ui/badge';
 import { PageHeader } from '../ui/page-header';
 import { SearchBox } from '../ui/search-box';
-import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { AdminTable, EmptyRow, TBody, Td, THead, Th, Tr } from '../ui/table';
 import { BrandForm, type BrandFormTarget } from './brand-form';
 
 /** Texto sem acento nem pontuação, para o filtro local da lista ("pokemon" acha "Pokémon"). */
@@ -56,21 +56,19 @@ export function BrandManager() {
           {getErrorMessage(error)}
         </p>
       )}
-      <AdminTable>
-        <thead>
-          <tr>
-            <Th>Marca</Th>
-            <Th>Produtos</Th>
-            <Th>Situação</Th>
-            <Th align="right">
-              <span className="sr-only">Ações</span>
-            </Th>
-          </tr>
-        </thead>
-        <tbody>
+      <AdminTable label="Marcas">
+        <THead>
+          <Th isRowHeader>Marca</Th>
+          <Th>Produtos</Th>
+          <Th>Situação</Th>
+          <Th align="right">
+            <span className="sr-only">Ações</span>
+          </Th>
+        </THead>
+        <TBody>
           {isPending && <EmptyRow colSpan={4}>Carregando…</EmptyRow>}
           {rows.map((brand: Brand) => (
-            <tr key={brand.brand_id} className="hover:bg-surface-secondary/50">
+            <Tr key={brand.brand_id} className="hover:bg-surface-secondary/50">
               <Td>
                 <div className="flex items-center gap-3">
                   <div className="grid h-9 w-14 shrink-0 place-items-center rounded-md border border-border bg-surface-secondary p-1">
@@ -97,24 +95,19 @@ export function BrandManager() {
               </Td>
               <Td align="right">
                 {canWrite && (
-                  <button
-                    type="button"
-                    aria-label={`Editar ${brand.name}`}
-                    className="inline-flex size-9 items-center justify-center rounded-lg border border-border hover:border-ink"
-                    onClick={() => setTarget({ brand })}
-                  >
+                  <IconAction label={`Editar ${brand.name}`} onPress={() => setTarget({ brand })}>
                     <Pencil size={16} />
-                  </button>
+                  </IconAction>
                 )}
               </Td>
-            </tr>
+            </Tr>
           ))}
           {data && !rows.length && (
             <EmptyRow colSpan={4}>
               {filter ? 'Nenhuma marca com esse nome.' : 'Nenhuma marca ainda.'}
             </EmptyRow>
           )}
-        </tbody>
+        </TBody>
       </AdminTable>
       <BrandForm target={target} onClose={() => setTarget(null)} />
     </>

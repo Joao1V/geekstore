@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ListOrdered, Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-import { Action } from '@/components/ui';
+import { Action, IconAction } from '@/components/ui';
 import { getErrorMessage } from '../lib/errors';
 import { useCan } from '../lib/use-can';
 import { useDeleteCollection } from '../services/catalog/mutations';
@@ -13,12 +13,9 @@ import { collectionsQueryOptions } from '../services/catalog/queries';
 import { Badge } from '../ui/badge';
 import { ConfirmDialog } from '../ui/confirm-dialog';
 import { PageHeader } from '../ui/page-header';
-import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { AdminTable, EmptyRow, TBody, Td, THead, Th, Tr } from '../ui/table';
 import { CollectionForm, type CollectionFormTarget } from './collection-form';
 import { CollectionProducts } from './collection-products';
-
-const ICON_BUTTON =
-  'flex size-9 items-center justify-center rounded-lg border border-border bg-surface';
 
 export function CollectionManager() {
   const canWrite = useCan('catalog:write');
@@ -62,21 +59,19 @@ export function CollectionManager() {
           {getErrorMessage(error)}
         </p>
       )}
-      <AdminTable>
-        <thead>
-          <tr>
-            <Th>Coleção</Th>
-            <Th>Tipo</Th>
-            <Th>Posição</Th>
-            <Th align="right">
-              <span className="sr-only">Ações</span>
-            </Th>
-          </tr>
-        </thead>
-        <tbody>
+      <AdminTable label="Coleções">
+        <THead>
+          <Th isRowHeader>Coleção</Th>
+          <Th>Tipo</Th>
+          <Th>Posição</Th>
+          <Th align="right">
+            <span className="sr-only">Ações</span>
+          </Th>
+        </THead>
+        <TBody>
           {isPending && <EmptyRow colSpan={4}>Carregando…</EmptyRow>}
           {rows.map((collection) => (
-            <tr key={collection.collection_id}>
+            <Tr key={collection.collection_id}>
               <Td>
                 <span className="flex flex-wrap items-center gap-2">
                   <strong>{collection.name}</strong>
@@ -96,45 +91,39 @@ export function CollectionManager() {
               <Td>{collection.position}</Td>
               <Td align="right">
                 <span className="inline-flex gap-2">
-                  <button
-                    type="button"
-                    className={ICON_BUTTON}
-                    aria-label={`Produtos de ${collection.name}`}
-                    title="Escolher e ordenar produtos"
-                    onClick={() => setManaging(collection)}
+                  <IconAction
+                    label={`Produtos de ${collection.name}`}
+                    onPress={() => setManaging(collection)}
                     disabled={!canWrite}
                   >
                     <ListOrdered size={16} />
-                  </button>
+                  </IconAction>
                   {canWrite && (
                     <>
-                      <button
-                        type="button"
-                        className={ICON_BUTTON}
-                        aria-label={`Editar ${collection.name}`}
-                        onClick={() => setFormTarget({ collection })}
+                      <IconAction
+                        label={`Editar ${collection.name}`}
+                        onPress={() => setFormTarget({ collection })}
                       >
                         <Pencil size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        className={`${ICON_BUTTON} text-status-error`}
-                        aria-label={`Excluir ${collection.name}`}
-                        onClick={() => {
+                      </IconAction>
+                      <IconAction
+                        label={`Excluir ${collection.name}`}
+                        onPress={() => {
                           setDeleteError('');
                           setToDelete(collection);
                         }}
+                        tone="danger"
                       >
                         <Trash2 size={16} />
-                      </button>
+                      </IconAction>
                     </>
                   )}
                 </span>
               </Td>
-            </tr>
+            </Tr>
           ))}
           {data && !rows.length && <EmptyRow colSpan={4}>Nenhuma coleção ainda.</EmptyRow>}
-        </tbody>
+        </TBody>
       </AdminTable>
       <CollectionForm target={formTarget} onClose={() => setFormTarget(null)} />
       <CollectionProducts collection={managing} onClose={() => setManaging(null)} />

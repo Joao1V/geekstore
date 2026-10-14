@@ -1,6 +1,7 @@
 'use client';
 
 import { type Page, type PageBody, type PageStatus, pageStatusSchema } from '@geekstore/shared';
+import { ToggleButton, ToggleButtonGroup } from '@heroui/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink, Save, Trash2 } from 'lucide-react';
@@ -188,23 +189,28 @@ function PageForm({ page }: { page?: Page }) {
           <h2 id="page-body" className="text-xl font-extrabold">
             Texto
           </h2>
-          <div className="inline-flex rounded-lg border border-border p-0.5" role="tablist">
-            {(['Escrever', 'Pré-visualizar'] as const).map((label, index) => {
-              const active = (index === 1) === preview;
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  className={`rounded-md px-3 py-1.5 text-xs font-extrabold ${active ? 'bg-geek-yellow text-ink' : 'text-muted'}`}
-                  onClick={() => setPreview(index === 1)}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+          <ToggleButtonGroup
+            aria-label="Modo do texto"
+            selectionMode="single"
+            disallowEmptySelection
+            size="sm"
+            selectedKeys={[preview ? 'preview' : 'write']}
+            onSelectionChange={(keys) => setPreview([...keys][0] === 'preview')}
+          >
+            <ToggleButton
+              id="write"
+              className="font-extrabold data-[selected=true]:bg-geek-yellow data-[selected=true]:text-ink"
+            >
+              Escrever
+            </ToggleButton>
+            <ToggleButton
+              id="preview"
+              className="font-extrabold data-[selected=true]:bg-geek-yellow data-[selected=true]:text-ink"
+            >
+              <ToggleButtonGroup.Separator />
+              Pré-visualizar
+            </ToggleButton>
+          </ToggleButtonGroup>
         </div>
         {preview ? (
           <div className="min-h-64 rounded-xl border border-border p-5 text-muted">

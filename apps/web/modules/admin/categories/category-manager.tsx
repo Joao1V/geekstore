@@ -1,6 +1,7 @@
 'use client';
 
 import type { Category } from '@geekstore/shared';
+import { Button } from '@heroui/react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ChevronDown,
@@ -19,7 +20,7 @@ import {
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
-import { Action } from '@/components/ui';
+import { Action, IconAction } from '@/components/ui';
 import {
   buildCategoryTree,
   type CategoryNode,
@@ -36,8 +37,6 @@ import { ConfirmDialog } from '../ui/confirm-dialog';
 import { PageHeader } from '../ui/page-header';
 import { CategoryForm, type CategoryFormTarget } from './category-form';
 
-const ICON_BUTTON =
-  'flex size-8 items-center justify-center rounded-lg border border-border bg-surface hover:border-ink disabled:opacity-40';
 const INDENT_REM = 1.75;
 
 /** Produtos da pasta e de todas as subpastas. */
@@ -100,16 +99,17 @@ export function CategoryManager() {
           className="group flex items-center gap-2 border-b border-border px-3 py-2 hover:bg-surface-secondary/60"
           style={{ paddingLeft: `${0.75 + (depth - 1) * INDENT_REM}rem` }}
         >
-          <button
-            type="button"
+          <Button
+            isIconOnly
+            variant="ghost"
             aria-label={isOpen ? `Fechar ${category.name}` : `Abrir ${category.name}`}
             aria-expanded={isFolder ? isOpen : undefined}
-            disabled={!isFolder}
-            className="flex size-7 shrink-0 items-center justify-center rounded text-muted disabled:opacity-0"
-            onClick={() => toggle(category.category_id)}
+            isDisabled={!isFolder}
+            className="size-7 min-w-7 shrink-0 text-muted disabled:opacity-0"
+            onPress={() => toggle(category.category_id)}
           >
             {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </button>
+          </Button>
           <FolderIcon
             size={20}
             className={isFolder ? 'shrink-0 text-geek-yellow' : 'shrink-0 text-muted'}
@@ -131,7 +131,7 @@ export function CategoryManager() {
             <span className="muted font-mono text-2xs max-md:hidden">/{category.slug}</span>
           </div>
           <span
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface-secondary px-2.5 py-1 text-xs font-extrabold tabular-nums"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-surface-secondary px-2.5 py-1 text-xs font-extrabold tabular-nums"
             title={
               isFolder
                 ? `${formatInteger(category.product_count)} direto aqui + subpastas`
@@ -143,38 +143,35 @@ export function CategoryManager() {
           </span>
           {canWrite && (
             <div className="flex shrink-0 gap-1.5 opacity-60 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 max-md:opacity-100">
-              <button
-                type="button"
-                className={ICON_BUTTON}
-                aria-label={`Nova subpasta em ${category.name}`}
-                title="Nova subpasta"
-                disabled={depth >= MAX_CATEGORY_DEPTH}
-                onClick={() => {
+              <IconAction
+                label={`Nova subpasta em ${category.name}`}
+                onPress={() => {
                   setOpen((current) => new Set(current).add(category.category_id));
                   setFormTarget({ parentId: category.category_id });
                 }}
+                disabled={depth >= MAX_CATEGORY_DEPTH}
+                size="sm"
               >
                 <FolderPlus size={15} />
-              </button>
-              <button
-                type="button"
-                className={ICON_BUTTON}
-                aria-label={`Editar ${category.name}`}
-                onClick={() => setFormTarget({ category })}
+              </IconAction>
+              <IconAction
+                label={`Editar ${category.name}`}
+                onPress={() => setFormTarget({ category })}
+                size="sm"
               >
                 <Pencil size={15} />
-              </button>
-              <button
-                type="button"
-                className={`${ICON_BUTTON} text-status-error`}
-                aria-label={`Excluir ${category.name}`}
-                onClick={() => {
+              </IconAction>
+              <IconAction
+                label={`Excluir ${category.name}`}
+                onPress={() => {
                   setDeleteError('');
                   setToDelete(category);
                 }}
+                tone="danger"
+                size="sm"
               >
                 <Trash2 size={15} />
-              </button>
+              </IconAction>
             </div>
           )}
         </div>
@@ -202,14 +199,15 @@ export function CategoryManager() {
       </p>
       {folderIds.length > 0 && (
         <div className="mb-3 flex gap-2">
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-extrabold hover:border-ink"
-            onClick={() => setOpen(allOpen ? new Set() : new Set(folderIds))}
+          <Button
+            size="sm"
+            variant="outline"
+            className="font-extrabold"
+            onPress={() => setOpen(allOpen ? new Set() : new Set(folderIds))}
           >
             {allOpen ? <ChevronsDownUp size={16} /> : <ChevronsUpDown size={16} />}
             {allOpen ? 'Recolher tudo' : 'Expandir tudo'}
-          </button>
+          </Button>
         </div>
       )}
       {error && (

@@ -1,9 +1,8 @@
 'use client';
 
+import { Label, SearchField } from '@heroui/react';
 import { useEffect } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-
-import { FieldInput } from '@/components/ui';
 
 const DEBOUNCE_MS = 350;
 
@@ -30,8 +29,22 @@ export function SearchBox({
     <Controller
       control={control}
       name="q"
-      render={({ field, fieldState }) => (
-        <FieldInput field={field} fieldState={fieldState} label={label} required={false} />
+      render={({ field }) => (
+        <SearchField
+          name={field.name}
+          value={field.value}
+          onChange={field.onChange}
+          onBlur={field.onBlur}
+          fullWidth
+          className="form-field"
+        >
+          <Label>{label}</Label>
+          <SearchField.Group>
+            <SearchField.SearchIcon />
+            <SearchField.Input ref={field.ref} placeholder="Digite para buscar…" />
+            <SearchField.ClearButton />
+          </SearchField.Group>
+        </SearchField>
       )}
     />
   );

@@ -11,7 +11,7 @@ import { useCan } from '../lib/use-can';
 import { pageListQueryOptions } from '../services/content/queries';
 import { Badge } from '../ui/badge';
 import { PageHeader } from '../ui/page-header';
-import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { AdminTable, EmptyRow, TBody, Td, THead, Th, Tr } from '../ui/table';
 
 /** Páginas institucionais da loja: trocas e devoluções, nos conheça, contato... */
 export function PageManager() {
@@ -40,19 +40,17 @@ export function PageManager() {
           {getErrorMessage(error)}
         </p>
       )}
-      <AdminTable>
-        <thead>
-          <tr>
-            <Th>Página</Th>
-            <Th>Endereço</Th>
-            <Th>Situação</Th>
-            <Th>Atualizada</Th>
-          </tr>
-        </thead>
-        <tbody>
+      <AdminTable label="Páginas">
+        <THead>
+          <Th isRowHeader>Página</Th>
+          <Th>Endereço</Th>
+          <Th>Situação</Th>
+          <Th>Atualizada</Th>
+        </THead>
+        <TBody>
           {isPending && <EmptyRow colSpan={4}>Carregando…</EmptyRow>}
           {data?.map((page) => (
-            <tr key={page.page_id} className="hover:bg-surface-secondary/50">
+            <Tr key={page.page_id} className="hover:bg-surface-secondary/50">
               <Td>
                 <Link
                   href={`/admin/paginas/${page.page_id}/`}
@@ -68,7 +66,7 @@ export function PageManager() {
                 </Badge>
               </Td>
               <Td className="text-xs">{formatDateTime(page.updated_at)}</Td>
-            </tr>
+            </Tr>
           ))}
           {data && data.length === 0 && (
             <EmptyRow colSpan={4}>
@@ -80,7 +78,7 @@ export function PageManager() {
               )}
             </EmptyRow>
           )}
-        </tbody>
+        </TBody>
       </AdminTable>
     </div>
   );

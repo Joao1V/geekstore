@@ -12,7 +12,7 @@ import { FilterChips } from '../ui/filter-chips';
 import { PageHeader } from '../ui/page-header';
 import { PaginationBar } from '../ui/pagination-bar';
 import { SearchBox } from '../ui/search-box';
-import { AdminTable, EmptyRow, Td, Th } from '../ui/table';
+import { AdminTable, EmptyRow, TBody, Td, THead, Th, Tr } from '../ui/table';
 import { ORDER_STATUS_CHIPS, OrderStatusBadge } from './order-status';
 
 const PAGE_SIZE = 20;
@@ -54,21 +54,19 @@ export function OrderList() {
           {getErrorMessage(error)}
         </p>
       )}
-      <AdminTable>
-        <thead>
-          <tr>
-            <Th>Pedido</Th>
-            <Th>Cliente</Th>
-            <Th>Pagamento</Th>
-            <Th align="right">Itens</Th>
-            <Th align="right">Total</Th>
-            <Th>Situação</Th>
-          </tr>
-        </thead>
-        <tbody>
+      <AdminTable label="Pedidos">
+        <THead>
+          <Th isRowHeader>Pedido</Th>
+          <Th>Cliente</Th>
+          <Th>Pagamento</Th>
+          <Th align="right">Itens</Th>
+          <Th align="right">Total</Th>
+          <Th>Situação</Th>
+        </THead>
+        <TBody>
           {isPending && <EmptyRow colSpan={COLUMNS}>Carregando…</EmptyRow>}
           {data?.data.map((order) => (
-            <tr key={order.order_id} className="hover:bg-surface-secondary/50">
+            <Tr key={order.order_id} className="hover:bg-surface-secondary/50">
               <Td>
                 <Link
                   href={`/admin/pedidos/${order.number}/`}
@@ -88,12 +86,12 @@ export function OrderList() {
               <Td>
                 <OrderStatusBadge status={order.display_status} />
               </Td>
-            </tr>
+            </Tr>
           ))}
           {data && data.data.length === 0 && (
             <EmptyRow colSpan={COLUMNS}>Nenhum pedido encontrado.</EmptyRow>
           )}
-        </tbody>
+        </TBody>
       </AdminTable>
       {data && (
         <PaginationBar meta={data.meta} onPage={(next) => setParams({ page: String(next) })} />
