@@ -3,6 +3,8 @@ import type { NextConfig } from 'next';
 // URL da API vista pelo servidor do Next (rede interna). Nunca vai para o bundle do browser.
 const API_INTERNAL_URL = process.env.API_INTERNAL_URL;
 const BASE_PATH = process.env.BASE_PATH || undefined;
+// Definido no build (Dockerfile): no domínio do painel só existem as rotas /admin.
+const IS_ADMIN_BUILD = process.env.APP_MODE === 'admin';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
@@ -16,6 +18,10 @@ const nextConfig: NextConfig = {
   basePath: BASE_PATH,
   // O browser chama a API pela mesma origem (`<basePath>/api/...`); o Next repassa ao Fastify.
   env: { NEXT_PUBLIC_BASE_PATH: BASE_PATH ?? '' },
+  // A raiz do domínio do painel (`gk-admin.…/`) não tem página; leva ao painel em vez de dar 404.
+  async redirects() {
+    return IS_ADMIN_BUILD ? [{ source: '/', destination: '/admin/', permanent: false }] : [];
+  },
   async rewrites() {
     if (!API_INTERNAL_URL) return [];
     // Casa `/api/x` e `/api/x/`; o `destination` nunca leva barra final (o Fastify não casa rotas com barra).
