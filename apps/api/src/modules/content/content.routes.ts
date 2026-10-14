@@ -10,6 +10,13 @@ import {
   pageParamsSchema,
   pageResponseSchema,
   pageUpdateBodySchema,
+  redirectBodySchema,
+  redirectListQuerySchema,
+  redirectListResponseSchema,
+  redirectMapResponseSchema,
+  redirectParamsSchema,
+  redirectResponseSchema,
+  redirectUpdateBodySchema,
   storeBannerListResponseSchema,
   storePageListResponseSchema,
   storePageParamsSchema,
@@ -22,17 +29,22 @@ import { requirePermission } from '../../core/hooks';
 import {
   createBannerController,
   createPageController,
+  createRedirectController,
   deleteBannerController,
   deletePageController,
+  deleteRedirectController,
   getPageController,
   getStorePageController,
   listBannersController,
   listPagesController,
+  listRedirectsController,
   listStoreBannersController,
   listStorePagesController,
   reorderBannersController,
+  storeRedirectMapController,
   updateBannerController,
   updatePageController,
+  updateRedirectController,
 } from './page.controller';
 
 const tags = ['Conteúdo'];
@@ -169,6 +181,55 @@ export async function contentRoutes(fastify: FastifyInstance): Promise<void> {
     },
     deleteBannerController
   );
+
+  app.get(
+    '/redirects',
+    {
+      ...read,
+      schema: {
+        tags,
+        summary: 'Lista os redirecionamentos 301 (busca por endereço ou nota; filtro por origem)',
+        querystring: redirectListQuerySchema,
+        response: { 200: redirectListResponseSchema },
+      },
+    },
+    listRedirectsController
+  );
+  app.post(
+    '/redirects',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary: 'Cria redirecionamento 301 (endereço antigo -> novo)',
+        body: redirectBodySchema,
+        response: { 201: redirectResponseSchema },
+      },
+    },
+    createRedirectController
+  );
+  app.patch(
+    '/redirects/:redirect_id',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary: 'Edita redirecionamento (só o que for enviado)',
+        params: redirectParamsSchema,
+        body: redirectUpdateBodySchema,
+        response: { 200: redirectResponseSchema },
+      },
+    },
+    updateRedirectController
+  );
+  app.delete(
+    '/redirects/:redirect_id',
+    {
+      ...write,
+      schema: { tags, summary: 'Apaga redirecionamento (204)', params: redirectParamsSchema },
+    },
+    deleteRedirectController
+  );
 }
 
 /** Loja (público): só as páginas publicadas. Prefixo `/api/store/pages`. */
@@ -211,5 +272,20 @@ export async function storeBannerRoutes(fastify: FastifyInstance): Promise<void>
       },
     },
     listStoreBannersController
+  );
+}
+
+/** Loja (público): o mapa completo de redirecionamentos 301. Prefixo `/api/store/redirects`. */
+export async function storeRedirectRoutes(fastify: FastifyInstance): Promise<void> {
+  fastify.withTypeProvider<ZodTypeProvider>().get(
+    '/',
+    {
+      schema: {
+        tags: ['Vitrine'],
+        summary: 'Mapa de redirecionamentos 301 ([endereço antigo, endereço novo]), para o site',
+        response: { 200: redirectMapResponseSchema },
+      },
+    },
+    storeRedirectMapController
   );
 }

@@ -10,6 +10,7 @@ import {
   contentRoutes,
   storeBannerRoutes,
   storePageRoutes,
+  storeRedirectRoutes,
 } from '../modules/content/content.routes';
 import { customerRoutes } from '../modules/customers/customer.routes';
 import { adminOrderRoutes } from '../modules/orders/admin-orders.routes';
@@ -52,6 +53,7 @@ export async function buildTestApp() {
   await app.register(storefrontRoutes, { prefix: '/api/store' });
   await app.register(storePageRoutes, { prefix: '/api/store/pages' });
   await app.register(storeBannerRoutes, { prefix: '/api/store/banners' });
+  await app.register(storeRedirectRoutes, { prefix: '/api/store/redirects' });
   await app.register(contentRoutes, { prefix: '/api/content' });
   await app.register(auditRoutes, { prefix: '/api/audit-logs' });
   await app.ready();

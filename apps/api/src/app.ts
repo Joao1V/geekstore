@@ -22,6 +22,7 @@ import {
   contentRoutes,
   storeBannerRoutes,
   storePageRoutes,
+  storeRedirectRoutes,
 } from './modules/content/content.routes';
 import { customerRoutes } from './modules/customers/customer.routes';
 import { healthPlugin } from './modules/health/health.plugin';
@@ -103,6 +104,7 @@ export function buildApp() {
   app.register(storefrontRoutes, { prefix: '/api/store' });
   app.register(storePageRoutes, { prefix: '/api/store/pages' });
   app.register(storeBannerRoutes, { prefix: '/api/store/banners' });
+  app.register(storeRedirectRoutes, { prefix: '/api/store/redirects' });
   app.register(contentRoutes, { prefix: '/api/content' });
   app.register(auditRoutes, { prefix: '/api/audit-logs' });
 

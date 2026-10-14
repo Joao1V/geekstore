@@ -3,6 +3,7 @@ import type {
   StoreFilters,
   StoreProductParams,
   StoreProductsQuery,
+  StoreResolveQuery,
 } from '@geekstore/shared';
 import type { FastifyRequest } from 'fastify';
 
@@ -13,6 +14,7 @@ import {
   getStoreSitemap,
   listStoreCategories,
   listStoreProducts,
+  resolveStorePath,
 } from './storefront.service';
 
 export async function storeHomeController() {
@@ -45,4 +47,10 @@ export async function storeProductController(
 
 export async function storeSitemapController() {
   return { data: await getStoreSitemap() };
+}
+
+export async function storeResolveController(
+  request: FastifyRequest<{ Querystring: StoreResolveQuery }>
+) {
+  return { data: await resolveStorePath(request.query.path) };
 }

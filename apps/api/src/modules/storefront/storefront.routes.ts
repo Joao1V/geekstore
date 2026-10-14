@@ -8,6 +8,8 @@ import {
   storeProductParamsSchema,
   storeProductsQuerySchema,
   storeProductsResponseSchema,
+  storeResolveQuerySchema,
+  storeResolveResponseSchema,
   storeSitemapResponseSchema,
 } from '@geekstore/shared';
 import type { FastifyInstance } from 'fastify';
@@ -19,6 +21,7 @@ import {
   storeHomeController,
   storeProductController,
   storeProductsController,
+  storeResolveController,
   storeSitemapController,
 } from './storefront.controller';
 
@@ -99,5 +102,18 @@ export async function storefrontRoutes(fastify: FastifyInstance): Promise<void> 
       },
     },
     storeProductController
+  );
+  app.get(
+    '/resolve',
+    {
+      schema: {
+        tags,
+        summary:
+          'O que é este endereço (padrão da Tray: /categoria/sub/slug)? Devolve o endereço canônico',
+        querystring: storeResolveQuerySchema,
+        response: { 200: storeResolveResponseSchema },
+      },
+    },
+    storeResolveController
   );
 }

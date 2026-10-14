@@ -9,6 +9,7 @@ import type {
   StoreProductCard,
   StoreProductDetail,
   StoreProductsQuery,
+  StoreResolve,
   StoreSitemap,
 } from '@geekstore/shared';
 
@@ -16,6 +17,7 @@ import { NotFoundError } from '../../core/_errors';
 import { asUuid, matchesSearch, matchesSearchFuzzy } from '../../core/db/sql';
 import { buildMeta, skipTake } from '../../core/http/pagination';
 import { categoryScope } from '../catalog/category.service';
+import { categoryPaths } from './store-paths';
 import {
   currentSitePrice,
   SORT_SQL,
@@ -160,6 +162,7 @@ async function effectiveWhere(filters: StoreFilters): Promise<Prisma.Sql | null>
 
 type CardRow = {
   product_id: string;
+  category_id: string;
   slug: string;
   name: string;
   brand: string | null;
@@ -175,9 +178,10 @@ type CardRow = {
   sku_id: string | null;
 };
 
-const toCard = (row: CardRow): StoreProductCard => ({
+const toCard = (row: CardRow, path: string): StoreProductCard => ({
   product_id: row.product_id,
   slug: row.slug,
+  path,
   name: row.name,
   brand: row.brand,
   brand_slug: row.brand_slug,
@@ -198,7 +202,7 @@ async function loadCards(ids: string[]): Promise<StoreProductCard[]> {
   if (ids.length === 0) return [];
   const rows = await prisma.$queryRaw<CardRow[]>`
     WITH ${VISIBLE_PRODUCTS}
-    SELECT v.product_id, v.slug, v.name, v.price_min, v.price_max, v.sku_count, v.available,
+    SELECT v.product_id, v.category_id::text AS category_id, v.slug, v.name, v.price_min, v.price_max, v.sku_count, v.available,
            b.name AS brand, b.slug AS brand_slug,
            c.name AS category_name, c.slug AS category_slug,
            (
@@ -225,7 +229,10 @@ async function loadCards(ids: string[]): Promise<StoreProductCard[]> {
     JOIN category c ON c.category_id = v.category_id
     LEFT JOIN brand b ON b.brand_id = v.brand_id
     WHERE v.product_id IN (${Prisma.join(ids.map(asUuid))})`;
-  const byId = new Map(rows.map((row) => [row.product_id, toCard(row)]));
+  const paths = await categoryPaths();
+  const byId = new Map(
+    rows.map((row) => [row.product_id, toCard(row, paths.productPath(row.category_id, row.slug))])
+  );
   return ids.flatMap((id) => byId.get(id) ?? []);
 }
 
@@ -320,9 +327,14 @@ export async function listStoreCategories(q?: string): Promise<StoreCategory[]> 
     (direct.get(id) ?? 0) +
     (children.get(id) ?? []).reduce((sum, child) => sum + total(child.category_id), 0);
 
+  const paths = await categoryPaths();
   return (
     categories
-      .map((category) => ({ ...category, product_count: total(category.category_id) }))
+      .map((category) => ({
+        ...category,
+        product_count: total(category.category_id),
+        path: paths.categoryPath(category.category_id),
+      }))
       // "A classificar" é a fila de trabalho do admin, não uma categoria para o cliente.
       .filter((category) => category.slug !== FALLBACK_CATEGORY_SLUG && category.product_count > 0)
       .sort((a, b) => a.position - b.position || a.name.localeCompare(b.name, 'pt-BR'))
@@ -442,6 +454,7 @@ export async function getStoreProduct(slug: string): Promise<StoreProductDetail>
   return {
     product_id: product.product_id,
     slug: product.slug,
+    path: (await categoryPaths()).productPath(product.category_id, product.slug),
     name: product.name,
     description: product.description,
     brand: product.brand?.is_active ? { slug: product.brand.slug, name: product.brand.name } : null,
@@ -484,15 +497,59 @@ async function categoryPath(categoryId: string): Promise<{ name: string; slug: s
 /** Todas as URLs da vitrine para o sitemap (só o que está à venda). */
 export async function getStoreSitemap(): Promise<StoreSitemap> {
   const [products, categories] = await Promise.all([
-    prisma.$queryRaw<{ slug: string; updated_at: Date }[]>`
+    prisma.$queryRaw<{ slug: string; category_id: string; updated_at: Date }[]>`
       WITH ${VISIBLE_PRODUCTS_ALL}
-      SELECT p.slug, p.updated_at
+      SELECT p.slug, p.category_id::text AS category_id, p.updated_at
       FROM vis v JOIN product p ON p.product_id = v.product_id
       ORDER BY p.created_at DESC`,
     listStoreCategories(),
   ]);
+  const paths = await categoryPaths();
   return {
-    products: products.map((row) => ({ slug: row.slug, updated_at: row.updated_at.toISOString() })),
-    categories: categories.map((category) => ({ slug: category.slug })),
+    products: products.map((row) => ({
+      slug: row.slug,
+      path: paths.productPath(row.category_id, row.slug),
+      updated_at: row.updated_at.toISOString(),
+    })),
+    categories: categories.map((category) => ({ slug: category.slug, path: category.path })),
+  };
+}
+
+// ── Endereços ───────────────────────────────────────────────────────────────
+
+/**
+ * "O que é este endereço?" no padrão da Tray. O caminho de categorias vale como veio, ou, se estiver
+ * errado (produto movido de categoria, URL antiga), devolvemos o canônico para o site redirecionar.
+ * A categoria vence o produto quando um slug serve aos dois.
+ */
+export async function resolveStorePath(raw: string): Promise<StoreResolve> {
+  const segments = raw.split('/').filter(Boolean);
+  const last = segments.at(-1);
+  if (!last) return { type: 'none' };
+  const paths = await categoryPaths();
+
+  const chainId = paths.idOfChain(segments);
+  const categoryId = chainId ?? paths.idOfSlug(last);
+  if (categoryId) {
+    const slug = (
+      await prisma.category.findUnique({
+        where: { category_id: categoryId },
+        select: { slug: true },
+      })
+    )?.slug;
+    // A fila "A classificar" é do admin: não tem página na loja.
+    if (slug && slug !== FALLBACK_CATEGORY_SLUG) {
+      return { type: 'category', path: paths.categoryPath(categoryId), slug };
+    }
+  }
+  const product = await prisma.product.findFirst({
+    where: { slug: last, status: 'active' },
+    select: { slug: true, category_id: true },
+  });
+  if (!product) return { type: 'none' };
+  return {
+    type: 'product',
+    path: paths.productPath(product.category_id, product.slug),
+    slug: product.slug,
   };
 }
