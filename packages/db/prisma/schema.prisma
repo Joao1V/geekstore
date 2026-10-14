@@ -150,6 +150,8 @@ model Customer {
   email         String   @unique @db.VarChar(255)
   name          String   @db.VarChar(255)
   password_hash String   @db.VarChar(255)
+  // Identificador da conta Google (`sub`); conta criada só pelo Google tem senha aleatória inutilizável.
+  google_sub    String?  @unique @db.VarChar(64)
   // CPF ou CNPJ, só dígitos.
   document      String?  @db.VarChar(14)
   phone         String?  @db.VarChar(20)
@@ -409,6 +411,12 @@ enum PurchaseReceiptStatus {
   posted
 }
 
+// Base do rateio de frete, seguro e outras despesas entre os itens da nota.
+enum ApportionBasis {
+  value
+  quantity
+}
+
 enum ReceiptMatchMethod {
   mapping
   ean
@@ -439,6 +447,16 @@ model PurchaseReceipt {
   access_key          String?               @unique @db.VarChar(44)
   issued_at           DateTime?
   total_cents         Int
+  // Encargos do cabeçalho da NF-e (`ICMSTot`), em centavos. Entram no custo rateados por item.
+  freight_cents       Int                   @default(0)
+  insurance_cents     Int                   @default(0)
+  other_cents         Int                   @default(0)
+  discount_cents      Int                   @default(0)
+  ipi_cents           Int                   @default(0)
+  icms_st_cents       Int                   @default(0)
+  include_ipi         Boolean               @default(true)
+  include_icms_st     Boolean               @default(true)
+  apportion_basis     ApportionBasis        @default(value)
   location_id         String                @db.Uuid
   status              PurchaseReceiptStatus @default(draft)
   notes               String?               @db.Text
@@ -450,9 +468,10 @@ model PurchaseReceipt {
   created_at          DateTime              @default(now())
   updated_at          DateTime              @updatedAt
 
-  supplier Supplier?             @relation(fields: [supplier_id], references: [supplier_id])
-  location Location              @relation(fields: [location_id], references: [location_id])
+  supplier Supplier?              @relation(fields: [supplier_id], references: [supplier_id])
+  location Location               @relation(fields: [location_id], references: [location_id])
   items    PurchaseReceiptItem[]
+  events   PurchaseReceiptEvent[]
 
   @@index([supplier_id])
   @@index([status, created_at])
@@ -467,20 +486,81 @@ model PurchaseReceiptItem {
   description              String              @db.VarChar(500)
   ean                      String?             @db.VarChar(14)
   ncm                      String?             @db.VarChar(8)
+  // `quantity` (em unidades nossas) = `xml_quantity` x `unit_factor`: o fornecedor vende caixa com 12,
+  // a gente estoca unidade.
+  xml_quantity             Int
+  unit_factor              Int                 @default(1)
   quantity                 Int
   unit_cost_cents          Int
   total_cost_cents         Int
+  // Encargos do próprio item na NF-e (o frete, seguro e outras despesas só existem no cabeçalho).
+  discount_cents           Int                 @default(0)
+  ipi_cents                Int                 @default(0)
+  icms_st_cents            Int                 @default(0)
+  // Custo unitário com encargos rateados, em 1/10.000 de real; congelado ao lançar a nota.
+  landed_unit_cost_e4      Int?
   sku_id                   String?             @db.Uuid
   match_method             ReceiptMatchMethod?
   // Item que não entra no estoque (frete, brinde, embalagem).
   ignored                  Boolean             @default(false)
 
-  receipt PurchaseReceipt @relation(fields: [purchase_receipt_id], references: [purchase_receipt_id], onDelete: Cascade)
-  sku     Sku?            @relation(fields: [sku_id], references: [sku_id])
+  receipt      PurchaseReceipt @relation(fields: [purchase_receipt_id], references: [purchase_receipt_id], onDelete: Cascade)
+  sku          Sku?            @relation(fields: [sku_id], references: [sku_id])
+  // Uma por lançamento: ao desprocessar a entrada fica `reverted_at` e o relançamento cria outra.
+  cost_entries SkuCostEntry[]
 
   @@unique([purchase_receipt_id, line])
   @@index([sku_id])
   @@map("purchase_receipt_item")
+}
+
+enum PurchaseReceiptEventType {
+  posted
+  reverted
+}
+
+// Linha do tempo da nota: lançada, desprocessada (com o motivo).
+model PurchaseReceiptEvent {
+  purchase_receipt_event_id String                   @id @default(uuid(7)) @db.Uuid
+  purchase_receipt_id       String                   @db.Uuid
+  type                      PurchaseReceiptEventType
+  reason                    String?                  @db.VarChar(500)
+  user_id                   String?                  @db.Uuid
+  created_at                DateTime                 @default(now())
+
+  receipt PurchaseReceipt @relation(fields: [purchase_receipt_id], references: [purchase_receipt_id], onDelete: Cascade)
+
+  @@index([purchase_receipt_id, created_at])
+  @@map("purchase_receipt_event")
+}
+
+// Histórico do custo de cada SKU, uma linha por item de nota lançado. É de onde a média sai (nunca
+// do `cost_cents` já arredondado) e o que permite desprocessar uma nota e refazer a cadeia.
+// Custos em 1/10.000 de real (`_e4`).
+model SkuCostEntry {
+  sku_cost_entry_id             String    @id @default(uuid(7)) @db.Uuid
+  sku_id                        String    @db.Uuid
+  purchase_receipt_item_id      String    @db.Uuid
+  occurred_on                   DateTime  @db.Date
+  quantity_in                   Int
+  // Saldo total do SKU (todos os locais) logo antes da entrada.
+  quantity_before               Int
+  unit_cost_e4                  Int
+  landed_unit_cost_e4           Int
+  // Médias de antes: o ponto de partida da cadeia quando o SKU já tinha custo sem histórico.
+  average_cost_before_e4        Int?
+  average_landed_cost_before_e4 Int?
+  average_cost_after_e4         Int
+  average_landed_cost_after_e4  Int
+  reverted_at                   DateTime?
+  created_at                    DateTime  @default(now())
+
+  sku  Sku                 @relation(fields: [sku_id], references: [sku_id])
+  item PurchaseReceiptItem @relation(fields: [purchase_receipt_item_id], references: [purchase_receipt_item_id])
+
+  @@index([sku_id, created_at])
+  @@index([purchase_receipt_item_id])
+  @@map("sku_cost_entry")
 }
 
 // Memória do que já foi ligado: o código do fornecedor aponta para um SKU nosso, então a próxima nota
@@ -490,6 +570,8 @@ model SupplierSku {
   supplier_id     String   @db.Uuid
   supplier_code   String   @db.VarChar(60)
   sku_id          String   @db.Uuid
+  // Quantas unidades nossas vêm em cada unidade da nota deste fornecedor (caixa com 12 = 12).
+  unit_factor     Int      @default(1)
   created_at      DateTime @default(now())
 
   supplier Supplier @relation(fields: [supplier_id], references: [supplier_id], onDelete: Cascade)
@@ -523,7 +605,10 @@ model Sku {
   ncm                String?   @db.VarChar(8)
   // Código do fabricante (MPN): os marketplaces e o Google Merchant pedem junto da marca.
   manufacturer_code  String?   @db.VarChar(60)
+  // Custo médio de aquisição (sem encargos) e com encargos rateados (frete, seguro, IPI, ST), em
+  // centavos para exibição. O cálculo vem de `sku_cost_entry`, em 1/10.000 de real.
   cost_cents         Int?
+  landed_cost_cents  Int?
   status             SkuStatus @default(active)
   // Código do item no sistema de origem (ERP): chave da importação, que a torna repetível, e elo
   // de conferência com a base antiga. Anulável: SKUs criados no admin não têm legado.
@@ -549,6 +634,7 @@ model Sku {
   reservations     StockReservation[]
   prices           Price[]
   attribute_values SkuAttributeValue[]
+  cost_entries     SkuCostEntry[]
 
   @@index([product_id])
   @@index([ean])
@@ -670,6 +756,12 @@ model StockMovement {
   reference_type    String?           @db.VarChar(32)
   reference_id      String?           @db.Uuid
   user_id           String?           @db.Uuid
+  // Saldo do par SKU/local logo depois deste movimento (extrato e conferência com `stock_level`).
+  // Anuláveis só por causa dos movimentos anteriores à coluna; todo movimento novo preenche.
+  on_hand_after     Int?
+  reserved_after    Int?
+  // Custo unitário da entrada em 1/10.000 de real (só o cálculo de custo usa essa escala).
+  unit_cost_e4      Int?
   created_at        DateTime          @default(now())
 
   sku      Sku      @relation(fields: [sku_id], references: [sku_id])
@@ -886,4 +978,20 @@ model Banner {
 
   @@index([position])
   @@map("banner")
+}
+
+// Redirecionamento 301 da URL antiga (Tray) para a nova (RF-MIG-03). `from_path` guarda o caminho já
+// normalizado (minúsculo, sem barra no fim, sem query): é com ele que o site procura.
+model Redirect {
+  redirect_id String   @id @default(uuid(7)) @db.Uuid
+  from_path   String   @unique @db.VarChar(600)
+  to_path     String   @db.VarChar(600)
+  // De onde veio: `tray` (importado do sitemap antigo) ou `manual` (cadastrado no admin).
+  source      String   @default("manual") @db.VarChar(30)
+  note        String?  @db.VarChar(255)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([source])
+  @@map("redirect")
 }
