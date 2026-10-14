@@ -33,9 +33,32 @@
   --text-2xs--line-height: 1rem;
   /* max-tablet: = max-width 1050px; em rem para ordenar junto com max-md */
   --breakpoint-tablet: 65.6875rem;
+  /* telas de entrar: listras que deslizam e brilho que pulsa (só transform/opacity) */
+  --animate-stripes: stripes 14s linear infinite;
+  --animate-glow: glow 6s ease-in-out infinite;
+  --animate-float: float 8s ease-in-out infinite;
+  @keyframes float {
+    50% {
+      transform: translate3d(0, -16px, 0);
+    }
+  }
+  @keyframes stripes {
+    to {
+      transform: translate3d(-40px, 40px, 0);
+    }
+  }
+  @keyframes glow {
+    50% {
+      opacity: 0.55;
+      transform: scale(1.12);
+    }
+  }
 }
 @theme inline {
   --color-brand-orange: var(--brand-orange);
+  /* O HeroUI usa 2xl/3xl em botões, chips e paginação (viram pílula); aqui ficam retangulares. */
+  --radius-2xl: calc(var(--radius) * 1.5);
+  --radius-3xl: calc(var(--radius) * 1.5);
 }
 :root,
 [data-theme="light"] {
@@ -54,7 +77,7 @@
   --field-focus: var(--surface);
   --field-foreground: #151518;
   --field-border: #d7d6d0;
-  --radius: 0.8rem;
+  --radius: 0.5rem;
   color-scheme: light;
 }
 [data-theme="dark"] {
@@ -230,7 +253,7 @@ a svg {
   gap: 10px;
   min-height: 49px;
   padding: 13px 22px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--action-bg, var(--color-geek-yellow));
   color: var(--action-fg, var(--color-ink));
   font-size: var(--text-sm);
@@ -310,7 +333,7 @@ a svg {
 @utility surface {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 12px;
 }
 @utility notice {
   background: color-mix(in srgb, var(--color-geek-yellow) 12%, var(--surface));

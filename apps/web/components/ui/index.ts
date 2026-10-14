@@ -1,4 +1,5 @@
 export * from './action';
+export * from './auth-split';
 export * from './dialog';
 export * from './field-autocomplete';
 export * from './field-date';
@@ -7,6 +8,8 @@ export * from './field-number';
 export * from './field-select';
 export * from './field-switch';
 export * from './field-textarea';
+export * from './google-sign-in';
+export * from './icon-action';
 export * from './price';
 export * from './quantity';
 export * from './scarcity-badge';
