@@ -1,6 +1,7 @@
 import type {
   AddressBody,
   AddressUpdateBody,
+  CustomerDeleteBody,
   CustomerLoginBody,
   CustomerRegisterBody,
   CustomerSession,
@@ -31,6 +32,7 @@ import {
 } from './customer-auth.service';
 import { requireCustomerId, signCustomerToken } from './customer-token';
 import { requestPasswordReset, resetPassword } from './password-reset.service';
+import { deleteCustomerAccount, exportCustomerData } from './privacy.service';
 
 const REFRESH_COOKIE = 'geekstore_customer_refresh';
 const COOKIE_PATH = '/api/customer/auth';
@@ -162,4 +164,17 @@ export async function resetPasswordController(
 ) {
   await resetPassword(request.body);
   return { data: { ok: true as const } };
+}
+
+export async function exportMeController(request: FastifyRequest) {
+  return { data: await exportCustomerData(requireCustomerId(request)) };
+}
+
+export async function deleteMeController(
+  request: FastifyRequest<{ Body: CustomerDeleteBody }>,
+  reply: FastifyReply
+) {
+  await deleteCustomerAccount(requireCustomerId(request), request.body);
+  reply.clearCookie(REFRESH_COOKIE, { path: COOKIE_PATH });
+  return reply.status(204).send();
 }

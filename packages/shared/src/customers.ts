@@ -100,6 +100,21 @@ export const resetPasswordBodySchema = z.object({
 });
 export type ResetPasswordBody = z.infer<typeof resetPasswordBodySchema>;
 
+/** Pedido de exclusão da conta (LGPD, RF-CLI-07): digitar o e-mail da conta confirma que é de propósito. */
+export const customerDeleteBodySchema = z.object({
+  confirm_email: z.string().trim().toLowerCase().email('Digite o e-mail da conta'),
+});
+export type CustomerDeleteBody = z.infer<typeof customerDeleteBodySchema>;
+
+/** Cópia dos dados da pessoa (LGPD): conta, endereços e pedidos. */
+export const customerDataExportSchema = z.object({
+  generated_at: z.string(),
+  customer: z.record(z.string(), z.unknown()),
+  addresses: z.array(z.record(z.string(), z.unknown())),
+  orders: z.array(z.record(z.string(), z.unknown())),
+});
+export type CustomerDataExport = z.infer<typeof customerDataExportSchema>;
+
 export const customerUpdateBodySchema = z
   .object({
     name: z.string().trim().min(2).max(255),

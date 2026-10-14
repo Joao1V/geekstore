@@ -4,6 +4,8 @@ import {
   addressParamsSchema,
   addressResponseSchema,
   addressUpdateBodySchema,
+  customerDataExportSchema,
+  customerDeleteBodySchema,
   customerLoginBodySchema,
   customerRegisterBodySchema,
   customerResponseSchema,
@@ -21,6 +23,8 @@ import { z } from 'zod';
 import {
   createAddressController,
   deleteAddressController,
+  deleteMeController,
+  exportMeController,
   forgotPasswordController,
   googleLoginController,
   listAddressesController,
@@ -54,6 +58,31 @@ export async function customerRoutes(fastify: FastifyInstance): Promise<void> {
       },
     },
     registerController
+  );
+  app.get(
+    '/me/export',
+    {
+      config: { rateLimit: AUTH_RATE_LIMIT },
+      schema: {
+        tags,
+        summary: 'Baixa uma cópia dos meus dados (LGPD)',
+        response: { 200: dataResponse(customerDataExportSchema) },
+      },
+    },
+    exportMeController
+  );
+  app.post(
+    '/me/delete',
+    {
+      config: { rateLimit: AUTH_RATE_LIMIT },
+      schema: {
+        tags,
+        summary: 'Exclui a minha conta (os pedidos ficam, sem vínculo com a conta)',
+        body: customerDeleteBodySchema,
+        response: { 204: z.null() },
+      },
+    },
+    deleteMeController
   );
   app.post(
     '/auth/forgot-password',

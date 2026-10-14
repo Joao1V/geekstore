@@ -5,6 +5,8 @@ import type {
   AddressBody,
   AddressUpdateBody,
   Customer,
+  CustomerDataExport,
+  CustomerDeleteBody,
   CustomerLoginBody,
   CustomerRegisterBody,
   CustomerSession,
@@ -76,6 +78,25 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: (body: CustomerUpdateBody) => customerApi.patch<Customer>('/api/customer/me', body),
     onSuccess: (customer) => useCustomerStore.getState().setCustomer(customer),
+  });
+}
+
+export function useExportMyData() {
+  return useMutation({
+    mutationFn: () => customerApi.get<CustomerDataExport>('/api/customer/me/export'),
+  });
+}
+
+/** Exclui a conta (LGPD): encerra a sessão e limpa tudo o que era da pessoa na tela. */
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CustomerDeleteBody) =>
+      customerApi.post<void>('/api/customer/me/delete', body),
+    onSuccess: () => {
+      useCustomerStore.getState().clearSession();
+      queryClient.removeQueries({ queryKey: ['customer'] });
+    },
   });
 }
 
