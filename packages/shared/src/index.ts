@@ -24,3 +24,4 @@ export * from './shipping';
 export * from './stock';
 export * from './storefront';
 export * from './users';
+export * from './outbox';

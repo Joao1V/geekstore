@@ -16,6 +16,7 @@ import {
   Ticket,
   Users,
   Warehouse,
+  Workflow,
 } from 'lucide-react';
 
 export type AdminNavItem = {
@@ -151,6 +152,13 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         description: 'Equipe e perfis de acesso',
         icon: Users,
         permission: 'users:read',
+      },
+      {
+        href: '/admin/eventos/',
+        label: 'Eventos',
+        description: 'Pedidos, e-mails e avisos da fila: o que falhou e reprocessar',
+        icon: Workflow,
+        permission: 'queues:read',
       },
       {
         href: '/admin/auditoria/',

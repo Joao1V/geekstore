@@ -8,6 +8,7 @@ import {
 } from '@geekstore/shared';
 import { BadRequestError, ConflictError, NotFoundError } from '../../core/_errors';
 import { envConfig } from '../../core/config/env';
+import { writeOutboxEvent } from '../../core/outbox/outbox';
 import { getPaymentProvider } from '../payments/get-payment-provider';
 import { ttlMinutesOf } from '../payments/payment-provider';
 import { toShippingItem } from '../shipping/shipping.service';
@@ -206,6 +207,11 @@ export async function createOrder({
           details: charge.details as Prisma.InputJsonValue,
           expires_at: charge.expiresAt,
         },
+      });
+      await writeOutboxEvent(tx, {
+        type: 'order.created',
+        entityType: 'order',
+        entityId: order.order_id,
       });
       if (charge.status === 'approved')
         await approvePayment(tx, order.order_id, created.payment_id);

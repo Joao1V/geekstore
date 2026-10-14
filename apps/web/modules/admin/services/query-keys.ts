@@ -35,6 +35,9 @@ export const adminKeys = {
   receiptDetail: (receiptId: string) => ['admin', 'receipts', 'detail', receiptId] as const,
   receiptSuggestions: (receiptId: string, itemId: string, ai: boolean) =>
     ['admin', 'receipts', 'suggestions', receiptId, itemId, ai] as const,
+  outbox: ['admin', 'outbox'] as const,
+  outboxList: (params: object) => ['admin', 'outbox', 'list', params] as const,
+  outboxSummary: ['admin', 'outbox', 'summary'] as const,
   auditLogs: (params: object) => ['admin', 'audit-logs', params] as const,
   users: ['admin', 'users'] as const,
   userList: (params: object) => ['admin', 'users', 'list', params] as const,

@@ -12,6 +12,7 @@ import type {
 import { ConflictError, NotFoundError } from '../../core/_errors';
 import { writeAuditLog } from '../../core/audit/write-audit-log';
 import { buildMeta, skipTake } from '../../core/http/pagination';
+import { writeOutboxEvent } from '../../core/outbox/outbox';
 import { cancelOrder, consumeOrderStock } from './order-flow';
 import { orderInclude, toOrder, toOrderSummary } from './order-mapper';
 
@@ -130,6 +131,12 @@ export async function shipOrder(
         shipped_at: new Date(),
       },
     });
+    await writeOutboxEvent(tx, {
+      type: 'order.shipped',
+      entityType: 'order',
+      entityId: order.order_id,
+      payload: { carrier: body.carrier, tracking_code: body.tracking_code ?? null },
+    });
     await writeAuditLog(tx, {
       userId: actorId,
       entity: 'order',
@@ -162,6 +169,11 @@ export async function markDelivered(actorId: string, number: number): Promise<Or
     await tx.order.update({
       where: { order_id: order.order_id },
       data: { fulfillment_status: 'delivered', status: 'completed' },
+    });
+    await writeOutboxEvent(tx, {
+      type: 'order.delivered',
+      entityType: 'order',
+      entityId: order.order_id,
     });
     await writeAuditLog(tx, {
       userId: actorId,

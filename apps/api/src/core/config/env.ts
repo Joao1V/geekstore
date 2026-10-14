@@ -62,6 +62,14 @@ const envSchema = z
       .string()
       .regex(/^\d{8}$/, 'STORE_ZIP deve ter 8 dígitos')
       .default('14780000'),
+    // E-mails transacionais: `log` (só registra no console, padrão) ou `resend` (https://resend.com).
+    EMAIL_PROVIDER: z.enum(['log', 'resend']).default('log'),
+    RESEND_API_KEY: z.string().min(1).optional(),
+    EMAIL_FROM: z.string().min(3).default('GeekStore <pedidos@lojageekstore.com>'),
+    // Quem recebe os alertas da operação (estoque divergente...). Sem ele, o alerta só vai para o log.
+    STORE_ALERT_EMAIL: z.string().email().optional(),
+    // Endereço público da loja, usado nos links dos e-mails.
+    STORE_PUBLIC_URL: z.string().url().default('https://www.lojageekstore.com'),
     // Pagamento: `mock` (simulado, padrão) ou `mercadopago`.
     PAYMENT_PROVIDER: z.enum(['mock', 'mercadopago']).default('mock'),
     // Access token da aplicação (Credenciais de produção ou de teste) e a assinatura secreta dos webhooks.
@@ -71,6 +79,13 @@ const envSchema = z
     API_PUBLIC_URL: z.string().url().optional(),
   })
   .superRefine((env, ctx) => {
+    if (env.EMAIL_PROVIDER === 'resend' && !env.RESEND_API_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['RESEND_API_KEY'],
+        message: 'RESEND_API_KEY é obrigatório com EMAIL_PROVIDER=resend',
+      });
+    }
     if (env.PAYMENT_PROVIDER !== 'mercadopago') return;
     for (const key of ['MERCADOPAGO_ACCESS_TOKEN', 'MERCADOPAGO_WEBHOOK_SECRET'] as const) {
       if (!env[key]) {
@@ -156,6 +171,17 @@ export const envConfig = {
       MELHOR_ENVIO_ENV,
       MELHOR_ENVIO_CONTACT_EMAIL,
       STORE_ZIP,
+    };
+  },
+  get email() {
+    const { EMAIL_PROVIDER, RESEND_API_KEY, EMAIL_FROM, STORE_ALERT_EMAIL, STORE_PUBLIC_URL } =
+      getEnv();
+    return {
+      PROVIDER: EMAIL_PROVIDER,
+      RESEND_API_KEY,
+      FROM: EMAIL_FROM,
+      ALERT_TO: STORE_ALERT_EMAIL,
+      STORE_URL: STORE_PUBLIC_URL.replace(/\/$/, ''),
     };
   },
   get payments() {

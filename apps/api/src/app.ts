@@ -32,6 +32,7 @@ import {
   storeOrderRoutes,
   webhookRoutes,
 } from './modules/orders/order.routes';
+import { outboxRoutes } from './modules/outbox/outbox.routes';
 import { pricingRoutes } from './modules/pricing/pricing.routes';
 import { purchasingRoutes } from './modules/purchasing/receipt.routes';
 import { shippingRoutes } from './modules/shipping/shipping.routes';
@@ -107,6 +108,7 @@ export function buildApp() {
   app.register(storeRedirectRoutes, { prefix: '/api/store/redirects' });
   app.register(contentRoutes, { prefix: '/api/content' });
   app.register(auditRoutes, { prefix: '/api/audit-logs' });
+  app.register(outboxRoutes, { prefix: '/api/outbox' });
 
   return app;
 }

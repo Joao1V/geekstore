@@ -19,6 +19,7 @@ import {
   storeOrderRoutes,
   webhookRoutes,
 } from '../modules/orders/order.routes';
+import { outboxRoutes } from '../modules/outbox/outbox.routes';
 import { pricingRoutes } from '../modules/pricing/pricing.routes';
 import { purchasingRoutes } from '../modules/purchasing/receipt.routes';
 import { shippingRoutes } from '../modules/shipping/shipping.routes';
@@ -59,6 +60,7 @@ export async function buildTestApp() {
   await app.register(storeRedirectRoutes, { prefix: '/api/store/redirects' });
   await app.register(contentRoutes, { prefix: '/api/content' });
   await app.register(auditRoutes, { prefix: '/api/audit-logs' });
+  await app.register(outboxRoutes, { prefix: '/api/outbox' });
   await app.ready();
   return app;
 }

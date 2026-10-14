@@ -15,6 +15,7 @@ export const permissions = [
   'users:read',
   'users:write',
   'queues:read',
+  'queues:write',
 ] as const;
 export const permissionSchema = z.enum(permissions);
 export type Permission = z.infer<typeof permissionSchema>;
@@ -48,6 +49,7 @@ export const rolePermissions: Record<RoleCode, readonly Permission[]> = {
     'audit:read',
     'users:read',
     'queues:read',
+    'queues:write',
   ],
   stock: [
     'catalog:read',

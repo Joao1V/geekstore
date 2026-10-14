@@ -995,3 +995,60 @@ model Redirect {
   @@index([source])
   @@map("redirect")
 }
+
+enum OutboxStatus {
+  pending
+  published
+  failed
+}
+
+/// Evento de negócio gravado na MESMA transação da mudança (D12/RF-PLA-07). Um publicador o entrega
+/// à fila; se o Redis cair entre o commit e o enfileiramento, o evento continua aqui, pendente.
+model OutboxEvent {
+  outbox_event_id String       @id @default(uuid(7)) @db.Uuid
+  type            String       @db.VarChar(64)
+  entity_type     String       @db.VarChar(32)
+  entity_id       String       @db.Uuid
+  /// Versão do formato do payload, para consumidores antigos reconhecerem eventos novos.
+  version         Int          @default(1)
+  payload         Json
+  status          OutboxStatus @default(pending)
+  attempts        Int          @default(0)
+  last_error      String?      @db.VarChar(500)
+  /// Retentativa com recuo: o publicador só pega eventos cujo horário já chegou.
+  available_at    DateTime     @default(now())
+  created_at      DateTime     @default(now())
+  published_at    DateTime?
+
+  emails EmailMessage[]
+
+  @@index([status, available_at])
+  @@index([entity_type, entity_id])
+  @@map("outbox_event")
+}
+
+enum EmailStatus {
+  pending
+  sent
+  failed
+}
+
+/// E-mail transacional. Único por evento e modelo: o consumidor é idempotente, reprocessar o evento
+/// nunca manda o mesmo e-mail duas vezes (RF-COM-01).
+model EmailMessage {
+  email_message_id String      @id @default(uuid(7)) @db.Uuid
+  outbox_event_id  String      @db.Uuid
+  template         String      @db.VarChar(48)
+  to_email         String      @db.VarChar(255)
+  subject          String      @db.VarChar(255)
+  status           EmailStatus @default(pending)
+  provider_id      String?     @db.VarChar(100)
+  error            String?     @db.VarChar(500)
+  created_at       DateTime    @default(now())
+  sent_at          DateTime?
+
+  event OutboxEvent @relation(fields: [outbox_event_id], references: [outbox_event_id])
+
+  @@unique([outbox_event_id, template])
+  @@map("email_message")
+}

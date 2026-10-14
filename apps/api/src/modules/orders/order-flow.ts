@@ -1,6 +1,6 @@
 import { type Prisma, prisma } from '@geekstore/db';
-
 import { ConflictError } from '../../core/_errors';
+import { writeOutboxEvent } from '../../core/outbox/outbox';
 import { recordMovement } from '../stock/movement-writer';
 import {
   consumeReserved,
@@ -72,6 +72,7 @@ export async function approvePayment(tx: Tx, orderId: string, paymentId: string)
     where: { order_id: orderId, status: 'active' },
     data: { status: 'committed' },
   });
+  await writeOutboxEvent(tx, { type: 'order.paid', entityType: 'order', entityId: orderId });
 }
 
 /**
@@ -125,6 +126,12 @@ export async function cancelOrder(tx: Tx, orderId: string, reason: string): Prom
   await tx.order.update({
     where: { order_id: orderId },
     data: { status: 'cancelled', cancelled_at: new Date(), cancel_reason: reason.slice(0, 255) },
+  });
+  await writeOutboxEvent(tx, {
+    type: 'order.cancelled',
+    entityType: 'order',
+    entityId: orderId,
+    payload: { reason: reason.slice(0, 255) },
   });
 }
 
