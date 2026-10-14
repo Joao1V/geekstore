@@ -9,6 +9,12 @@ export const authLoginBodySchema = z.object({
 });
 export type AuthLoginBody = z.infer<typeof authLoginBodySchema>;
 
+/** ID token (JWT) que o botão "Entrar com Google" entrega ao navegador. Vale para o painel e para a loja. */
+export const googleLoginBodySchema = z.object({
+  credential: z.string().min(20).max(4096),
+});
+export type GoogleLoginBody = z.infer<typeof googleLoginBodySchema>;
+
 export const authUserSchema = z.object({
   user_id: z.string().uuid(),
   email: z.string().email(),

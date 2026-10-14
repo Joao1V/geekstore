@@ -18,6 +18,8 @@ export const storeCategorySchema = z.object({
   position: z.number().int(),
   /** Produtos à venda na categoria e nas subcategorias. */
   product_count: z.number().int(),
+  /** Endereço da categoria na loja: `/colecionaveis/funko/`. */
+  path: z.string(),
 });
 export type StoreCategory = z.infer<typeof storeCategorySchema>;
 /** Com `q`, o `product_count` de cada categoria conta só o que combina com a busca. */
@@ -37,6 +39,8 @@ export type StoreBrand = z.infer<typeof storeBrandSchema>;
 export const storeProductCardSchema = z.object({
   product_id: z.string().uuid(),
   slug: z.string(),
+  /** Endereço canônico do produto: `/colecionaveis/funko/<slug>/` (categoria + slug). */
+  path: z.string(),
   name: z.string(),
   brand: z.string().nullable(),
   brand_slug: z.string().nullable(),
@@ -120,6 +124,8 @@ export const storeSkuSchema = z.object({
 export const storeProductDetailSchema = z.object({
   product_id: z.string().uuid(),
   slug: z.string(),
+  /** Endereço canônico do produto na loja. */
+  path: z.string(),
   name: z.string(),
   description: z.string().nullable(),
   brand: z.object({ slug: z.string(), name: z.string() }).nullable(),
@@ -137,11 +143,25 @@ export const storeProductDetailResponseSchema = dataResponse(storeProductDetailS
 
 /** Endereços para o sitemap: os produtos à venda e as categorias com produtos. */
 export const storeSitemapSchema = z.object({
-  products: z.array(z.object({ slug: z.string(), updated_at: isoDateTimeSchema })),
-  categories: z.array(z.object({ slug: z.string() })),
+  products: z.array(
+    z.object({ slug: z.string(), path: z.string(), updated_at: isoDateTimeSchema })
+  ),
+  categories: z.array(z.object({ slug: z.string(), path: z.string() })),
 });
 export type StoreSitemap = z.infer<typeof storeSitemapSchema>;
 export const storeSitemapResponseSchema = dataResponse(storeSitemapSchema);
 
 export const storeProductParamsSchema = z.object({ slug: z.string().min(1).max(255) });
 export type StoreProductParams = z.infer<typeof storeProductParamsSchema>;
+
+// ── Endereços (padrão da Tray: /categoria/subcategoria/slug) ───────────────────
+/** Pergunta "o que é este endereço?" e devolve o endereço canônico, para o site redirecionar o que difere. */
+export const storeResolveQuerySchema = z.object({ path: z.string().min(1).max(600) });
+export type StoreResolveQuery = z.infer<typeof storeResolveQuerySchema>;
+export const storeResolveSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('category'), path: z.string(), slug: z.string() }),
+  z.object({ type: z.literal('product'), path: z.string(), slug: z.string() }),
+  z.object({ type: z.literal('none') }),
+]);
+export type StoreResolve = z.infer<typeof storeResolveSchema>;
+export const storeResolveResponseSchema = dataResponse(storeResolveSchema);

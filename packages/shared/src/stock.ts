@@ -52,6 +52,9 @@ export const stockMovementSchema = z.object({
   quantity: z.number().int(),
   reason: z.string().nullable(),
   user_id: z.string().uuid().nullable(),
+  /** Saldo do par SKU/local logo depois deste movimento; `null` nos movimentos anteriores ao campo. */
+  on_hand_after: z.number().int().nullable(),
+  reserved_after: z.number().int().nullable(),
   created_at: isoDateTimeSchema,
 });
 export type StockMovement = z.infer<typeof stockMovementSchema>;
