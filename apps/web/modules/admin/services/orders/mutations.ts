@@ -1,6 +1,13 @@
 'use client';
 
-import type { Order, OrderCancelBody, OrderShipBody, RefundBody } from '@geekstore/shared';
+import type {
+  Order,
+  OrderCancelBody,
+  OrderReturnBody,
+  OrderReturnReceiveBody,
+  OrderShipBody,
+  RefundBody,
+} from '@geekstore/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { adminApi } from '../../lib/admin-api';
@@ -34,3 +41,26 @@ export const useShipOrder = (number: number) => useOrderAction<OrderShipBody>(nu
 export const useDeliverOrder = (number: number) => useOrderAction<undefined>(number, 'deliver');
 export const useCancelOrder = (number: number) => useOrderAction<OrderCancelBody>(number, 'cancel');
 export const useRefundOrder = (number: number) => useOrderAction<RefundBody>(number, 'refunds');
+
+export const useRequestReturn = (number: number) =>
+  useOrderAction<OrderReturnBody>(number, 'returns');
+
+/** Receber uma devolução move estoque (depósito e quarentena): o mesmo `useOrderAction` recarrega os saldos. */
+export function useReceiveReturn(number: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ returnId, body }: { returnId: string; body: OrderReturnReceiveBody }) =>
+      adminApi.post<Order>(`/api/orders/${number}/returns/${returnId}/receive`, body),
+    onSuccess: (order) => {
+      queryClient.setQueryData(adminKeys.orderDetail(number), order);
+      for (const key of [
+        adminKeys.orders,
+        adminKeys.stockLevels,
+        adminKeys.movements,
+        adminKeys.skuGrid,
+      ]) {
+        queryClient.invalidateQueries({ queryKey: key });
+      }
+    },
+  });
+}

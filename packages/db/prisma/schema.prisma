@@ -20,6 +20,7 @@ model User {
   refresh_tokens RefreshToken[]
   audit_logs     AuditLog[]
   refunds        Refund[]
+  order_returns  OrderReturn[]
 
   @@index([role_id])
   @@map("user")
@@ -256,12 +257,13 @@ model Order {
   created_at         DateTime          @default(now())
   updated_at         DateTime          @updatedAt
 
-  channel   Channel     @relation(fields: [channel_id], references: [channel_id])
-  customer  Customer?   @relation(fields: [customer_id], references: [customer_id])
+  channel   Channel       @relation(fields: [channel_id], references: [channel_id])
+  customer  Customer?     @relation(fields: [customer_id], references: [customer_id])
   items     OrderItem[]
   payments  Payment[]
   shipments Shipment[]
   refunds   Refund[]
+  returns   OrderReturn[]
 
   @@unique([channel_id, external_order_id])
   @@index([customer_id, created_at])
@@ -639,6 +641,7 @@ model Sku {
   prices           Price[]
   attribute_values SkuAttributeValue[]
   cost_entries     SkuCostEntry[]
+  return_items     OrderReturnItem[]
 
   @@index([product_id])
   @@index([ean])
@@ -1101,4 +1104,45 @@ model Refund {
   @@index([order_id])
   @@index([payment_id])
   @@map("refund")
+}
+
+enum ReturnStatus {
+  requested
+  received
+}
+
+/// Devolução de itens já enviados (RF-PED-04). Primeiro é pedida; só quando a mercadoria chega e é
+/// avaliada o estoque se move: o que está em condição de venda volta ao depósito e o resto vai para a
+/// quarentena, que não entra no disponível vendável. O dinheiro é estornado à parte (`Refund`).
+model OrderReturn {
+  order_return_id String       @id @default(uuid(7)) @db.Uuid
+  order_id        String       @db.Uuid
+  status          ReturnStatus @default(requested)
+  reason          String       @db.VarChar(255)
+  user_id         String       @db.Uuid
+  created_at      DateTime     @default(now())
+  received_at     DateTime?
+
+  order Order             @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  user  User              @relation(fields: [user_id], references: [user_id])
+  items OrderReturnItem[]
+
+  @@index([order_id])
+  @@map("order_return")
+}
+
+model OrderReturnItem {
+  order_return_item_id String @id @default(uuid(7)) @db.Uuid
+  order_return_id      String @db.Uuid
+  sku_id               String @db.Uuid
+  quantity             Int
+  /// Preenchidos no recebimento: `resellable + damaged = quantity`.
+  resellable_quantity  Int?
+  damaged_quantity     Int?
+
+  order_return OrderReturn @relation(fields: [order_return_id], references: [order_return_id], onDelete: Cascade)
+  sku          Sku         @relation(fields: [sku_id], references: [sku_id])
+
+  @@unique([order_return_id, sku_id])
+  @@map("order_return_item")
 }

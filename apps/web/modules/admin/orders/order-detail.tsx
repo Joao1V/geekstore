@@ -23,6 +23,7 @@ import { orderDetailQueryOptions } from '../services/orders/queries';
 import { Badge } from '../ui/badge';
 import { PageHeader } from '../ui/page-header';
 import { AdminTable, TBody, Td, THead, Th, Tr } from '../ui/table';
+import { OrderReturns } from './order-returns';
 import { OrderStatusBadge } from './order-status';
 
 type Dialogs = 'ship' | 'cancel' | 'refund' | null;
@@ -260,6 +261,7 @@ export function OrderDetail({ number }: { number: number }) {
           </ul>
         </div>
       )}
+      <OrderReturns order={order} canWrite={canWrite} />
       <div className="mt-4 grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <div className="surface p-4 text-sm">
           <h2 className="mb-2 text-base font-extrabold">Entrega</h2>

@@ -144,6 +144,58 @@ export const refundBodySchema = z.object({
 });
 export type RefundBody = z.infer<typeof refundBodySchema>;
 
+export const returnStatusSchema = z.enum(['requested', 'received']);
+export const orderReturnItemSchema = z.object({
+  sku_id: z.string().uuid(),
+  sku_code: z.string(),
+  name: z.string(),
+  quantity: z.number().int(),
+  resellable_quantity: z.number().int().nullable(),
+  damaged_quantity: z.number().int().nullable(),
+});
+export const orderReturnSchema = z.object({
+  order_return_id: z.string().uuid(),
+  status: returnStatusSchema,
+  reason: z.string(),
+  items: z.array(orderReturnItemSchema),
+  created_at: isoDateTimeSchema,
+  received_at: isoDateTimeSchema.nullable(),
+});
+export type OrderReturn = z.infer<typeof orderReturnSchema>;
+
+/** Pede a devolução: o estoque só se move quando a mercadoria chega (`orderReturnReceiveBodySchema`). */
+export const orderReturnBodySchema = z.object({
+  reason: z.string().trim().min(3, 'Diga o motivo da devolução').max(255),
+  items: z
+    .array(
+      z.object({
+        sku_id: z.string().uuid(),
+        quantity: z.number().int().positive().max(999),
+      })
+    )
+    .min(1, 'Escolha ao menos um item'),
+});
+export type OrderReturnBody = z.infer<typeof orderReturnBodySchema>;
+
+/** Avaliação na chegada: quanto de cada item volta a ser vendável e quanto vai para a quarentena. */
+export const orderReturnReceiveBodySchema = z.object({
+  items: z
+    .array(
+      z.object({
+        sku_id: z.string().uuid(),
+        resellable_quantity: z.number().int().min(0).max(999),
+        damaged_quantity: z.number().int().min(0).max(999),
+      })
+    )
+    .min(1),
+});
+export type OrderReturnReceiveBody = z.infer<typeof orderReturnReceiveBodySchema>;
+
+export const orderReturnParamsSchema = z.object({
+  number: z.coerce.number().int().positive(),
+  order_return_id: z.string().uuid(),
+});
+
 export const orderSchema = z.object({
   order_id: z.string().uuid(),
   number: z.number().int(),
@@ -171,6 +223,7 @@ export const orderSchema = z.object({
   /** Soma dos estornos já concluídos. */
   refunded_cents: z.number().int(),
   refunds: z.array(refundSchema),
+  returns: z.array(orderReturnSchema),
   created_at: isoDateTimeSchema,
 });
 export type Order = z.infer<typeof orderSchema>;

@@ -5,6 +5,9 @@ import {
   orderDashboardResponseSchema,
   orderParamsSchema,
   orderResponseSchema,
+  orderReturnBodySchema,
+  orderReturnParamsSchema,
+  orderReturnReceiveBodySchema,
   orderShipBodySchema,
   refundBodySchema,
 } from '@geekstore/shared';
@@ -21,6 +24,7 @@ import {
   shipOrder,
   startPicking,
 } from './admin-orders.service';
+import { receiveReturn, requestReturn } from './order-return.service';
 import { refundOrder } from './refund.service';
 
 const tags = ['Pedidos (admin)'];
@@ -143,6 +147,46 @@ export async function adminOrderRoutes(fastify: FastifyInstance): Promise<void> 
     },
     async (request) => ({
       data: await refundOrder(request.user.sub, request.params.number, request.body),
+    })
+  );
+
+  app.post(
+    '/:number/returns',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary:
+          'Pede a devolução de itens enviados (o estoque só muda quando a devolução é recebida)',
+        params: orderParamsSchema,
+        body: orderReturnBodySchema,
+        response: { 200: orderResponseSchema },
+      },
+    },
+    async (request) => ({
+      data: await requestReturn(request.user.sub, request.params.number, request.body),
+    })
+  );
+  app.post(
+    '/:number/returns/:order_return_id/receive',
+    {
+      ...write,
+      schema: {
+        tags,
+        summary:
+          'Recebe e avalia a devolução: o que é vendável volta ao depósito, o resto vai à quarentena',
+        params: orderReturnParamsSchema,
+        body: orderReturnReceiveBodySchema,
+        response: { 200: orderResponseSchema },
+      },
+    },
+    async (request) => ({
+      data: await receiveReturn(
+        request.user.sub,
+        request.params.number,
+        request.params.order_return_id,
+        request.body
+      ),
     })
   );
 }

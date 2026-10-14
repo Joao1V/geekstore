@@ -6,6 +6,10 @@ export const orderInclude = {
   payments: { orderBy: { created_at: 'desc' }, take: 1 },
   shipments: { orderBy: { created_at: 'asc' } },
   refunds: { orderBy: { created_at: 'asc' } },
+  returns: {
+    orderBy: { created_at: 'asc' },
+    include: { items: { include: { sku: { select: { code: true } } } } },
+  },
 } satisfies Prisma.OrderInclude;
 
 export type OrderRow = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
@@ -73,6 +77,22 @@ export function toOrder(row: OrderRow): Order {
       reason: refund.reason,
       error: refund.error,
       created_at: refund.created_at.toISOString(),
+    })),
+    returns: row.returns.map((item) => ({
+      order_return_id: item.order_return_id,
+      status: item.status,
+      reason: item.reason,
+      items: item.items.map((line) => ({
+        sku_id: line.sku_id,
+        sku_code: line.sku.code,
+        name:
+          row.items.find((orderItem) => orderItem.sku_id === line.sku_id)?.name ?? line.sku.code,
+        quantity: line.quantity,
+        resellable_quantity: line.resellable_quantity,
+        damaged_quantity: line.damaged_quantity,
+      })),
+      created_at: item.created_at.toISOString(),
+      received_at: iso(item.received_at),
     })),
     created_at: row.created_at.toISOString(),
   };
