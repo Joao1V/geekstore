@@ -1,10 +1,14 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import type { NextConfig } from 'next';
 
 // URL da API vista pelo servidor do Next (rede interna). Nunca vai para o bundle do browser.
 const API_INTERNAL_URL = process.env.API_INTERNAL_URL;
 const BASE_PATH = process.env.BASE_PATH || undefined;
-// Definido no build (Dockerfile): no domínio do painel só existem as rotas /admin.
-const IS_ADMIN_BUILD = process.env.APP_MODE === 'admin';
+// No build `admin` o Dockerfile apaga `app/(store)`: no domínio do painel só existem as rotas /admin.
+// Detectado pelas pastas, porque o Turbo não repassa `APP_MODE` ao `next build`.
+const IS_ADMIN_BUILD =
+  existsSync(join(process.cwd(), 'app/(admin)')) && !existsSync(join(process.cwd(), 'app/(store)'));
 
 const nextConfig: NextConfig = {
   output: 'standalone',
