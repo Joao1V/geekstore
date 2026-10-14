@@ -9,14 +9,19 @@ import {
   customerResponseSchema,
   customerSessionResponseSchema,
   customerUpdateBodySchema,
+  dataResponse,
+  forgotPasswordBodySchema,
   googleLoginBodySchema,
+  resetPasswordBodySchema,
 } from '@geekstore/shared';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import { z } from 'zod';
 
 import {
   createAddressController,
   deleteAddressController,
+  forgotPasswordController,
   googleLoginController,
   listAddressesController,
   loginController,
@@ -24,11 +29,13 @@ import {
   meController,
   refreshController,
   registerController,
+  resetPasswordController,
   updateAddressController,
   updateMeController,
 } from './customer.controller';
 
 const tags = ['Cliente'];
+const okResponseSchema = dataResponse(z.object({ ok: z.literal(true) }));
 const AUTH_RATE_LIMIT = { max: 8, timeWindow: '1 minute' };
 
 /** Conta do cliente da loja (cadastro, login, perfil, endereços). Prefixo: /api/customer. */
@@ -47,6 +54,32 @@ export async function customerRoutes(fastify: FastifyInstance): Promise<void> {
       },
     },
     registerController
+  );
+  app.post(
+    '/auth/forgot-password',
+    {
+      config: { rateLimit: AUTH_RATE_LIMIT },
+      schema: {
+        tags,
+        summary: 'Pede o e-mail de nova senha (a resposta não revela se a conta existe)',
+        body: forgotPasswordBodySchema,
+        response: { 200: okResponseSchema },
+      },
+    },
+    forgotPasswordController
+  );
+  app.post(
+    '/auth/reset-password',
+    {
+      config: { rateLimit: AUTH_RATE_LIMIT },
+      schema: {
+        tags,
+        summary: 'Define a nova senha com o link do e-mail e encerra as outras sessões',
+        body: resetPasswordBodySchema,
+        response: { 200: okResponseSchema },
+      },
+    },
+    resetPasswordController
   );
   app.post(
     '/auth/login',

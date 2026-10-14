@@ -5,7 +5,9 @@ import type {
   CustomerRegisterBody,
   CustomerSession,
   CustomerUpdateBody,
+  ForgotPasswordBody,
   GoogleLoginBody,
+  ResetPasswordBody,
 } from '@geekstore/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -28,6 +30,7 @@ import {
   verifyCustomerCredentials,
 } from './customer-auth.service';
 import { requireCustomerId, signCustomerToken } from './customer-token';
+import { requestPasswordReset, resetPassword } from './password-reset.service';
 
 const REFRESH_COOKIE = 'geekstore_customer_refresh';
 const COOKIE_PATH = '/api/customer/auth';
@@ -144,4 +147,19 @@ export async function deleteAddressController(
 ) {
   await deleteAddress(requireCustomerId(request), request.params.address_id);
   return reply.status(204).send();
+}
+
+export async function forgotPasswordController(
+  request: FastifyRequest<{ Body: ForgotPasswordBody }>
+) {
+  await requestPasswordReset(request.body);
+  // Sempre a mesma resposta: não revela se o e-mail tem conta.
+  return { data: { ok: true as const } };
+}
+
+export async function resetPasswordController(
+  request: FastifyRequest<{ Body: ResetPasswordBody }>
+) {
+  await resetPassword(request.body);
+  return { data: { ok: true as const } };
 }

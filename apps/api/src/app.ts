@@ -26,6 +26,7 @@ import {
 } from './modules/content/content.routes';
 import { customerRoutes } from './modules/customers/customer.routes';
 import { healthPlugin } from './modules/health/health.plugin';
+import { outboxPipelinePlugin } from './modules/notifications/outbox-pipeline';
 import { adminOrderRoutes } from './modules/orders/admin-orders.routes';
 import {
   customerOrderRoutes,
@@ -69,6 +70,7 @@ export function buildApp() {
   app.register(rateLimitPlugin);
   app.register(jwtPlugin);
   app.register(queuePlugin);
+  app.register(outboxPipelinePlugin);
 
   app.register(fastifySwagger, {
     openapi: {

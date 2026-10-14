@@ -89,6 +89,17 @@ export const customerLoginBodySchema = z.object({
 });
 export type CustomerLoginBody = z.infer<typeof customerLoginBodySchema>;
 
+export const forgotPasswordBodySchema = z.object({
+  email: z.string().trim().toLowerCase().email('E-mail inválido').max(255),
+});
+export type ForgotPasswordBody = z.infer<typeof forgotPasswordBodySchema>;
+
+export const resetPasswordBodySchema = z.object({
+  token: z.string().trim().min(20).max(200),
+  password: z.string().min(8, 'A senha precisa de ao menos 8 caracteres').max(128),
+});
+export type ResetPasswordBody = z.infer<typeof resetPasswordBodySchema>;
+
 export const customerUpdateBodySchema = z
   .object({
     name: z.string().trim().min(2).max(255),

@@ -286,6 +286,13 @@ export function Account({ register = false }: { register?: boolean }) {
       ) : (
         <LoginForm onDone={() => router.replace(next)} />
       )}
+      {!register && (
+        <p className="mt-0 mb-3 text-center text-sm">
+          <Link className="orange" href="/esqueci-a-senha/">
+            Esqueci minha senha
+          </Link>
+        </p>
+      )}
       <p className="muted text-center text-sm">
         {register ? 'Já tem uma conta?' : 'Ainda não tem conta?'}{' '}
         <Link className="orange" href={`${register ? '/entrar/' : '/cadastro/'}${suffix}`}>

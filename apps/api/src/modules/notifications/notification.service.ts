@@ -2,6 +2,7 @@ import { Prisma, prisma } from '@geekstore/db';
 
 import { envConfig } from '../../core/config/env';
 import type { PublishedEvent } from '../../core/outbox/outbox';
+import { signResetToken } from '../customers/password-reset.service';
 import type { EmailSender } from './email-sender';
 import {
   type DivergenceMailData,
@@ -11,6 +12,7 @@ import {
   orderDelivered,
   orderPaid,
   orderShipped,
+  passwordReset,
   type RenderedEmail,
   stockDivergence,
 } from './email-templates';
@@ -21,7 +23,8 @@ type Template =
   | 'order_shipped'
   | 'order_delivered'
   | 'order_cancelled'
-  | 'stock_divergence';
+  | 'stock_divergence'
+  | 'password_reset';
 
 const PICKUP_CARRIER = 'GeekStore';
 
@@ -145,6 +148,25 @@ export async function handleOutboxEvent(event: PublishedEvent, sender: EmailSend
     }
     await sendOnce(sender, event.outbox_event_id, 'stock_divergence', ALERT_TO, () =>
       stockDivergence(data)
+    );
+    return;
+  }
+
+  if (event.type === 'customer.password_reset_requested') {
+    const { password_reset_id: resetId } = event.payload as { password_reset_id: string };
+    const reset = await prisma.passwordReset.findUnique({
+      where: { password_reset_id: resetId },
+      include: { customer: true },
+    });
+    // Já usado ou vencido: não há o que enviar.
+    if (!reset || reset.used_at || reset.expires_at < new Date()) return;
+    const { STORE_URL } = envConfig.email;
+    await sendOnce(sender, event.outbox_event_id, 'password_reset', reset.customer.email, () =>
+      passwordReset({
+        name: reset.customer.name,
+        storeUrl: STORE_URL,
+        link: `${STORE_URL}/redefinir-senha/?token=${signResetToken(resetId)}`,
+      })
     );
     return;
   }

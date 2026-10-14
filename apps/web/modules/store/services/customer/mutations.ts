@@ -46,6 +46,20 @@ export function useLogin() {
   });
 }
 
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (email: string) =>
+      api.post<{ ok: true }>('/api/customer/auth/forgot-password', { email }),
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (body: { token: string; password: string }) =>
+      api.post<{ ok: true }>('/api/customer/auth/reset-password', body),
+  });
+}
+
 export function useLogout() {
   const queryClient = useQueryClient();
   return useMutation({

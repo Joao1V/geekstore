@@ -147,3 +147,18 @@ export function stockDivergence(data: DivergenceMailData): RenderedEmail {
     html: `<p>${escapeHtml(subject)}</p><ul>${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`,
   };
 }
+
+export type PasswordResetMailData = { name: string; link: string; storeUrl: string };
+
+export function passwordReset(data: PasswordResetMailData): RenderedEmail {
+  const subject = 'Redefinir sua senha da GeekStore';
+  const first = data.name.trim().split(/\s+/)[0] ?? data.name;
+  const text = `Olá, ${first}!\n\nRecebemos um pedido para redefinir sua senha. Use o link abaixo (vale por 1 hora):\n${data.link}\n\nSe não foi você, ignore este e-mail: nada muda na sua conta.\n`;
+  const html = `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#f4f3ef;font-family:Arial,sans-serif;color:#151518">
+<div style="max-width:560px;margin:0 auto;padding:24px"><p style="font-size:24px;font-weight:900;margin:0 0 16px"><span style="color:#ffbd08">Geek</span>Store</p>
+<div style="background:#fff;border-radius:12px;padding:24px"><h1 style="font-size:20px;margin:0 0 12px">Redefinir sua senha</h1>
+<p style="font-size:15px;line-height:1.5">Olá, ${escapeHtml(first)}! Recebemos um pedido para redefinir sua senha. O link vale por 1 hora.</p>
+<p><a href="${escapeHtml(data.link)}" style="background:#ffbd08;color:#111;text-decoration:none;font-weight:900;padding:12px 18px;border-radius:10px;display:inline-block">Criar nova senha</a></p>
+<p style="font-size:13px;color:#606068">Se não foi você, ignore este e-mail: nada muda na sua conta.</p></div></div></body></html>`;
+  return { subject, html, text };
+}

@@ -158,9 +158,10 @@ model Customer {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
-  addresses      Address[]
-  refresh_tokens CustomerRefreshToken[]
-  orders         Order[]
+  addresses       Address[]
+  refresh_tokens  CustomerRefreshToken[]
+  orders          Order[]
+  password_resets PasswordReset[]
 
   @@map("customer")
 }
@@ -1051,4 +1052,19 @@ model EmailMessage {
 
   @@unique([outbox_event_id, template])
   @@map("email_message")
+}
+
+/// Pedido de nova senha do cliente (RF-CLI-02). O link leva `<id>.<assinatura>`: a assinatura é um
+/// HMAC com segredo da API, então nenhum segredo fica guardado aqui (só o prazo e se já foi usado).
+model PasswordReset {
+  password_reset_id String    @id @default(uuid(7)) @db.Uuid
+  customer_id       String    @db.Uuid
+  expires_at        DateTime
+  used_at           DateTime?
+  created_at        DateTime  @default(now())
+
+  customer Customer @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+
+  @@index([customer_id, created_at])
+  @@map("password_reset")
 }

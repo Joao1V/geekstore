@@ -1,6 +1,5 @@
 import { buildApp } from './app';
 import { envConfig } from './core/config';
-import { startOutboxPipeline } from './modules/notifications/outbox-pipeline';
 import { expirePendingOrders } from './modules/orders/order-flow';
 import { reconcileStock } from './modules/stock/stock-reconciliation';
 
@@ -25,8 +24,6 @@ app
         .catch((error: unknown) => app.log.error(error, 'falha ao expirar pedidos'));
     }, EXPIRY_CHECK_MS);
     timer.unref();
-    startOutboxPipeline(app);
-
     // Conferência periódica entre o saldo e o histórico de movimentações (RF-EST-10).
     const reconcile = () =>
       reconcileStock()

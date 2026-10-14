@@ -12,12 +12,13 @@ export const outboxEventTypes = [
   'order.delivered',
   'order.cancelled',
   'stock.divergence_found',
+  'customer.password_reset_requested',
 ] as const;
 export type OutboxEventType = (typeof outboxEventTypes)[number];
 
 export type OutboxInput = {
   type: OutboxEventType;
-  entityType: 'order' | 'stock';
+  entityType: 'order' | 'stock' | 'customer';
   entityId: string;
   payload?: Prisma.InputJsonValue;
 };

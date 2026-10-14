@@ -32,7 +32,7 @@ import { StoreAlert } from './store-alert';
 import { StoreSearch } from './store-search';
 
 // Barra de categorias do cabeçalho: some ao descer mais que o limiar e volta ao subir.
-const FULLSCREEN_PATHS = ['/entrar', '/cadastro'];
+const FULLSCREEN_PATHS = ['/entrar', '/cadastro', '/esqueci-a-senha', '/redefinir-senha'];
 const NAV_SCROLL_THRESHOLD = 8;
 const NAV_ALWAYS_VISIBLE_Y = 80;
 
