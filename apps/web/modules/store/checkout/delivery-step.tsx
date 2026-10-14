@@ -26,6 +26,7 @@ const PICKUP: ShippingOption = {
   days_min: 1,
   days_max: 2,
   free: false,
+  estimated: false,
 };
 
 const days = (option: ShippingOption) =>
@@ -181,6 +182,7 @@ export function DeliveryStep({
                   <small className={CHOICE_HINT}>
                     {days(option)}
                     {option.free ? ' · frete grátis' : ''}
+                    {option.estimated ? ' · valor estimado' : ''}
                   </small>
                 </span>
                 <strong>

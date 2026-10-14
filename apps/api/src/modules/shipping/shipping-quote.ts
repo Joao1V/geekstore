@@ -2,7 +2,7 @@ import type { ShippingOption, ShippingQuote } from '@geekstore/shared';
 
 import { stateOfZip } from './zip-state';
 
-// Cotação SIMULADA (RF-FRT-01 pede um agregador, como o Melhor Envio; troca-se esta função por ele).
+// Estimativa por região: só entra quando o provedor de frete real (Melhor Envio) está sem token ou fora do ar.
 // Preço pela região do destino em relação à loja (Barretos, SP) e pelo peso.
 export const STORE_STATE = 'SP';
 export const FREE_SHIPPING_THRESHOLD_CENTS = 29_900;
@@ -67,21 +67,23 @@ export function quoteShipping(input: QuoteInput): ShippingQuote {
 
   const standard: ShippingOption = {
     code: 'standard',
-    carrier: 'Correios (simulado)',
+    carrier: 'Correios (estimativa)',
     service: 'PAC',
     price_cents: free ? 0 : base,
     days_min: region.min,
     days_max: region.max,
     free,
+    estimated: true,
   };
   const express: ShippingOption = {
     code: 'express',
-    carrier: 'Correios (simulado)',
+    carrier: 'Correios (estimativa)',
     service: 'SEDEX',
     price_cents: Math.round(base * EXPRESS_FACTOR),
     days_min: Math.max(1, Math.floor(region.min / 2)),
     days_max: Math.max(2, Math.floor(region.max / 2)),
     free: false,
+    estimated: true,
   };
   const pickup: ShippingOption = {
     code: 'pickup',
@@ -91,6 +93,7 @@ export function quoteShipping(input: QuoteInput): ShippingQuote {
     days_min: 1,
     days_max: 2,
     free: false,
+    estimated: false,
   };
   return {
     state,

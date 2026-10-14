@@ -50,6 +50,17 @@ const envSchema = z.object({
   AI_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // Entrar com Google (opcional): Client ID do OAuth (tipo Web). Sem ele, a API recusa o login Google.
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  // Frete real pelo Melhor Envio (Correios, Jadlog, Loggi...). Opcional: sem o token a loja usa a
+  // estimativa por região (marcada como estimada na tela).
+  MELHOR_ENVIO_TOKEN: z.string().min(1).optional(),
+  MELHOR_ENVIO_ENV: z.enum(['sandbox', 'production']).default('production'),
+  // O Melhor Envio exige um contato no User-Agent.
+  MELHOR_ENVIO_CONTACT_EMAIL: z.string().email().optional(),
+  // CEP de origem das encomendas (a loja em Barretos – SP).
+  STORE_ZIP: z
+    .string()
+    .regex(/^\d{8}$/, 'STORE_ZIP deve ter 8 dígitos')
+    .default('14780000'),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -115,6 +126,16 @@ export const envConfig = {
       ACCESS_KEY_ID: S3_ACCESS_KEY_ID,
       SECRET_ACCESS_KEY: S3_SECRET_ACCESS_KEY,
       PUBLIC_BASE_URL: S3_PUBLIC_BASE_URL,
+    };
+  },
+  get shipping() {
+    const { MELHOR_ENVIO_TOKEN, MELHOR_ENVIO_ENV, MELHOR_ENVIO_CONTACT_EMAIL, STORE_ZIP } =
+      getEnv();
+    return {
+      MELHOR_ENVIO_TOKEN,
+      MELHOR_ENVIO_ENV,
+      MELHOR_ENVIO_CONTACT_EMAIL,
+      STORE_ZIP,
     };
   },
   get google() {

@@ -3,18 +3,20 @@ import {
   type CartCheckLine,
   type CheckoutBody,
   type Order,
+  PICKUP_SERVICE_CODE,
   PIX_DISCOUNT_PERCENT,
 } from '@geekstore/shared';
-
 import { BadRequestError, ConflictError, NotFoundError } from '../../core/_errors';
+import { envConfig } from '../../core/config/env';
 import { paymentProvider, ttlMinutesOf } from '../payments/payment-provider';
-import { quoteShipping } from '../shipping/shipping-quote';
+import { toShippingItem } from '../shipping/shipping.service';
+import { shippingOptionsFor } from '../shipping/shipping-options';
 import { loadCartSkus } from './cart-lines';
 import { checkCoupon, consumeCoupon } from './coupon.service';
 import { approvePayment, reservationExpiry, reserveItems } from './order-flow';
 import { orderInclude, toOrder } from './order-mapper';
 
-const STORE_ZIP = '14780000'; // Barretos – SP: endereço da retirada na loja
+const STORE_ZIP = envConfig.shipping.STORE_ZIP; // Barretos – SP: endereço da retirada na loja
 const STORE_PICKUP_ADDRESS = {
   recipient: 'Retirada na loja',
   zip: STORE_ZIP,
@@ -26,7 +28,6 @@ const STORE_PICKUP_ADDRESS = {
   state: 'SP',
 };
 const TRANSACTION_OPTIONS = { timeout: 30_000, maxWait: 10_000 };
-const DEFAULT_WEIGHT_G = 300;
 
 async function loadOrder(orderId: string): Promise<Order> {
   const row = await prisma.order.findUniqueOrThrow({
@@ -53,7 +54,7 @@ export async function createOrder({
   if (existing) return loadOrder(existing.order_id);
 
   const { payment } = body;
-  const isPickup = body.shipping_service === 'pickup';
+  const isPickup = body.shipping_service === PICKUP_SERVICE_CODE;
   if (!isPickup && !body.shipping_address) {
     throw new BadRequestError('Informe o endereço de entrega.');
   }
@@ -75,15 +76,13 @@ export async function createOrder({
   });
 
   const subtotal = items.reduce((sum, { line, sku }) => sum + sku.price_cents * line.quantity, 0);
-  const weight = items.reduce(
-    (sum, { line, sku }) => sum + (sku.weight_g ?? DEFAULT_WEIGHT_G) * line.quantity,
-    0
-  );
   const address = isPickup ? STORE_PICKUP_ADDRESS : body.shipping_address;
-  const quote = quoteShipping({
+  const quote = await shippingOptionsFor({
     zip: address?.zip ?? STORE_ZIP,
+    items: items.map(({ line, sku }) => toShippingItem(sku, line.quantity)),
     subtotalCents: subtotal,
-    weightGrams: weight,
+    // Retirada na loja não precisa de transportadora.
+    provider: isPickup ? null : undefined,
   });
   const option = quote.options.find((candidate) => candidate.code === body.shipping_service);
   if (!option) throw new BadRequestError('Forma de entrega indisponível.');

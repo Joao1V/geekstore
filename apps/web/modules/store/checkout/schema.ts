@@ -18,7 +18,7 @@ export const checkoutFormSchema = z
         (value) => onlyDigits(value) === '' || isValidDocument(value),
         'CPF ou CNPJ inválido'
       ),
-    shipping_service: z.enum(['standard', 'express', 'pickup']),
+    shipping_service: z.string().min(1, 'Escolha a forma de entrega'),
     zip: z.string(),
     street: z.string(),
     number: z.string(),
@@ -67,7 +67,7 @@ export const emptyCheckoutValues: CheckoutFormValues = {
   email: '',
   phone: '',
   document: '',
-  shipping_service: 'standard',
+  shipping_service: '',
   zip: '',
   street: '',
   number: '',

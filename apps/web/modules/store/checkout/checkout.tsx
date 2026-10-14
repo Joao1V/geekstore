@@ -117,6 +117,13 @@ export function Checkout() {
     enabled: zipDigits.length === ZIP_DIGITS && lines.length > 0,
   });
   const option = quote.data?.options.find((candidate) => candidate.code === service);
+  const cheapestCode = quote.data?.options.find((candidate) => candidate.code !== 'pickup')?.code;
+
+  // Os códigos vêm da transportadora e mudam com o CEP: se o escolhido não existe mais, vale o mais barato.
+  useEffect(() => {
+    if (!quote.data || service === 'pickup' || option) return;
+    setValue('shipping_service', cheapestCode ?? 'pickup');
+  }, [quote.data, service, option, cheapestCode, setValue]);
 
   const subtotalCents = lines.reduce((sum, line) => sum + line.price_cents * line.qty, 0);
   const couponCents = coupon?.discount_cents ?? 0;

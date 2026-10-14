@@ -13,6 +13,9 @@ export type CartSku = {
   image_url: string | null;
   price_cents: number;
   weight_g: number | null;
+  length_mm: number | null;
+  width_mm: number | null;
+  height_mm: number | null;
   available: number;
 };
 
@@ -31,7 +34,7 @@ export async function loadCartSkus(skuIds: readonly string[]): Promise<Map<strin
   if (unique.length === 0) return new Map();
   const rows = await prisma.$queryRaw<Row[]>`
     SELECT k.sku_id::text AS sku_id, k.code, p.category_id::text AS category_id,
-           p.name AS product_name, k.weight_g,
+           p.name AS product_name, k.weight_g, k.length_mm, k.width_mm, k.height_mm,
            pr.price_cents AS price_cents,
            ${skuAvailable} AS available,
            (SELECT string_agg(av.label, ' · ' ORDER BY a.code)

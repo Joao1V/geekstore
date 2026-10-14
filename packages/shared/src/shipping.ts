@@ -33,8 +33,9 @@ export const shippingQuoteBodySchema = z.object({
 });
 export type ShippingQuoteBody = z.infer<typeof shippingQuoteBodySchema>;
 
-export const shippingServiceCodes = ['standard', 'express', 'pickup'] as const;
-export const shippingServiceCodeSchema = z.enum(shippingServiceCodes);
+/** Retirada na loja: o único código fixo. Os demais vêm do provedor de frete (`me:<id do serviço>`) ou da estimativa (`standard`, `express`). */
+export const PICKUP_SERVICE_CODE = 'pickup';
+export const shippingServiceCodeSchema = z.string().trim().min(1).max(40);
 export type ShippingServiceCode = z.infer<typeof shippingServiceCodeSchema>;
 
 export const shippingOptionSchema = z.object({
@@ -46,6 +47,8 @@ export const shippingOptionSchema = z.object({
   days_max: z.number().int(),
   /** O frete grátis por valor mínimo foi aplicado. */
   free: z.boolean(),
+  /** `true` quando o valor é uma estimativa por região (provedor de frete fora do ar ou sem chave). */
+  estimated: z.boolean().default(false),
 });
 export type ShippingOption = z.infer<typeof shippingOptionSchema>;
 
