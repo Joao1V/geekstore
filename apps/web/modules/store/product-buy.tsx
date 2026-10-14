@@ -2,6 +2,7 @@
 
 import type { StoreProductDetail } from '@geekstore/shared';
 import { Button } from '@heroui/react';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Heart, Package, ShieldCheck, ShoppingCart, Truck, ZoomIn } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -11,6 +12,7 @@ import { Action, Dialog, FieldInput, Price, Quantity, ScarcityBadge } from '@/co
 import { trackEvent } from '@/lib/analytics';
 import { discountPercent, formatBRL, installmentPlan, pixCents } from './lib/money';
 import { ProductImage } from './product-image';
+import { shippingQuoteQuery } from './services/checkout/queries';
 import { useCartStore } from './state/cart-store';
 import { StockAlertForm } from './stock-alert-form';
 
@@ -19,19 +21,25 @@ const OPTION_BUTTON = 'min-w-[43px] rounded-lg px-3 text-foreground';
 type Selection = Record<string, string>;
 type FreightFormValues = { cep: string };
 
-export function Freight() {
-  const [result, setResult] = useState(false);
+/** Frete e prazo do produto: pergunta à API (a mesma cotação do checkout) com o SKU escolhido. */
+export function Freight({ skuId, quantity }: { skuId: string | null; quantity: number }) {
+  const [zip, setZip] = useState('');
   const { control, handleSubmit, setError } = useForm<FreightFormValues>({
     defaultValues: { cep: '' },
   });
+  const quote = useQuery({
+    ...shippingQuoteQuery(zip, skuId ? [{ sku_id: skuId, quantity }] : []),
+    enabled: zip.length === 8 && skuId !== null,
+  });
 
   const submit = ({ cep }: FreightFormValues) => {
-    if (cep.replace(/\D/g, '').length !== 8) {
+    const digits = cep.replace(/\D/g, '');
+    if (digits.length !== 8) {
       setError('cep', { message: 'Digite um CEP com 8 números.' });
-      setResult(false);
+      setZip('');
       return;
     }
-    setResult(true);
+    setZip(digits);
   };
 
   return (
@@ -52,7 +60,7 @@ export function Freight() {
                   field.onChange(
                     digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits
                   );
-                  setResult(false);
+                  setZip('');
                 },
               }}
               fieldState={fieldState}
@@ -71,15 +79,40 @@ export function Freight() {
           Calcular
         </Action>
       </form>
-      {result && (
+      {zip && !skuId && (
         <p role="status" className="my-3 text-sm">
-          Simulação: entrega padrão de R$ 19,90, em 5–8 dias úteis. A transportadora ainda não está
-          conectada.
+          Escolha as opções do produto para calcular o frete.
         </p>
       )}
-      <small className="text-xs text-muted">
-        Estimativa demonstrativa. Não consulte dados reais aqui.
-      </small>
+      {zip && skuId && quote.isFetching && <p className="muted my-3 text-sm">Calculando…</p>}
+      {zip && quote.isError && (
+        <p role="alert" className="error my-3 text-sm">
+          Não consegui calcular o frete agora. Tente de novo.
+        </p>
+      )}
+      {quote.data && zip && (
+        <ul className="my-3 grid list-none gap-1.5 p-0 text-sm">
+          {quote.data.options.map((option) => (
+            <li key={option.code} className="flex justify-between gap-3">
+              <span>
+                {option.carrier === 'GeekStore'
+                  ? option.service
+                  : `${option.service} · ${option.carrier}`}
+                <span className="muted">
+                  {' '}
+                  ·{' '}
+                  {option.days_min === option.days_max
+                    ? `${option.days_min}`
+                    : `${option.days_min} a ${option.days_max}`}{' '}
+                  dias úteis
+                  {option.estimated ? ' · valor estimado' : ''}
+                </span>
+              </span>
+              <strong>{option.price_cents === 0 ? 'Grátis' : formatBRL(option.price_cents)}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -382,7 +415,12 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
             </Button>
           </div>
           {alertSku && <StockAlertForm skuId={alertSku.sku_id} />}
-          <Freight />
+          <Freight
+            skuId={
+              sku?.sku_id ?? (product.skus.length === 1 ? (product.skus[0]?.sku_id ?? null) : null)
+            }
+            quantity={qty}
+          />
           <Link href="/ajuda/" className="mt-[18px] flex items-center gap-2 text-sm">
             <ShieldCheck size={17} /> Consulte atendimento, trocas e devoluções
           </Link>
