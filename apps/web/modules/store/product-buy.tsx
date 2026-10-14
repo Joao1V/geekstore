@@ -12,6 +12,7 @@ import { trackEvent } from '@/lib/analytics';
 import { discountPercent, formatBRL, installmentPlan, pixCents } from './lib/money';
 import { ProductImage } from './product-image';
 import { useCartStore } from './state/cart-store';
+import { StockAlertForm } from './stock-alert-form';
 
 const OPTION_BUTTON = 'min-w-[43px] rounded-lg px-3 text-foreground';
 
@@ -201,6 +202,13 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
 
   const onSale = compareAt !== null && compareAt > priceCents;
   const plan = installmentPlan(priceCents);
+  // Esgotado: a combinação escolhida ou, num produto de um SKU só, o próprio SKU.
+  const alertSku =
+    sku && sku.available <= 0
+      ? sku
+      : !inStockAny && product.skus.length === 1
+        ? product.skus[0]
+        : null;
 
   useEffect(() => {
     trackEvent('view_item', {
@@ -373,6 +381,7 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
               <Heart size={21} fill={isFavorite ? 'currentColor' : 'none'} />
             </Button>
           </div>
+          {alertSku && <StockAlertForm skuId={alertSku.sku_id} />}
           <Freight />
           <Link href="/ajuda/" className="mt-[18px] flex items-center gap-2 text-sm">
             <ShieldCheck size={17} /> Consulte atendimento, trocas e devoluções

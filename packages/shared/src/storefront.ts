@@ -165,3 +165,20 @@ export const storeResolveSchema = z.discriminatedUnion('type', [
 ]);
 export type StoreResolve = z.infer<typeof storeResolveSchema>;
 export const storeResolveResponseSchema = dataResponse(storeResolveSchema);
+
+// ── Newsletter e "avise-me" ────────────────────────────────────────────────────
+const emailField = z.string().trim().toLowerCase().email('E-mail inválido').max(255);
+
+export const newsletterBodySchema = z.object({ email: emailField });
+export type NewsletterBody = z.infer<typeof newsletterBodySchema>;
+
+export const signedTokenBodySchema = z.object({ token: z.string().trim().min(20).max(200) });
+export type SignedTokenBody = z.infer<typeof signedTokenBodySchema>;
+
+export const stockAlertBodySchema = z.object({
+  sku_id: z.string().uuid(),
+  email: emailField,
+});
+export type StockAlertBody = z.infer<typeof stockAlertBodySchema>;
+
+export const okBodySchema = z.object({ ok: z.literal(true) });

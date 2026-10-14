@@ -25,6 +25,7 @@ import {
   storeRedirectRoutes,
 } from './modules/content/content.routes';
 import { customerRoutes } from './modules/customers/customer.routes';
+import { engagementRoutes } from './modules/engagement/engagement.routes';
 import { healthPlugin } from './modules/health/health.plugin';
 import { outboxPipelinePlugin } from './modules/notifications/outbox-pipeline';
 import { adminOrderRoutes } from './modules/orders/admin-orders.routes';
@@ -105,6 +106,7 @@ export function buildApp() {
   app.register(pricingRoutes, { prefix: '/api/pricing' });
   app.register(usersRoutes, { prefix: '/api/users' });
   app.register(storefrontRoutes, { prefix: '/api/store' });
+  app.register(engagementRoutes, { prefix: '/api/store' });
   app.register(storePageRoutes, { prefix: '/api/store/pages' });
   app.register(storeBannerRoutes, { prefix: '/api/store/banners' });
   app.register(storeRedirectRoutes, { prefix: '/api/store/redirects' });

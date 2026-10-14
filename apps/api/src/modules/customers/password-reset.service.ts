@@ -1,32 +1,18 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
 import { prisma } from '@geekstore/db';
 import type { ForgotPasswordBody, ResetPasswordBody } from '@geekstore/shared';
 
 import { BadRequestError } from '../../core/_errors';
-import { envConfig } from '../../core/config';
 import { writeOutboxEvent } from '../../core/outbox/outbox';
 import { hashPassword } from '../../core/security/password';
+import { readToken, signToken } from '../../core/security/signed-token';
 
 const RESET_TTL_MS = 60 * 60 * 1000;
 const MAX_REQUESTS_PER_HOUR = 3;
 const INVALID_LINK = 'Este link não é válido ou já expirou. Peça um novo.';
 
-/** `<id>.<assinatura>`: a assinatura é o HMAC do id com o segredo da API, então não há segredo guardado. */
-function signature(resetId: string): string {
-  return createHmac('sha256', envConfig.cookie.SECRET)
-    .update(`password-reset:${resetId}`)
-    .digest('base64url');
-}
+const TOKEN_PURPOSE = 'password-reset';
 
-export const signResetToken = (resetId: string): string => `${resetId}.${signature(resetId)}`;
-
-function readResetId(token: string): string | null {
-  const [resetId, received] = token.split('.');
-  if (!resetId || !received) return null;
-  const expected = Buffer.from(signature(resetId));
-  const actual = Buffer.from(received);
-  return actual.length === expected.length && timingSafeEqual(actual, expected) ? resetId : null;
-}
+export const signResetToken = (resetId: string): string => signToken(TOKEN_PURPOSE, resetId);
 
 /**
  * Pede uma nova senha. A resposta é sempre a mesma, exista a conta ou não (não revela quais e-mails
@@ -61,7 +47,7 @@ export async function requestPasswordReset(body: ForgotPasswordBody): Promise<vo
 
 /** Troca a senha com o link do e-mail. Vale uma vez; e derruba as sessões abertas da conta. */
 export async function resetPassword(body: ResetPasswordBody): Promise<void> {
-  const resetId = readResetId(body.token);
+  const resetId = readToken(TOKEN_PURPOSE, body.token);
   if (!resetId) throw new BadRequestError(INVALID_LINK);
 
   const passwordHash = await hashPassword(body.password);

@@ -169,3 +169,45 @@ export function passwordReset(data: PasswordResetMailData): RenderedEmail {
 <p style="font-size:13px;color:#606068">Se não foi você, ignore este e-mail: nada muda na sua conta.</p></div></div></body></html>`;
   return { subject, html, text };
 }
+
+const shell = (
+  title: string,
+  bodyHtml: string
+): string => `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#f4f3ef;font-family:Arial,sans-serif;color:#151518">
+<div style="max-width:560px;margin:0 auto;padding:24px"><p style="font-size:24px;font-weight:900;margin:0 0 16px"><span style="color:#ffbd08">Geek</span>Store</p>
+<div style="background:#fff;border-radius:12px;padding:24px"><h1 style="font-size:20px;margin:0 0 12px">${escapeHtml(title)}</h1>${bodyHtml}</div></div></body></html>`;
+
+const button = (href: string, label: string): string =>
+  `<p><a href="${escapeHtml(href)}" style="background:#ffbd08;color:#111;text-decoration:none;font-weight:900;padding:12px 18px;border-radius:10px;display:inline-block">${escapeHtml(label)}</a></p>`;
+
+export function newsletterConfirmation(data: {
+  link: string;
+  unsubscribeLink: string;
+}): RenderedEmail {
+  const subject = 'Confirme sua inscrição na newsletter da GeekStore';
+  return {
+    subject,
+    text: `Quase lá! Confirme sua inscrição na newsletter da GeekStore:\n${data.link}\n\nSe não foi você, ignore este e-mail ou cancele: ${data.unsubscribeLink}\n`,
+    html: shell(
+      'Falta só confirmar',
+      `<p style="font-size:15px;line-height:1.5">Clique para confirmar que você quer receber as novidades e ofertas da GeekStore.</p>${button(data.link, 'Confirmar inscrição')}<p style="font-size:13px;color:#606068">Não foi você? Ignore este e-mail.</p>`
+    ),
+  };
+}
+
+export function backInStock(data: {
+  productName: string;
+  variant: string | null;
+  link: string;
+}): RenderedEmail {
+  const name = data.variant ? `${data.productName} (${data.variant})` : data.productName;
+  const subject = `Chegou! ${name} está disponível`;
+  return {
+    subject,
+    text: `Boa notícia: "${name}" voltou ao estoque.\nGaranta o seu antes que acabe: ${data.link}\n`,
+    html: shell(
+      'Chegou o que você esperava',
+      `<p style="font-size:15px;line-height:1.5"><strong>${escapeHtml(name)}</strong> voltou ao estoque. As unidades são poucas, então não demore.</p>${button(data.link, 'Ver o produto')}`
+    ),
+  };
+}

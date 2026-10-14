@@ -26,6 +26,7 @@ import { Analytics, CookieBanner } from './analytics';
 import { useCartSync } from './cart-sync';
 import { CustomerSessionBootstrap } from './customer-session';
 import { formatBRL } from './lib/money';
+import { NewsletterForm } from './newsletter-form';
 import { ProductImage } from './product-image';
 import { useCartStore } from './state/cart-store';
 import { StoreAlert } from './store-alert';
@@ -293,6 +294,8 @@ export function Shell({
             <Link className={FOOTER_LINK} href="/admin/">
               Prévia do painel de gestão
             </Link>
+            <h3 className={`${FOOTER_TITLE} mt-6`}>Novidades por e-mail</h3>
+            <NewsletterForm />
           </div>
         </div>
         <div className="wrap mt-[35px] flex justify-between border-t border-white/12 py-[22px] text-xs max-md:gap-5 max-md:text-2xs">

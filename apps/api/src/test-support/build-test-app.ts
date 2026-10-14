@@ -13,6 +13,7 @@ import {
   storeRedirectRoutes,
 } from '../modules/content/content.routes';
 import { customerRoutes } from '../modules/customers/customer.routes';
+import { engagementRoutes } from '../modules/engagement/engagement.routes';
 import { adminOrderRoutes } from '../modules/orders/admin-orders.routes';
 import {
   customerOrderRoutes,
@@ -61,6 +62,7 @@ export async function buildTestApp() {
   await app.register(contentRoutes, { prefix: '/api/content' });
   await app.register(auditRoutes, { prefix: '/api/audit-logs' });
   await app.register(outboxRoutes, { prefix: '/api/outbox' });
+  await app.register(engagementRoutes, { prefix: '/api/store' });
   await app.ready();
   return app;
 }

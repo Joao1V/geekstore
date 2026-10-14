@@ -3,9 +3,12 @@ import { Prisma, prisma } from '@geekstore/db';
 import { envConfig } from '../../core/config/env';
 import type { PublishedEvent } from '../../core/outbox/outbox';
 import { signResetToken } from '../customers/password-reset.service';
+import { confirmationToken, unsubscribeToken } from '../engagement/engagement.service';
 import type { EmailSender } from './email-sender';
 import {
+  backInStock,
   type DivergenceMailData,
+  newsletterConfirmation,
   type OrderMailData,
   orderAwaitingPayment,
   orderCancelled,
@@ -26,7 +29,9 @@ type Template =
   | 'order_cancelled'
   | 'order_refunded'
   | 'stock_divergence'
-  | 'password_reset';
+  | 'password_reset'
+  | 'newsletter_confirmation'
+  | 'back_in_stock';
 
 const PICKUP_CARRIER = 'GeekStore';
 
@@ -168,6 +173,38 @@ export async function handleOutboxEvent(event: PublishedEvent, sender: EmailSend
         name: reset.customer.name,
         storeUrl: STORE_URL,
         link: `${STORE_URL}/redefinir-senha/?token=${signResetToken(resetId)}`,
+      })
+    );
+    return;
+  }
+
+  if (event.type === 'newsletter.confirmation_requested') {
+    const subscriber = await prisma.newsletterSubscriber.findUnique({
+      where: { newsletter_subscriber_id: event.entity_id },
+    });
+    if (!subscriber || subscriber.confirmed_at || subscriber.unsubscribed_at) return;
+    const { STORE_URL } = envConfig.email;
+    await sendOnce(sender, event.outbox_event_id, 'newsletter_confirmation', subscriber.email, () =>
+      newsletterConfirmation({
+        link: `${STORE_URL}/newsletter/confirmar/?token=${confirmationToken(subscriber.newsletter_subscriber_id)}`,
+        unsubscribeLink: `${STORE_URL}/newsletter/cancelar/?token=${unsubscribeToken(subscriber.newsletter_subscriber_id)}`,
+      })
+    );
+    return;
+  }
+
+  if (event.type === 'stock.back_in_stock') {
+    const alert = await prisma.stockAlert.findUnique({
+      where: { stock_alert_id: event.entity_id },
+      include: { sku: { include: { product: true } } },
+    });
+    if (!alert) return;
+    const { STORE_URL } = envConfig.email;
+    await sendOnce(sender, event.outbox_event_id, 'back_in_stock', alert.email, () =>
+      backInStock({
+        productName: alert.sku.product.name,
+        variant: null,
+        link: `${STORE_URL}/produto/${alert.sku.product.slug}/`,
       })
     );
     return;

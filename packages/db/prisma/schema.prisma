@@ -642,6 +642,7 @@ model Sku {
   attribute_values SkuAttributeValue[]
   cost_entries     SkuCostEntry[]
   return_items     OrderReturnItem[]
+  stock_alerts     StockAlert[]
 
   @@index([product_id])
   @@index([ean])
@@ -1145,4 +1146,30 @@ model OrderReturnItem {
 
   @@unique([order_return_id, sku_id])
   @@map("order_return_item")
+}
+
+/// Inscrição na newsletter com confirmação por e-mail (opt-in duplo, RF-VIT-08).
+model NewsletterSubscriber {
+  newsletter_subscriber_id String    @id @default(uuid(7)) @db.Uuid
+  email                    String    @unique @db.VarChar(255)
+  confirmed_at             DateTime?
+  unsubscribed_at          DateTime?
+  created_at               DateTime  @default(now())
+
+  @@map("newsletter_subscriber")
+}
+
+/// "Avise-me quando chegar" (RF-VIT-09): por SKU e e-mail. Avisa uma vez e marca `notified_at`.
+model StockAlert {
+  stock_alert_id String    @id @default(uuid(7)) @db.Uuid
+  sku_id         String    @db.Uuid
+  email          String    @db.VarChar(255)
+  notified_at    DateTime?
+  created_at     DateTime  @default(now())
+
+  sku Sku @relation(fields: [sku_id], references: [sku_id], onDelete: Cascade)
+
+  @@unique([sku_id, email])
+  @@index([notified_at])
+  @@map("stock_alert")
 }

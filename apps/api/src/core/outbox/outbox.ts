@@ -14,12 +14,14 @@ export const outboxEventTypes = [
   'order.refunded',
   'stock.divergence_found',
   'customer.password_reset_requested',
+  'newsletter.confirmation_requested',
+  'stock.back_in_stock',
 ] as const;
 export type OutboxEventType = (typeof outboxEventTypes)[number];
 
 export type OutboxInput = {
   type: OutboxEventType;
-  entityType: 'order' | 'stock' | 'customer';
+  entityType: 'order' | 'stock' | 'customer' | 'newsletter' | 'stock_alert';
   entityId: string;
   payload?: Prisma.InputJsonValue;
 };
