@@ -126,6 +126,24 @@ export const displayStatusLabels: Record<DisplayStatus, string> = {
   cancelled: 'Cancelado',
 };
 
+export const refundStatusSchema = z.enum(['pending', 'succeeded', 'failed']);
+export const refundSchema = z.object({
+  refund_id: z.string().uuid(),
+  amount_cents: z.number().int(),
+  status: refundStatusSchema,
+  reason: z.string(),
+  error: z.string().nullable(),
+  created_at: isoDateTimeSchema,
+});
+export type Refund = z.infer<typeof refundSchema>;
+
+/** Sem `amount_cents`, estorna tudo o que ainda não foi devolvido. */
+export const refundBodySchema = z.object({
+  amount_cents: z.number().int().positive().optional(),
+  reason: z.string().trim().min(3, 'Diga o motivo do estorno').max(255),
+});
+export type RefundBody = z.infer<typeof refundBodySchema>;
+
 export const orderSchema = z.object({
   order_id: z.string().uuid(),
   number: z.number().int(),
@@ -150,6 +168,9 @@ export const orderSchema = z.object({
   items: z.array(orderItemSchema),
   payment: orderPaymentSchema.nullable(),
   shipments: z.array(orderShipmentSchema),
+  /** Soma dos estornos já concluídos. */
+  refunded_cents: z.number().int(),
+  refunds: z.array(refundSchema),
   created_at: isoDateTimeSchema,
 });
 export type Order = z.infer<typeof orderSchema>;

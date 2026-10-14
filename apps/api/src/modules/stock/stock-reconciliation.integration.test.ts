@@ -1,7 +1,11 @@
 import { prisma } from '@geekstore/db';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { type CatalogFixture, createCatalogFixture } from '../../test-support/fixtures';
+import {
+  type CatalogFixture,
+  createCatalogFixture,
+  deleteOutboxEvents,
+} from '../../test-support/fixtures';
 import { findStockDivergences, reconcileStock } from './stock-reconciliation';
 
 describe('stock reconciliation (integration — requires a live DATABASE_URL)', () => {
@@ -13,8 +17,7 @@ describe('stock reconciliation (integration — requires a live DATABASE_URL)', 
   });
 
   afterAll(async () => {
-    await prisma.emailMessage.deleteMany({ where: { outbox_event_id: { in: alertIds } } });
-    await prisma.outboxEvent.deleteMany({ where: { outbox_event_id: { in: alertIds } } });
+    await deleteOutboxEvents({ outbox_event_id: { in: alertIds } });
     await fx.cleanup();
     await prisma.$disconnect();
   });

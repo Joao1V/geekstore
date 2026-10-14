@@ -1,29 +1,44 @@
 'use client';
 
-import { formatBRL, orderCancelBodySchema, orderShipBodySchema } from '@geekstore/shared';
+import { formatBRL, orderCancelBodySchema, orderShipBodySchema, toCents } from '@geekstore/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { Ban, CheckCheck, PackageCheck, Truck } from 'lucide-react';
+import { Ban, CheckCheck, PackageCheck, Truck, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import type { z } from 'zod';
 
-import { Action, Dialog, FieldInput } from '@/components/ui';
+import { Action, Dialog, FieldInput, FieldNumber } from '@/components/ui';
 import { getErrorMessage } from '../lib/errors';
 import { formatDateTime } from '../lib/format';
 import { useCan } from '../lib/use-can';
 import {
   useCancelOrder,
   useDeliverOrder,
+  useRefundOrder,
   useShipOrder,
   useStartPicking,
 } from '../services/orders/mutations';
 import { orderDetailQueryOptions } from '../services/orders/queries';
+import { Badge } from '../ui/badge';
 import { PageHeader } from '../ui/page-header';
 import { AdminTable, TBody, Td, THead, Th, Tr } from '../ui/table';
 import { OrderStatusBadge } from './order-status';
 
-type Dialogs = 'ship' | 'cancel' | null;
+type Dialogs = 'ship' | 'cancel' | 'refund' | null;
+type RefundFormValues = { amount: number | null; reason: string };
+const PAYMENT_STATE_LABELS = {
+  pending: 'pendente',
+  approved: 'aprovado',
+  partially_refunded: 'parcialmente estornado',
+  refunded: 'estornado',
+} as const;
+const REFUND_TONES = { pending: 'warning', succeeded: 'success', failed: 'error' } as const;
+const REFUND_LABELS = {
+  pending: 'Em processamento',
+  succeeded: 'Concluído',
+  failed: 'Falhou',
+} as const;
 const shipForm = orderShipBodySchema.pick({ carrier: true, tracking_code: true });
 const ADDRESS_ORDER = [
   'street',
@@ -37,11 +52,13 @@ const ADDRESS_ORDER = [
 
 export function OrderDetail({ number }: { number: number }) {
   const canWrite = useCan('orders:write');
+  const canRefund = useCan('orders:refund');
   const { data: order, isPending, error } = useQuery(orderDetailQueryOptions(number));
   const picking = useStartPicking(number);
   const ship = useShipOrder(number);
   const deliver = useDeliverOrder(number);
   const cancel = useCancelOrder(number);
+  const refund = useRefundOrder(number);
   const [dialog, setDialog] = useState<Dialogs>(null);
   const [actionError, setActionError] = useState('');
 
@@ -53,6 +70,8 @@ export function OrderDetail({ number }: { number: number }) {
     resolver: zodResolver(orderCancelBodySchema),
     defaultValues: { reason: '' },
   });
+
+  const refundForm = useForm<RefundFormValues>({ defaultValues: { amount: null, reason: '' } });
 
   if (isPending) return <p className="muted">Carregando…</p>;
   if (error || !order)
@@ -85,6 +104,20 @@ export function OrderDetail({ number }: { number: number }) {
     order.fulfillment_status !== 'delivered' &&
     !['shipped', 'partially_shipped'].includes(order.fulfillment_status);
   const address = order.shipping_address;
+  // O que ainda dá para devolver: o que foi pago menos os estornos concluídos e em andamento.
+  const refundable =
+    (order.payment?.amount_cents ?? 0) -
+    order.refunds
+      .filter((item) => item.status !== 'failed')
+      .reduce((sum, item) => sum + item.amount_cents, 0);
+  const canRefundNow =
+    canRefund &&
+    ['approved', 'partially_refunded'].includes(order.payment_status) &&
+    refundable > 0;
+  const openRefund = () => {
+    refundForm.reset({ amount: refundable / 100, reason: '' });
+    setDialog('refund');
+  };
 
   return (
     <div>
@@ -120,6 +153,11 @@ export function OrderDetail({ number }: { number: number }) {
                 <CheckCheck size={17} /> Marcar como entregue
               </Action>
             )}
+            {canRefundNow && (
+              <Action className="action-outline" onPress={openRefund}>
+                <Undo2 size={16} /> Estornar
+              </Action>
+            )}
             {canCancel && (
               <Action className="action-outline" onPress={() => setDialog('cancel')}>
                 <Ban size={16} /> Cancelar
@@ -136,8 +174,8 @@ export function OrderDetail({ number }: { number: number }) {
       {order.status === 'cancelled' && (
         <p className="notice mb-4">
           Cancelado{order.cancel_reason ? `: ${order.cancel_reason}` : ''}.{' '}
-          {order.payment_status === 'approved' &&
-            'O pagamento já tinha sido aprovado: o estorno ainda é manual.'}
+          {['approved', 'partially_refunded'].includes(order.payment_status) &&
+            'O pagamento já tinha sido aprovado: faça o estorno do valor em "Estornar".'}
         </p>
       )}
       <dl className="surface mb-4 grid grid-cols-4 gap-4 p-4 text-sm max-md:grid-cols-2">
@@ -151,7 +189,7 @@ export function OrderDetail({ number }: { number: number }) {
           <dt className="muted text-xs">Pagamento</dt>
           <dd className="m-0 mt-1 font-extrabold">
             {order.payment
-              ? `${order.payment.method === 'pix' ? 'Pix' : order.payment.method === 'card' ? 'Cartão' : 'Boleto'} · ${order.payment_status === 'pending' ? 'pendente' : 'aprovado'}`
+              ? `${order.payment.method === 'pix' ? 'Pix' : order.payment.method === 'card' ? 'Cartão' : 'Boleto'} · ${PAYMENT_STATE_LABELS[order.payment_status]}`
               : '—'}
           </dd>
         </div>
@@ -206,6 +244,22 @@ export function OrderDetail({ number }: { number: number }) {
           )}
         </TBody>
       </AdminTable>
+      {order.refunds.length > 0 && (
+        <div className="surface mt-4 p-4 text-sm">
+          <h2 className="mb-2 text-base font-extrabold">Estornos</h2>
+          <ul className="m-0 grid list-none gap-2 p-0">
+            {order.refunds.map((item) => (
+              <li key={item.refund_id} className="flex flex-wrap items-center gap-3">
+                <strong>{formatBRL(item.amount_cents)}</strong>
+                <Badge tone={REFUND_TONES[item.status]}>{REFUND_LABELS[item.status]}</Badge>
+                <span className="muted">
+                  {formatDateTime(item.created_at)} · {item.reason}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="mt-4 grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <div className="surface p-4 text-sm">
           <h2 className="mb-2 text-base font-extrabold">Entrega</h2>
@@ -285,6 +339,69 @@ export function OrderDetail({ number }: { number: number }) {
             </Action>
             <Action type="submit" disabled={ship.isPending}>
               {ship.isPending ? 'Enviando…' : 'Confirmar envio'}
+            </Action>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog
+        open={dialog === 'refund'}
+        onChange={(next) => !next && setDialog(null)}
+        title="Estornar pagamento"
+      >
+        <form
+          className="grid gap-4"
+          noValidate
+          onSubmit={refundForm.handleSubmit((values) => {
+            const cents = values.amount === null ? refundable : toCents(values.amount);
+            if (cents <= 0 || cents > refundable) {
+              refundForm.setError('amount', {
+                message: `Informe um valor entre R$ 0,01 e ${formatBRL(refundable)}`,
+              });
+              return;
+            }
+            if (values.reason.trim().length < 3) {
+              refundForm.setError('reason', { message: 'Diga o motivo do estorno' });
+              return;
+            }
+            return run(
+              () => refund.mutateAsync({ amount_cents: cents, reason: values.reason.trim() }),
+              () => setDialog(null)
+            );
+          })}
+        >
+          <p className="m-0 text-sm">
+            Devolve o dinheiro ao cliente pelo mesmo meio de pagamento. Pode estornar só uma parte.
+            O pedido e o estoque não mudam: para isso, use Cancelar. Ainda dá para estornar{' '}
+            <strong>{formatBRL(refundable)}</strong>.
+          </p>
+          <Controller
+            control={refundForm.control}
+            name="amount"
+            render={({ field, fieldState }) => (
+              <FieldNumber
+                field={field}
+                fieldState={fieldState}
+                label="Valor a estornar"
+                minValue={0.01}
+                step={0.01}
+                formatOptions={{ style: 'currency', currency: 'BRL' }}
+              />
+            )}
+          />
+          <Controller
+            control={refundForm.control}
+            name="reason"
+            render={({ field, fieldState }) => (
+              <FieldInput field={field} fieldState={fieldState} label="Motivo do estorno" />
+            )}
+          />
+          <div className="flex justify-end gap-3">
+            <Action type="button" className="action-outline" onPress={() => setDialog(null)}>
+              Voltar
+            </Action>
+            <Action type="submit" disabled={refund.isPending}>
+              {refund.isPending ? 'Estornando…' : 'Confirmar estorno'}
             </Action>
           </div>
         </form>

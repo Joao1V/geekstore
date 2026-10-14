@@ -6,6 +6,7 @@ import {
   orderParamsSchema,
   orderResponseSchema,
   orderShipBodySchema,
+  refundBodySchema,
 } from '@geekstore/shared';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
@@ -20,6 +21,7 @@ import {
   shipOrder,
   startPicking,
 } from './admin-orders.service';
+import { refundOrder } from './refund.service';
 
 const tags = ['Pedidos (admin)'];
 const read = { onRequest: requirePermission('orders:read') };
@@ -123,6 +125,24 @@ export async function adminOrderRoutes(fastify: FastifyInstance): Promise<void> 
     },
     async (request) => ({
       data: await cancelAdminOrder(request.user.sub, request.params.number, request.body),
+    })
+  );
+
+  app.post(
+    '/:number/refunds',
+    {
+      onRequest: requirePermission('orders:refund'),
+      schema: {
+        tags,
+        summary:
+          'Estorna dinheiro do pedido (total ou parcial). Não cancela o pedido nem repõe estoque',
+        params: orderParamsSchema,
+        body: refundBodySchema,
+        response: { 200: orderResponseSchema },
+      },
+    },
+    async (request) => ({
+      data: await refundOrder(request.user.sub, request.params.number, request.body),
     })
   );
 }

@@ -19,6 +19,7 @@ model User {
   role           Role           @relation(fields: [role_id], references: [role_id])
   refresh_tokens RefreshToken[]
   audit_logs     AuditLog[]
+  refunds        Refund[]
 
   @@index([role_id])
   @@map("user")
@@ -260,6 +261,7 @@ model Order {
   items     OrderItem[]
   payments  Payment[]
   shipments Shipment[]
+  refunds   Refund[]
 
   @@unique([channel_id, external_order_id])
   @@index([customer_id, created_at])
@@ -317,7 +319,8 @@ model Payment {
   created_at   DateTime             @default(now())
   updated_at   DateTime             @updatedAt
 
-  order Order @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  order   Order    @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  refunds Refund[]
 
   @@unique([provider, external_id])
   @@index([order_id])
@@ -1067,4 +1070,35 @@ model PasswordReset {
 
   @@index([customer_id, created_at])
   @@map("password_reset")
+}
+
+enum RefundStatus {
+  pending
+  succeeded
+  failed
+}
+
+/// Estorno total ou parcial de um pagamento (RF-PAG-06). Fica `pending` até o provedor responder; a
+/// soma dos estornos `pending` e `succeeded` nunca passa do valor pago. Só mexe no dinheiro: estoque
+/// e devolução física são operações separadas (RF-PED-04).
+model Refund {
+  refund_id    String       @id @default(uuid(7)) @db.Uuid
+  payment_id   String       @db.Uuid
+  order_id     String       @db.Uuid
+  amount_cents Int
+  status       RefundStatus @default(pending)
+  reason       String       @db.VarChar(255)
+  external_id  String?      @db.VarChar(100)
+  error        String?      @db.VarChar(500)
+  user_id      String       @db.Uuid
+  created_at   DateTime     @default(now())
+  processed_at DateTime?
+
+  payment Payment @relation(fields: [payment_id], references: [payment_id])
+  order   Order   @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [user_id])
+
+  @@index([order_id])
+  @@index([payment_id])
+  @@map("refund")
 }

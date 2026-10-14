@@ -90,6 +90,12 @@ export function OrderView({ order }: { order: Order }) {
             <dt>Total</dt>
             <dd>{formatBRL(order.total_cents)}</dd>
           </div>
+          {order.refunded_cents > 0 && (
+            <div className={TOTAL_ROW}>
+              <dt>Estornado</dt>
+              <dd>{formatBRL(order.refunded_cents)}</dd>
+            </div>
+          )}
         </dl>
       </div>
       <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">

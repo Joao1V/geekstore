@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { prisma } from '@geekstore/db';
+import { type Prisma, prisma } from '@geekstore/db';
 import type { RoleCode } from '@geekstore/shared';
 
 import { hashPassword } from '../core/security/password';
@@ -95,4 +95,26 @@ export async function cleanupCatalog(ids: { userId: string; categoryId: string }
     where: { OR: [{ entity_id: { in: entityIds } }, { user_id: ids.userId }] },
   });
   await prisma.user.deleteMany({ where: { user_id: ids.userId } });
+}
+
+/**
+ * Apaga eventos do outbox (e os e-mails que nasceram deles) criados por um teste. Um servidor de
+ * desenvolvimento ligado ao mesmo banco pode consumir esses eventos e gravar e-mails no meio da
+ * limpeza, então a limpeza confere de novo antes de desistir.
+ */
+export async function deleteOutboxEvents(where: Prisma.OutboxEventWhereInput) {
+  const attempts = 3;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const ids = (
+      await prisma.outboxEvent.findMany({ where, select: { outbox_event_id: true } })
+    ).map((event) => event.outbox_event_id);
+    if (ids.length === 0) return;
+    await prisma.emailMessage.deleteMany({ where: { outbox_event_id: { in: ids } } });
+    try {
+      await prisma.outboxEvent.deleteMany({ where: { outbox_event_id: { in: ids } } });
+      return;
+    } catch (error) {
+      if (attempt === attempts - 1) throw error;
+    }
+  }
 }

@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-import { dataResponse, isoDateTimeSchema, paginatedResponse, paginationQuerySchema } from './common';
+import {
+  dataResponse,
+  isoDateTimeSchema,
+  paginatedResponse,
+  paginationQuerySchema,
+} from './common';
 
 export const outboxStatusSchema = z.enum(['pending', 'published', 'failed']);
 export type OutboxStatus = z.infer<typeof outboxStatusSchema>;
@@ -29,6 +34,9 @@ export const outboxListResponseSchema = paginatedResponse(outboxEventSchema);
 export const outboxParamsSchema = z.object({ outbox_event_id: z.string().uuid() });
 export const outboxRetryResponseSchema = dataResponse(outboxEventSchema);
 
-export const outboxSummarySchema = z.object({ pending: z.number().int(), failed: z.number().int() });
+export const outboxSummarySchema = z.object({
+  pending: z.number().int(),
+  failed: z.number().int(),
+});
 export type OutboxSummary = z.infer<typeof outboxSummarySchema>;
 export const outboxSummaryResponseSchema = dataResponse(outboxSummarySchema);

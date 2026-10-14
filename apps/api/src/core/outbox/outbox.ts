@@ -11,6 +11,7 @@ export const outboxEventTypes = [
   'order.shipped',
   'order.delivered',
   'order.cancelled',
+  'order.refunded',
   'stock.divergence_found',
   'customer.password_reset_requested',
 ] as const;

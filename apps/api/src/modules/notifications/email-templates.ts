@@ -131,6 +131,13 @@ export function orderCancelled(data: OrderMailData): RenderedEmail {
   ]);
 }
 
+export function orderRefunded(data: OrderMailData, refundCents: number): RenderedEmail {
+  return build(data, `Estorno do pedido #${data.number}`, 'Estorno realizado', [
+    `Estornamos ${brl(refundCents)} do pedido #${data.number}.`,
+    'O prazo para o valor aparecer depende da forma de pagamento: Pix e cartão costumam levar de 1 a 2 faturas ou alguns dias úteis.',
+  ]);
+}
+
 export type DivergenceMailData = {
   rows: Array<{ code: string; field: 'on_hand' | 'reserved'; expected: number; actual: number }>;
 };

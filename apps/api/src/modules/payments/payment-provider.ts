@@ -42,9 +42,21 @@ export type ChargeResult = {
   expiresAt: Date | null;
 };
 
+export type RefundInput = {
+  /** O pagamento no provedor (`Payment.external_id`). */
+  externalId: string;
+  /** Repetir o mesmo estorno nunca devolve o dinheiro duas vezes. */
+  idempotencyKey: string;
+  amountCents: number;
+};
+
+export type RefundResult = { externalId: string | null; status: 'succeeded' | 'pending' };
+
 export type PaymentProvider = {
   readonly name: string;
   createCharge(input: ChargeInput): Promise<ChargeResult>;
+  /** Devolve `amountCents` ao cliente. Lança se o provedor recusar. */
+  refund(input: RefundInput): Promise<RefundResult>;
 };
 
 const MS_PER_MINUTE = 60_000;
@@ -65,6 +77,9 @@ const TOKEN_PATTERN = /^mock_tok_(approved|declined)_(\d{4})$/;
  */
 export const mockProvider: PaymentProvider = {
   name: 'mock',
+  async refund() {
+    return { externalId: `mock_refund_${randomUUID()}`, status: 'succeeded' };
+  },
   async createCharge(input) {
     const externalId = `mock_${randomUUID()}`;
     const expiresAt = new Date(Date.now() + ttlMinutesOf(input.method) * MS_PER_MINUTE);

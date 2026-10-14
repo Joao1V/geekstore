@@ -79,7 +79,7 @@ export async function getAdminOrder(number: number): Promise<Order> {
 export async function startPicking(actorId: string, number: number): Promise<Order> {
   return prisma.$transaction(async (tx) => {
     const order = await loadByNumber(tx, number);
-    if (order.status !== 'open' || order.payment_status !== 'approved') {
+    if (order.status !== 'open' || order.payment_status === 'pending') {
       throw new ConflictError('Só um pedido pago e em aberto pode ir para separação.');
     }
     if (order.fulfillment_status !== 'not_picked') {
@@ -112,7 +112,7 @@ export async function shipOrder(
 ): Promise<Order> {
   return prisma.$transaction(async (tx) => {
     const order = await loadByNumber(tx, number);
-    if (order.status !== 'open' || order.payment_status !== 'approved') {
+    if (order.status !== 'open' || order.payment_status === 'pending') {
       throw new ConflictError('Só um pedido pago e em aberto pode ser enviado.');
     }
     const claimed = await tx.order.updateMany({
@@ -206,7 +206,8 @@ export async function cancelAdminOrder(
       after: {
         status: 'cancelled',
         reason: body.reason,
-        refund_pending: order.payment_status === 'approved',
+        refund_pending:
+          order.payment_status === 'approved' || order.payment_status === 'partially_refunded',
       },
     });
     return toOrder(await loadByNumber(tx, number));

@@ -165,6 +165,21 @@ export function mercadoPagoProvider(): PaymentProvider {
   if (!MERCADOPAGO_ACCESS_TOKEN) throw new MercadoPagoError('Mercado Pago não configurado.');
   return {
     name: 'mercadopago',
+    async refund(input) {
+      const refund = await request<{ id: number; status: string }>(
+        MERCADOPAGO_ACCESS_TOKEN,
+        `/v1/payments/${encodeURIComponent(input.externalId)}/refunds`,
+        {
+          method: 'POST',
+          body: { amount: input.amountCents / CENTS_PER_REAL },
+          idempotencyKey: input.idempotencyKey,
+        }
+      );
+      return {
+        externalId: String(refund.id),
+        status: refund.status === 'approved' ? 'succeeded' : 'pending',
+      };
+    },
     async createCharge(input): Promise<ChargeResult> {
       if (input.method === 'card' && !input.cardToken) {
         throw new BadRequestError('Dados do cartão inválidos. Confira e tente de novo.');

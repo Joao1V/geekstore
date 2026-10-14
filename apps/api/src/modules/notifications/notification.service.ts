@@ -11,6 +11,7 @@ import {
   orderCancelled,
   orderDelivered,
   orderPaid,
+  orderRefunded,
   orderShipped,
   passwordReset,
   type RenderedEmail,
@@ -23,6 +24,7 @@ type Template =
   | 'order_shipped'
   | 'order_delivered'
   | 'order_cancelled'
+  | 'order_refunded'
   | 'stock_divergence'
   | 'password_reset';
 
@@ -181,6 +183,16 @@ export async function handleOutboxEvent(event: PublishedEvent, sender: EmailSend
     if (!pending || data.cancelReason) return;
     await sendOnce(sender, event.outbox_event_id, 'order_awaiting_payment', data.email, () =>
       orderAwaitingPayment(data)
+    );
+    return;
+  }
+
+  if (event.type === 'order.refunded') {
+    const { refund_id: refundId } = event.payload as { refund_id: string };
+    const refund = await prisma.refund.findUnique({ where: { refund_id: refundId } });
+    if (!refund || refund.status !== 'succeeded') return;
+    await sendOnce(sender, event.outbox_event_id, 'order_refunded', data.email, () =>
+      orderRefunded(data, refund.amount_cents)
     );
     return;
   }

@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { PublishedEvent } from '../../core/outbox/outbox';
 import { buildTestApp } from '../../test-support/build-test-app';
+import { deleteOutboxEvents } from '../../test-support/fixtures';
 import type { EmailSender } from '../notifications/email-sender';
 import { handleOutboxEvent } from '../notifications/notification.service';
 
@@ -55,13 +56,7 @@ describe('password recovery (integration — requires a live DATABASE_URL)', () 
   });
 
   afterAll(async () => {
-    const events = await prisma.outboxEvent.findMany({
-      where: { entity_id: customerId },
-      select: { outbox_event_id: true },
-    });
-    const ids = events.map((e) => e.outbox_event_id);
-    await prisma.emailMessage.deleteMany({ where: { outbox_event_id: { in: ids } } });
-    await prisma.outboxEvent.deleteMany({ where: { outbox_event_id: { in: ids } } });
+    await deleteOutboxEvents({ entity_id: customerId });
     await prisma.customer.deleteMany({ where: { email } });
     await app.close();
     await prisma.$disconnect();

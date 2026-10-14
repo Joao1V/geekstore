@@ -4,7 +4,11 @@ import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { buildTestApp } from '../../test-support/build-test-app';
-import { type CatalogFixture, createCatalogFixture } from '../../test-support/fixtures';
+import {
+  type CatalogFixture,
+  createCatalogFixture,
+  deleteOutboxEvents,
+} from '../../test-support/fixtures';
 
 const STOCK = 3;
 const BUYERS = 10;
@@ -56,7 +60,7 @@ describe('checkout concurrency (integration — requires a live DATABASE_URL)', 
       select: { order_id: true },
     });
     const ids = orders.map((order) => order.order_id);
-    await prisma.outboxEvent.deleteMany({ where: { entity_id: { in: ids } } });
+    await deleteOutboxEvents({ entity_id: { in: ids } });
     await prisma.stockReservation.deleteMany({ where: { sku_id: fx.skuId } });
     await prisma.order.deleteMany({ where: { order_id: { in: ids } } });
     await prisma.price.deleteMany({ where: { sku_id: fx.skuId } });

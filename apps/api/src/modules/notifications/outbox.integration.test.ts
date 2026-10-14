@@ -9,7 +9,11 @@ import {
   writeOutboxEvent,
 } from '../../core/outbox/outbox';
 import { buildTestApp } from '../../test-support/build-test-app';
-import { type CatalogFixture, createCatalogFixture } from '../../test-support/fixtures';
+import {
+  type CatalogFixture,
+  createCatalogFixture,
+  deleteOutboxEvents,
+} from '../../test-support/fixtures';
 import type { EmailSender } from './email-sender';
 import { handleOutboxEvent } from './notification.service';
 
@@ -79,13 +83,9 @@ describe('outbox and e-mails (integration — requires a live DATABASE_URL)', ()
       select: { order_id: true },
     });
     const orderIds = orders.map((o) => o.order_id);
-    const events = await prisma.outboxEvent.findMany({
-      where: { OR: [{ entity_id: { in: orderIds } }, { outbox_event_id: { in: eventIds } }] },
-      select: { outbox_event_id: true },
+    await deleteOutboxEvents({
+      OR: [{ entity_id: { in: orderIds } }, { outbox_event_id: { in: eventIds } }],
     });
-    const ids = events.map((e) => e.outbox_event_id);
-    await prisma.emailMessage.deleteMany({ where: { outbox_event_id: { in: ids } } });
-    await prisma.outboxEvent.deleteMany({ where: { outbox_event_id: { in: ids } } });
     await prisma.stockReservation.deleteMany({ where: { sku_id: fx.skuId } });
     await prisma.order.deleteMany({ where: { order_id: { in: orderIds } } });
     await prisma.price.deleteMany({ where: { sku_id: fx.skuId } });
