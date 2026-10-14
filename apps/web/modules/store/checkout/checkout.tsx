@@ -21,6 +21,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import { Action } from '@/components/ui';
+import { trackEvent } from '@/lib/analytics';
 import { getMascot } from '@/lib/mascot';
 import { PAYMENTS_ARE_REAL, type TokenizedCard, tokenizeCard } from '@/lib/mercado-pago';
 import { useCartSync } from '../cart-sync';
@@ -111,6 +112,22 @@ export function Checkout() {
     setValue('state', home.state);
   }, [addresses, getValues, setValue]);
 
+  const beganCheckout = useRef(false);
+  useEffect(() => {
+    if (!hasHydrated || lines.length === 0 || beganCheckout.current) return;
+    beganCheckout.current = true;
+    trackEvent('begin_checkout', {
+      valueCents: lines.reduce((sum, line) => sum + line.price_cents * line.qty, 0),
+      items: lines.map((line) => ({
+        id: line.sku_id,
+        name: line.name,
+        variant: line.variant || undefined,
+        priceCents: line.price_cents,
+        quantity: line.qty,
+      })),
+    });
+  }, [hasHydrated, lines]);
+
   const zipDigits = onlyDigits(zip);
   const quoteItems = lines.map((line) => ({ sku_id: line.sku_id, quantity: line.qty }));
   const quote = useQuery({
@@ -169,9 +186,22 @@ export function Checkout() {
     }
   };
 
+  const analyticsItems = lines.map((line) => ({
+    id: line.sku_id,
+    name: line.name,
+    variant: line.variant || undefined,
+    priceCents: line.price_cents,
+    quantity: line.qty,
+  }));
+
   const advance = async () => {
     const valid = await trigger(STEP_FIELDS[step]);
-    if (valid) setStep(step + 1);
+    if (!valid) return;
+    // Concluir a etapa de entrega e a de pagamento são os marcos do funil (GA4 / Meta).
+    if (step === 1) {
+      trackEvent('add_shipping_info', { valueCents: subtotalCents, items: analyticsItems });
+    }
+    setStep(step + 1);
   };
 
   const place = async (values: CheckoutFormValues) => {
@@ -199,6 +229,7 @@ export function Checkout() {
         return;
       }
     }
+    trackEvent('add_payment_info', { valueCents: subtotalCents, items: analyticsItems });
     const pickup = values.shipping_service === 'pickup';
     const body: CheckoutBody = {
       items: lines.map((line) => ({ sku_id: line.sku_id, quantity: line.qty })),

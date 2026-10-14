@@ -5,10 +5,10 @@ import { Button } from '@heroui/react';
 import { ArrowRight, Heart, Package, ShieldCheck, ShoppingCart, Truck, ZoomIn } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-
 import { Action, Dialog, FieldInput, Price, Quantity, ScarcityBadge } from '@/components/ui';
+import { trackEvent } from '@/lib/analytics';
 import { discountPercent, formatBRL, installmentPlan, pixCents } from './lib/money';
 import { ProductImage } from './product-image';
 import { useCartStore } from './state/cart-store';
@@ -175,6 +175,20 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
       },
       qty
     );
+    if (added) {
+      trackEvent('add_to_cart', {
+        valueCents: sku.price_cents * qty,
+        items: [
+          {
+            id: sku.sku_id,
+            name: product.name,
+            variant: variantLabel,
+            priceCents: sku.price_cents,
+            quantity: qty,
+          },
+        ],
+      });
+    }
     if (added && buyNow) router.push('/checkout/');
   };
 
@@ -187,6 +201,13 @@ export function ProductBuy({ product }: { product: StoreProductDetail }) {
 
   const onSale = compareAt !== null && compareAt > priceCents;
   const plan = installmentPlan(priceCents);
+
+  useEffect(() => {
+    trackEvent('view_item', {
+      valueCents: priceCents,
+      items: [{ id: product.product_id, name: product.name, priceCents, quantity: 1 }],
+    });
+  }, [product.product_id, product.name, priceCents]);
 
   return (
     <>

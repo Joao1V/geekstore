@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
+import { trackEvent } from '@/lib/analytics';
 
 import { formatBRL } from './lib/money';
 import { ProductImage } from './product-image';
@@ -80,6 +81,8 @@ export function StoreSearch() {
     remember(value);
     setValue('q', value);
     setFocused(false);
+    if (value.trim().length >= MIN_SEARCH_LENGTH)
+      trackEvent('search', { searchTerm: value.trim() });
     router.push(catalogHref(value));
   };
 

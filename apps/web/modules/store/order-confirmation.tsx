@@ -4,9 +4,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Copy, Hourglass, XCircle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Action } from '@/components/ui';
+import { trackEvent } from '@/lib/analytics';
 import { getMascot } from '@/lib/mascot';
 import { PAYMENTS_ARE_REAL } from '@/lib/mercado-pago';
 import { getErrorMessage } from './lib/errors';
@@ -32,6 +33,29 @@ export function OrderConfirmation({ orderId }: { orderId: string }) {
     refetchInterval: (query) =>
       query.state.data?.display_status === 'awaiting_payment' ? POLL_MS : false,
   });
+
+  // `purchase` dispara uma vez por pedido neste navegador (a página recarrega e consulta o status).
+  useEffect(() => {
+    if (!order) return;
+    const key = `geekstore-purchase-${order.order_id}`;
+    try {
+      if (window.sessionStorage.getItem(key)) return;
+      window.sessionStorage.setItem(key, '1');
+    } catch {
+      // Sem sessionStorage: dispara mesmo assim, no máximo repete numa recarga.
+    }
+    trackEvent('purchase', {
+      transactionId: String(order.number),
+      valueCents: order.total_cents,
+      items: order.items.map((item) => ({
+        id: item.sku_id,
+        name: item.name,
+        variant: item.variant ?? undefined,
+        priceCents: item.unit_price_cents,
+        quantity: item.quantity,
+      })),
+    });
+  }, [order]);
 
   if (loadError) {
     return (

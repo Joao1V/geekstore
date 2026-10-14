@@ -22,6 +22,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Dialog, Quantity } from '@/components/ui';
 import { getMascot } from '@/lib/mascot';
 import { AccountLinks } from './account-links';
+import { Analytics, CookieBanner } from './analytics';
 import { useCartSync } from './cart-sync';
 import { CustomerSessionBootstrap } from './customer-session';
 import { formatBRL } from './lib/money';
@@ -130,6 +131,8 @@ export function Shell({
 
   return (
     <>
+      <Analytics />
+      <CookieBanner />
       <header
         ref={headerRef}
         className={`fixed inset-x-0 top-0 z-50 border-b text-white transition-[box-shadow,background-color] duration-200 ${
