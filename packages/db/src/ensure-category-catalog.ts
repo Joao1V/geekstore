@@ -1,5 +1,5 @@
 import type { PrismaClient } from '../generated/client/index.js';
-import { CATEGORY_CATALOG, type CategorySeed } from './category-catalog';
+import { CATEGORY_CATALOG, type CategorySeed } from './category-catalog.js';
 
 type Db = Pick<PrismaClient, 'category' | 'attribute' | 'categoryAttribute'>;
 

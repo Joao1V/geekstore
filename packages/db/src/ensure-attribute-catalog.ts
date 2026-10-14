@@ -1,5 +1,5 @@
 import type { PrismaClient } from '../generated/client/index.js';
-import { ATTRIBUTE_CATALOG, valueCodeOf } from './attribute-catalog';
+import { ATTRIBUTE_CATALOG, valueCodeOf } from './attribute-catalog.js';
 
 // Aceita o cliente e o cliente de transação.
 type Db = Pick<PrismaClient, 'attribute' | 'attributeValue'>;

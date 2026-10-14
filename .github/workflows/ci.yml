@@ -65,6 +65,12 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # O pacote do banco é compilado e carregado pelo Node puro na imagem de produção: um import sem
+      # extensão passa no typecheck e nos testes (tsx) mas derruba a API ao subir.
+      - name: Smoke (API compilada carrega o pacote do banco)
+        working-directory: apps/api
+        run: node --input-type=module -e "await import('@geekstore/db'); console.log('ok')"
+
   # Constrói as imagens no GitHub e publica no GHCR; o Dokploy só faz `pull`. Compilar no VPS
   # (5,8 GB de RAM, dividido com outros projetos) já o derrubou uma vez, então o deploy automático
   # por build local está desligado. Só roda na `main`, depois do CI verde.
