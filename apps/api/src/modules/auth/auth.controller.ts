@@ -1,4 +1,4 @@
-import type { AuthLoginBody, AuthSessionResponse } from '@geekstore/shared';
+import type { AuthLoginBody, AuthSessionResponse, AuthUser } from '@geekstore/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import { UnauthorizedError } from '../../core/_errors';
@@ -33,12 +33,7 @@ function readRefreshCookie(request: FastifyRequest): string {
   return unsigned.value;
 }
 
-export async function loginController(
-  request: FastifyRequest<{ Body: AuthLoginBody }>,
-  reply: FastifyReply
-): Promise<void> {
-  const { email, password } = request.body;
-  const user = await verifyCredentials(email, password);
+async function startSession(request: FastifyRequest, reply: FastifyReply, user: AuthUser) {
   const { token: refreshToken, expiresAt } = await createSession(user.user_id);
   const accessToken = await request.server.jwt.sign({ sub: user.user_id, role: user.role });
 
@@ -46,6 +41,14 @@ export async function loginController(
 
   const body: AuthSessionResponse = { data: { access_token: accessToken, user } };
   reply.send(body);
+}
+
+export async function loginController(
+  request: FastifyRequest<{ Body: AuthLoginBody }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { email, password } = request.body;
+  await startSession(request, reply, await verifyCredentials(email, password));
 }
 
 export async function refreshController(

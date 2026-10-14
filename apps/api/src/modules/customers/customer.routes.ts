@@ -9,6 +9,7 @@ import {
   customerResponseSchema,
   customerSessionResponseSchema,
   customerUpdateBodySchema,
+  googleLoginBodySchema,
 } from '@geekstore/shared';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
@@ -16,6 +17,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import {
   createAddressController,
   deleteAddressController,
+  googleLoginController,
   listAddressesController,
   loginController,
   logoutController,
@@ -58,6 +60,19 @@ export async function customerRoutes(fastify: FastifyInstance): Promise<void> {
       },
     },
     loginController
+  );
+  app.post(
+    '/auth/google',
+    {
+      config: { rateLimit: AUTH_RATE_LIMIT },
+      schema: {
+        tags,
+        summary: 'Entra (ou cria a conta) com o ID token do Google',
+        body: googleLoginBodySchema,
+        response: { 200: customerSessionResponseSchema },
+      },
+    },
+    googleLoginController
   );
   app.post(
     '/auth/refresh',

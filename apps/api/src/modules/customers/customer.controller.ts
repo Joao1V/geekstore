@@ -5,6 +5,7 @@ import type {
   CustomerRegisterBody,
   CustomerSession,
   CustomerUpdateBody,
+  GoogleLoginBody,
 } from '@geekstore/shared';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -20,6 +21,7 @@ import {
 } from './customer.service';
 import {
   createCustomerSession,
+  loginCustomerWithGoogle,
   registerCustomer,
   revokeCustomerRefreshToken,
   rotateCustomerRefreshToken,
@@ -76,6 +78,13 @@ export async function loginController(
   reply: FastifyReply
 ) {
   return startSession(request, reply, await verifyCustomerCredentials(request.body));
+}
+
+export async function googleLoginController(
+  request: FastifyRequest<{ Body: GoogleLoginBody }>,
+  reply: FastifyReply
+) {
+  return startSession(request, reply, await loginCustomerWithGoogle(request.body.credential));
 }
 
 export async function refreshController(request: FastifyRequest, reply: FastifyReply) {

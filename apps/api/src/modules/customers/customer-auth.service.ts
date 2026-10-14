@@ -1,8 +1,10 @@
+import { randomBytes } from 'node:crypto';
 import { Prisma, prisma } from '@geekstore/db';
 import type { Customer, CustomerLoginBody, CustomerRegisterBody } from '@geekstore/shared';
 
 import { ConflictError, UnauthorizedError } from '../../core/_errors';
 import { envConfig } from '../../core/config';
+import { verifyGoogleIdToken } from '../../core/security/google-id-token';
 import { hashPassword, verifyPassword } from '../../core/security/password';
 import {
   generateOpaqueToken,
@@ -63,6 +65,47 @@ export async function verifyCustomerCredentials(body: CustomerLoginBody): Promis
     throw new UnauthorizedError('E-mail ou senha incorretos.');
   }
   return toCustomer(row);
+}
+
+/**
+ * Entrar com Google na loja: acha a conta pelo `sub`; na primeira vez vincula a conta que já tem o
+ * mesmo e-mail (o Google confirmou o e-mail) ou cria uma nova, com senha aleatória que ninguém conhece.
+ */
+export async function loginCustomerWithGoogle(credential: string): Promise<Customer> {
+  const identity = await verifyGoogleIdToken(credential);
+
+  const bySub = await prisma.customer.findUnique({ where: { google_sub: identity.sub } });
+  if (bySub) return toCustomer(bySub);
+
+  const byEmail = await prisma.customer.findUnique({ where: { email: identity.email } });
+  if (byEmail) {
+    if (byEmail.google_sub) throw new UnauthorizedError('Não foi possível entrar com o Google.');
+    return toCustomer(
+      await prisma.customer.update({
+        where: { customer_id: byEmail.customer_id },
+        data: { google_sub: identity.sub },
+      })
+    );
+  }
+
+  try {
+    return toCustomer(
+      await prisma.customer.create({
+        data: {
+          email: identity.email,
+          name: identity.name,
+          google_sub: identity.sub,
+          password_hash: await hashPassword(randomBytes(32).toString('hex')),
+        },
+      })
+    );
+  } catch (error) {
+    // Dois cliques ao mesmo tempo: o UNIQUE barra o segundo; quem perdeu a corrida só tenta de novo.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      throw new ConflictError('Tente entrar com o Google novamente.');
+    }
+    throw error;
+  }
 }
 
 export function createCustomerSession(customerId: string): Promise<IssuedRefreshToken> {

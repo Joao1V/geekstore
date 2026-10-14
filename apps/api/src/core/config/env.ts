@@ -48,6 +48,8 @@ const envSchema = z.object({
   // e o resto da API sobe normalmente.
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   AI_MODEL: z.string().default('claude-haiku-4-5-20251001'),
+  // Entrar com Google (opcional): Client ID do OAuth (tipo Web). Sem ele, a API recusa o login Google.
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -114,6 +116,10 @@ export const envConfig = {
       SECRET_ACCESS_KEY: S3_SECRET_ACCESS_KEY,
       PUBLIC_BASE_URL: S3_PUBLIC_BASE_URL,
     };
+  },
+  get google() {
+    const { GOOGLE_CLIENT_ID } = getEnv();
+    return { CLIENT_ID: GOOGLE_CLIENT_ID };
   },
   get ai() {
     const { ANTHROPIC_API_KEY, AI_MODEL } = getEnv();
